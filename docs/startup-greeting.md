@@ -10,7 +10,7 @@ O backend exige `startupGreeting: true` antes de consultar tempo ou sintetizar f
 
 O tom metálico é fixo e aplicado localmente pelo Web Audio durante a reprodução da saudação e da amostra. Nesta revisão, ele ficou um pouco mais presente, e a reprodução passou a **0,95× com a altura da voz preservada**, apenas 5% mais lenta que a voz original. Não há fala adicional antes da narração nem controle de intensidade. O processamento não altera o clone, o MP3 de origem ou os parâmetros enviados à ElevenLabs: a velocidade de síntese continua em 1.
 
-O autor ouviu e aprovou a versão anterior e pediu esse refinamento de timbre e cadência. A nova reprodução ainda precisa de confirmação auditiva própria; a aprovação anterior não é apresentada como aprovação desta revisão.
+A velocidade de reprodução de 0,95× foi ouvida e aprovada pelo autor. A saudação completa é um fluxo distinto da frase de apresentação disponível em **Ajustes → Saudação → Amostra fixa da voz**.
 
 A execução automática completa ainda precisa de ensaio com a chave configurada no aplicativo. Aprovar a narração no painel confirma a escolha da voz; não comprova a consulta meteorológica ou a reprodução automática em uma nova instalação.
 

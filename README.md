@@ -20,7 +20,7 @@ O painel **Conversa** exibe texto progressivo e transcrições. **Memória** apr
 | Voz com OpenAI | Realtime por WebRTC, transcrição, resposta audível e interrupção por fala ou botão. Requer chave e acesso aos modelos. |
 | Adaptador ElevenLabs | CLI separada de clonagem autorizada e TTS com streaming; ainda não substitui a voz da conversa da interface. |
 | Saudação de abertura | “Iniciar Jarvis” prepara cumprimento pelo horário, tempo atual, previsão de hoje e a pergunta final. Usa a voz ElevenLabs configurada e exibe a fonte meteorológica. |
-| Amostra da voz Jarvis | Clone real criado na ElevenLabs e frase fixa em MP3. “Amostra fixa da voz” reproduz o arquivo local e anima o núcleo pelo áudio, sem API ou microfone. |
+| Amostra da voz Jarvis | Em **Ajustes → Saudação**, “Amostra fixa da voz” reproduz uma frase gravada em MP3 e anima o núcleo pelo áudio, sem API ou microfone. Não contém o boletim meteorológico. |
 | Tom metálico | Efeito fixo aplicado no computador à saudação e à amostra, preservando a voz de origem e a pulsação pelo áudio processado. Sem controle de intensidade. |
 | Teste local de microfone | Captura sinal e move o núcleo sem chave de API e sem enviar esse áudio ao provedor. |
 | Câmera | Prévia local iniciada por clique. Funciona como teste de hardware mesmo sem modelos faciais. |
@@ -64,7 +64,9 @@ A sessão de voz pode gerar consumo na conta OpenAI. Texto e voz são modos dist
 
 ### Ouvir a amostra da voz Jarvis
 
-Clique em **Amostra fixa da voz** para reproduzir a demonstração local com o tom metálico fixo. O botão **Parar amostra** encerra a reprodução. O núcleo mantém o ciano e acompanha o áudio reproduzido; esse controle não captura o microfone nem faz uma chamada à API. **Iniciar Jarvis** é o controle da saudação com tempo e previsão; a amostra fixa não contém esse boletim.
+Abra **Ajustes → Saudação** e clique em **Amostra fixa da voz** para ouvir a frase gravada com o tom metálico fixo. **Parar amostra** encerra a reprodução. O núcleo mantém o ciano e acompanha o áudio; esse teste não captura o microfone, não usa API e não contém tempo ou previsão.
+
+**Iniciar Jarvis** prepara a saudação dinâmica com cumprimento pelo horário, tempo e previsão para a cidade configurada. **Ouvir saudação** reproduz o áudio já preparado, sem nova consulta ou síntese. Para preparar outro boletim, use **Iniciar Jarvis**. Um arquivo de áudio gravado mantém as informações do momento da geração e não atualiza o clima ao ser reproduzido.
 
 A voz **GleysonSilva-Jarvis** foi criada e a frase foi gerada pelo painel ElevenLabs, com **Eleven Multilingual v2**, em MP3 44,1 kHz/128 kbps. [Arquivo da amostra](assets/voice/jarvis-demo.mp3) e [aviso de distribuição](assets/voice/README.md). O autor ouviu e aprovou a amostra e a narração de abertura com tempo/previsão. A saudação dinâmica preserva o modelo e os parâmetros aprovados; veja [Saudação de abertura](docs/startup-greeting.md).
 

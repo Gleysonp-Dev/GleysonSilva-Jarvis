@@ -70,6 +70,13 @@ Uma conversa de voz real precisa de chave e sessão conectada; teste pergunta, r
 
 Teste duas pessoas, rosto não identificado, luz ruim, óculos, afastamento, retorno e foto/vídeo. Identificação deve ficar neutra quando houver ambiguidade; a câmera nunca deve liberar ação sensível. Apague o cadastro e confirme a exclusão depois de reiniciar. Execute captura e voz juntas para medir se o worker prejudica áudio ou animação.
 
+## Saudação dinâmica e amostra fixa
+
+1. Abra **Ajustes → Saudação → Amostra fixa da voz** e confirme a reprodução da frase gravada. Esse controle não deve consultar o clima, sintetizar outra fala ou abrir o microfone. **Parar amostra** deve encerrar áudio e pulsação.
+2. Configure privadamente cidade, voz e chave ElevenLabs. Use **Iniciar Jarvis** para preparar a saudação com cumprimento pelo horário, tempo e previsão. Confirme o texto, a atribuição meteorológica e o áudio correspondente; esse fluxo usa o serviço de abertura, não o MP3 da demonstração.
+3. Se o navegador exigir gesto, use **Ouvir saudação**. Confirme que ele reproduz o áudio preparado sem repetir consulta ou síntese. Interrompa e confirme o fim do som e da pulsação.
+4. Diferencie a preparação de um novo boletim da reprodução de um arquivo gravado. O arquivo preserva as informações do momento da geração e não comprova uma consulta atual ao clima. Não inclua cidade, credenciais ou áudios privados no relatório público.
+
 ## Medição comparável
 
 Para cada modelo e dispositivo, grave pelo menos 30 solicitações repetíveis por cenário e mantenha o mesmo protocolo entre versões. Separe ensaio frio de aquecido e registre falhas junto com os tempos; não exclua silenciosamente tentativas lentas.
