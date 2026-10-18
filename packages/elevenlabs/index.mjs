@@ -70,6 +70,29 @@ export function validateVoiceId(value) {
   if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(value)) throw fail('invalid_input');
   return value;
 }
+function checkedVoiceSettings(value) {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) throw fail('invalid_input');
+  const allowed = ['stability', 'similarity_boost', 'style', 'use_speaker_boost', 'speed'];
+  if (Object.keys(value).some(key => !allowed.includes(key))) throw fail('invalid_input');
+  const result = {};
+  for (const key of ['stability', 'similarity_boost', 'style']) {
+    if (value[key] !== undefined) {
+      if (typeof value[key] !== 'number' || !Number.isFinite(value[key]) || value[key] < 0 || value[key] > 1) throw fail('invalid_input');
+      result[key] = value[key];
+    }
+  }
+  if (value.use_speaker_boost !== undefined) {
+    if (typeof value.use_speaker_boost !== 'boolean') throw fail('invalid_input');
+    result.use_speaker_boost = value.use_speaker_boost;
+  }
+  if (value.speed !== undefined) {
+    // Conservative application range; the approved narration uses exactly 1.0.
+    if (typeof value.speed !== 'number' || !Number.isFinite(value.speed) || value.speed < 0.7 || value.speed > 1.2) throw fail('invalid_input');
+    result.speed = value.speed;
+  }
+  return result;
+}
 
 /** Validate a selected WAV in memory. No transcoding or sample copying occurs. */
 export function inspectWav(bytes) {
@@ -180,7 +203,7 @@ export class ElevenLabsService {
   }
 
   /** Yield binary audio immediately; break/abort cancels the reader and provider request. */
-  async *streamSpeech({ voiceId, text, modelId = ELEVENLABS_DEFAULT_MODEL, outputFormat = 'mp3_44100_128', languageCode = 'pt' } = {}, { signal } = {}) {
+  async *streamSpeech({ voiceId, text, modelId = ELEVENLABS_DEFAULT_MODEL, outputFormat = 'mp3_44100_128', languageCode = 'pt', voiceSettings } = {}, { signal } = {}) {
     const scope = scopeFor(signal, this.#timeoutMs);
     let reader, finished = false;
     try {
@@ -189,6 +212,8 @@ export class ElevenLabsService {
       if (typeof modelId !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(modelId) || !Object.hasOwn(AUDIO_FORMATS, outputFormat)
         || (languageCode !== undefined && !/^[a-z]{2}$/.test(languageCode))) throw fail('invalid_input');
       const body = { text: input, model_id: modelId };
+      const settings = checkedVoiceSettings(voiceSettings);
+      if (settings !== undefined) body.voice_settings = settings;
       if (languageCode && modelId !== 'eleven_multilingual_v2') body.language_code = languageCode;
       const response = await this.#request(`/text-to-speech/${voice}/stream?output_format=${outputFormat}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Accept: AUDIO_FORMATS[outputFormat].contentType }, body: JSON.stringify(body),

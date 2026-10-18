@@ -65,7 +65,7 @@ Os erros do serviço usam códigos e mensagens curtas em português. Corpos de e
 
 ## Voz personalizada e ElevenLabs
 
-A sessão OpenAI da interface usa somente as vozes padrão listadas nas configurações, com `marin` como inicial. A referência local `reference.wav` e a distribuição de áudios gerados foram autorizadas pelo autor. O adaptador [ElevenLabs](elevenlabs.md) já oferece uma CLI de clonagem e geração de áudio com streaming, mas não está ligado à conversa da interface. A amostra permanece privada e ainda não há clonagem remota confirmada por um ID real nesta etapa.
+A sessão OpenAI da interface usa somente as vozes padrão listadas nas configurações, com `marin` como inicial. A voz GleysonSilva-Jarvis já foi criada no painel ElevenLabs, e uma frase foi gerada e baixada para a demonstração local. O botão **Ouvir amostra Jarvis** reproduz esse arquivo sem API; as respostas dinâmicas continuam usando OpenAI. A gravação de referência, a credencial e o ID de voz permanecem privados. O [adaptador ElevenLabs](elevenlabs.md) oferece uma CLI e streaming para a integração futura ao diálogo.
 
 Para usar uma voz baseada em gravação **dentro da OpenAI**, também seria necessário confirmar elegibilidade e cumprir o fluxo próprio de gravação separada de consentimento do provedor. A documentação [Custom voices](https://developers.openai.com/api/docs/guides/custom-voices) distingue vozes por descrição de vozes por gravação; nem todos os tipos são compatíveis com Realtime. Um `voice_id` ElevenLabs não é uma voz OpenAI e não pode ser colocado no campo de voz desta sessão. Cada provedor tem sua própria conta, transporte e configuração.
 

@@ -19,4 +19,5 @@ const boundedFiles={name:'project-files',setup(context){
 await mkdir('dist', { recursive: true });
 await build({ absWorkingDir:process.cwd(), entryPoints: [resolve('apps/desktop/renderer/App.tsx')], plugins:[boundedFiles], tsconfigRaw:{compilerOptions:{jsx:'react-jsx',target:'ES2022'}}, bundle: true, format: 'esm', platform: 'browser', target: 'chrome140', outdir: resolve('dist'), entryNames: 'app', sourcemap: false, minify: true, jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
 await copyFile('apps/desktop/renderer/index.html', 'dist/index.html');
+await copyFile('assets/voice/jarvis-demo.mp3', 'dist/voice-demo.mp3');
 console.log('Interface compilada em dist/.');

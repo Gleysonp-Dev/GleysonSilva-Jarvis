@@ -87,6 +87,7 @@ Teste somente o que estiver autorizado na sessão. Microfone e câmera devem ser
 4. **Voz real:** abra uma sessão, confira transcrição e som efetivamente ouvido. Interrompa pela fala e pelo botão. Encerre. Uma conexão WebRTC aberta não comprova que o usuário ouviu a saída.
 5. **Arquivos de ensaio:** peça a prévia, corrija o filtro, negue uma proposta e autorize outra após revisão. Confira o sistema de arquivos e o registro. Teste restauração somente nos arquivos descartáveis.
 6. **Memória:** grave uma preferência de teste, confirme o registro, inicie nova conversa e depois apague-a. Não use informação pessoal desnecessária.
+7. **Amostra Jarvis:** clique em **Ouvir amostra Jarvis**, confirme som audível, pulsação pelo áudio e funcionamento de **Parar amostra**. O arquivo é local, dispensa API e não abre microfone. Registre a escuta separadamente da geração/download já confirmados.
 
 Se uma etapa depender de participação humana, entregue o controle pronto para uso e diga exatamente o que falta confirmar. Não simule sucesso para completar a lista.
 
@@ -100,9 +101,11 @@ O cadastro é voluntário, exige três amostras consistentes e a escolha explíc
 
 ## 7. Voz personalizada e distribuição
 
-A voz padrão da OpenAI funciona sem clonagem. O adaptador [ElevenLabs](docs/elevenlabs.md) já fornece `scripts/voice.mjs` com `clone` e `speak`, além de streaming no código. A conversa da interface continua usando OpenAI; não anuncie a voz ElevenLabs como conectada. Nesta preparação, o autor já confirmou autorização para clonar a referência e distribuir os áudios gerados; a amostra continua privada. Não peça a mesma autorização novamente. A execução da CLI requer o sinalizador explícito `--consent` e a chave ElevenLabs em variável do processo, sem registrá-la no projeto.
+A voz padrão da conversa OpenAI funciona sem clonagem. A voz **GleysonSilva-Jarvis** já foi criada pelo painel ElevenLabs, e uma frase foi gerada com Eleven Multilingual v2 e baixada em MP3. O arquivo `assets/voice/jarvis-demo.mp3` pode ser reproduzido pelo controle **Ouvir amostra Jarvis**, sem API ou microfone. Essa é uma frase fixa: a conversa dinâmica continua usando OpenAI `marin`. Não anuncie respostas ElevenLabs ao vivo como conectadas.
 
-Envio de amostra, criação de voz remota e eventual verificação da conta precisam de resultado observado. Estar autenticado no navegador não disponibiliza automaticamente a chave à CLI. Não afirme que uma amostra local criou uma voz nem que o provedor exporta pesos. O áudio da CLI começa em `local-data/audio`, privado e ignorado pelo Git; publicar uma demonstração exige escolher explicitamente o áudio final, mantendo a gravação original fora do repositório.
+O adaptador [ElevenLabs](docs/elevenlabs.md) fornece `scripts/voice.mjs` com `clone` e `speak`, além de streaming no código. O autor já confirmou autorização para clonar a referência e distribuir os áudios gerados; não peça a mesma autorização novamente. A gravação de referência continua privada, assim como a credencial e o ID de voz em `local-data/voice.json`. Para uma nova clonagem pela CLI, o sinalizador explícito `--consent` e a chave ElevenLabs em variável do processo continuam necessários.
+
+O resultado real desta preparação veio do painel no navegador, não de uma chamada executada pela CLI. O autor já ouviu e aprovou a amostra e a narração de abertura; preserve Eleven Multilingual v2 e seus parâmetros explícitos no serviço de saudação. Estar autenticado no navegador não disponibiliza automaticamente a chave à CLI ou ao aplicativo. Não refaça a clonagem durante a instalação e não afirme que o provedor exporta pesos. O áudio de futuras gerações pela CLI começa em `local-data/audio`, privado e ignorado pelo Git; a demonstração pública selecionada possui aviso próprio em `assets/voice/README.md`. A abertura automática ainda exige ensaio da configuração privada conforme [docs/startup-greeting.md](docs/startup-greeting.md).
 
 Não execute publicação, criação de release, upload de gravações ou distribuição do aplicativo como parte automática desta instalação, salvo autorização do usuário. Não inclua credenciais, `local-data`, base SQLite, modelos, cadastros ou arquivos de ensaio no Git.
 

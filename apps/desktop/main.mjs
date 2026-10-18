@@ -9,13 +9,14 @@ import { OpenAIService, OpenAIServiceError } from '../../packages/openai/index.m
 import { SettingsStore, validateSettings } from './settings.mjs';
 import { createWindowsAdapters } from './platform/windows.mjs';
 import { VisionService } from './vision.mjs';
+import { StartupGreetingService } from '../../packages/greeting/index.mjs';
 
 const PRODUCT = 'Projeto GleysonSilva-Jarvis';
 const APP_ORIGIN = 'jarvis://app';
 const APP_URL = `${APP_ORIGIN}/index.html`;
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const PRELOAD = fileURLToPath(new URL('./preload.cjs', import.meta.url));
-const ASSETS = new Map([['/index.html', 'text/html; charset=utf-8'], ['/app.js', 'text/javascript; charset=utf-8'], ['/app.css', 'text/css; charset=utf-8']]);
+const ASSETS = new Map([['/index.html', 'text/html; charset=utf-8'], ['/app.js', 'text/javascript; charset=utf-8'], ['/app.css', 'text/css; charset=utf-8'], ['/voice-demo.mp3', 'audio/mpeg']]);
 const APP_SLOTS = [['calculator', 'Calculadora'], ['notepad', 'Bloco de Notas'], ['vscode', 'VS Code'], ['browser', 'Navegador']];
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src https://api.openai.com; font-src 'self'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'none'; object-src 'none'";
 class InputError extends Error {}
@@ -44,13 +45,25 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'jarvis', privileges: { standard
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let mainWindow, settings, runtime, provider, vision;
+let mainWindow, settings, runtime, provider, vision, startupService;
 let generation = 0, shuttingDown = false, cleanupPromise, textRunId;
 const runs = new Map();
 const knownRuns = new Map();
 const approvals = new Map();
 const browserWindows = new Map();
 const connectionControllers = new Set();
+const startupFlights = new Map();
+const startupAttempts = new Map();
+
+function greetingInput(input) {
+  only(record(input, 1000), ['hour', 'timezone']);
+  if (!Number.isInteger(input.hour) || input.hour < 0 || input.hour > 23) invalid('Horário inválido para a saudação.');
+  if (input.timezone !== undefined) {
+    if (typeof input.timezone !== 'string' || input.timezone.length > 80 || !/^[A-Za-z][A-Za-z0-9_+-]*(?:\/[A-Za-z0-9_+-]+)*$/.test(input.timezone)) invalid('Fuso horário inválido.');
+    try { new Intl.DateTimeFormat('pt-BR', { timeZone: input.timezone }).format(); } catch { invalid('Fuso horário inválido.'); }
+  }
+  return { hour: input.hour, ...(input.timezone ? { timezone: input.timezone } : {}) };
+}
 
 function publish(event) {
   if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
@@ -90,6 +103,7 @@ async function clearSessions(reason) {
   for (const [runId, run] of runs) { run.controller.abort(); runtime?.cancel(runId); }
   for (const controller of connectionControllers) controller.abort();
   connectionControllers.clear();
+  startupFlights.clear();
   for (const [approvalId] of approvals) runtime?.approve(approvalId, false);
   approvals.clear(); runs.clear(); textRunId = undefined;
   for (const window of browserWindows.values()) if (!window.isDestroyed()) window.destroy();
@@ -107,7 +121,7 @@ function dedicatedBrowser(profileId) {
   browserSession.setDevicePermissionHandler(() => false);
   browserSession.on('will-download', event => event.preventDefault());
   const window = new BrowserWindow({ width: 1180, height: 820, title: `${PRODUCT} · Navegador dedicado`, autoHideMenuBar: true,
-    webPreferences: { session: browserSession, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, devTools: false, navigateOnDragDrop: false } });
+    webPreferences: { session: browserSession, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, devTools: false, navigateOnDragDrop: false, autoplayPolicy: 'document-user-activation-required' } });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   const allowNavigation = (event, url) => { try { webURL(url); } catch { event.preventDefault(); } };
   window.webContents.on('will-navigate', allowNavigation);
@@ -171,9 +185,9 @@ function handle(name, fn) {
 function registerIPC() {
   handle('boot', async () => ({ settings: settings.public(), snapshot: runtime.getSnapshot(settings.get().profileId), capabilities: { desktop: process.platform === 'win32', vision: (await vision.handle({ type: 'status' })).available === true }, productName: PRODUCT }));
   handle('saveSettings', async input => {
-    only(record(input, 4000), ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey']);
+    only(record(input, 5000), ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey']);
     validateSettings(input);
-    if (input.apiKey !== undefined && (typeof input.apiKey !== 'string' || input.apiKey.length > 512 || /[\r\n\0]/.test(input.apiKey))) invalid('Chave inválida.');
+    for (const field of ['apiKey', 'elevenApiKey']) if (input[field] !== undefined && (typeof input[field] !== 'string' || input[field].length > 512 || /[\r\n\0]/.test(input[field]))) invalid('Chave inválida.');
     await clearSessions(input.profileId && input.profileId !== settings.get().profileId ? 'profile_changed' : 'settings_changed');
     settings.save(input);
     return settings.public();
@@ -243,6 +257,21 @@ function registerIPC() {
     } finally { connectionControllers.delete(controller); }
   });
   handle('listModels', async () => provider.listModels());
+  handle('startupGreeting', async input => {
+    const payload = greetingInput(input), profileId = settings.get().profileId, startGeneration = generation;
+    if (startupFlights.has(profileId)) invalid('Uma saudação já está sendo preparada.');
+    if (settings.get().startupGreeting === true) {
+      const timestamp = Date.now(), attempts = (startupAttempts.get(profileId) ?? []).filter(at => timestamp - at < 3_600_000);
+      if (attempts.length >= 6 || (attempts.length && timestamp - attempts.at(-1) < 60_000)) invalid('Aguarde um minuto para testar outra saudação. Limite de seis por hora.');
+      attempts.push(timestamp); startupAttempts.set(profileId, attempts);
+    }
+    const controller = new AbortController(); startupFlights.set(profileId, controller); connectionControllers.add(controller);
+    try {
+      const result = await startupService.prepare(payload, { signal: controller.signal });
+      if (controller.signal.aborted || generation !== startGeneration || settings.get().profileId !== profileId) invalid('A configuração mudou. A saudação anterior foi interrompida.');
+      return result;
+    } finally { if (startupFlights.get(profileId) === controller) startupFlights.delete(profileId); connectionControllers.delete(controller); }
+  });
   handle('vision', async input => {
     record(input, 2_701_000);
     const profileId = activeProfile(input);
@@ -280,6 +309,7 @@ if (singleInstance) {
   }
   settings.write({ workspaceRoot });
   provider = new OpenAIService({ getKey: () => settings.getSecret(), getSettings: () => settings.get(), runtime, onEvent: providerEvent });
+  startupService = new StartupGreetingService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() });
   vision = new VisionService({ dataDir: path.join(userData, 'vision'), modelsDir: path.join(userData, 'models'), crypto: safeStorage, ...(app.isPackaged ? { workerPath: path.join(process.resourcesPath, 'vision', 'worker.py') } : {}) });
   protocol.handle('jarvis', async request => {
     const url = new URL(request.url), mime = ASSETS.get(url.pathname);
@@ -291,7 +321,7 @@ if (singleInstance) {
     } catch { return new Response('Compile a interface antes de iniciar o aplicativo.', { status: 503 }); }
   });
   mainWindow = new BrowserWindow({ width: 1460, height: 960, minWidth: 960, minHeight: 700, title: PRODUCT, backgroundColor: '#030d10', autoHideMenuBar: true,
-    webPreferences: { preload: PRELOAD, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, navigateOnDragDrop: false } });
+    webPreferences: { preload: PRELOAD, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, navigateOnDragDrop: false, autoplayPolicy: 'no-user-gesture-required' } });
   session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => callback(contents === mainWindow?.webContents && permission === 'media' && details.isMainFrame === true && details.requestingUrl === APP_URL));
   session.defaultSession.setPermissionCheckHandler((contents, permission, requestingOrigin, details) => contents === mainWindow?.webContents && permission === 'media' && details.isMainFrame === true && details.requestingUrl === APP_URL && requestingOrigin.replace(/\/$/, '') === APP_ORIGIN);
   session.defaultSession.setDevicePermissionHandler(() => false);

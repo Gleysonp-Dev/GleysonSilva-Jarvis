@@ -7,11 +7,12 @@ import { createRuntime } from '../packages/runtime/index.mjs';
 import { OpenAIService, OpenAIServiceError } from '../packages/openai/index.mjs';
 import { VisionService } from '../apps/desktop/vision.mjs';
 import { defaults, validateSettings } from '../apps/desktop/settings.mjs';
+import { StartupGreetingService } from '../packages/greeting/index.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const BRIDGE = fileURLToPath(new URL('./test-bridge.js', import.meta.url));
 const MAX_BODY = 3 * 1024 * 1024;
-const ASSETS = new Map([['/', ['index.html', 'text/html; charset=utf-8']], ['/index.html', ['index.html', 'text/html; charset=utf-8']], ['/app.js', ['app.js', 'text/javascript; charset=utf-8']], ['/app.css', ['app.css', 'text/css; charset=utf-8']]]);
+const ASSETS = new Map([['/', ['index.html', 'text/html; charset=utf-8']], ['/index.html', ['index.html', 'text/html; charset=utf-8']], ['/app.js', ['app.js', 'text/javascript; charset=utf-8']], ['/app.css', ['app.css', 'text/css; charset=utf-8']], ['/voice-demo.mp3', ['voice-demo.mp3', 'audio/mpeg']]]);
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.openai.com; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 class ClientError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
 const reject = (message, status = 400) => { throw new ClientError(message, status); };
@@ -39,8 +40,11 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     decryptString(data) { const decipher = createDecipheriv('aes-256-gcm', faceKey, data.subarray(0, 12)); decipher.setAuthTag(data.subarray(12, 28)); return Buffer.concat([decipher.update(data.subarray(28)), decipher.final()]).toString('utf8'); },
   };
   const token = randomBytes(32).toString('hex');
-  let settings = { ...defaults, workspaceRoot, apps: [] }, key = '', generation = 0, closing = false, textRunId;
+  let privateConfig = {};
+  try { privateConfig = validateSettings(JSON.parse(await readFile(path.join(dataDir, 'config.json'), 'utf8'))); } catch { /* An absent or invalid private config uses generic defaults. */ }
+  let settings = { ...defaults, ...privateConfig, workspaceRoot, apps: [] }, key = '', elevenKey = '', generation = 0, closing = false, textRunId;
   const clients = new Set(), runs = new Map(), knownRuns = new Map(), approvals = new Map(), connections = new Set();
+  const startupFlights = new Map(), startupAttempts = new Map();
   let runtime;
   const emit = event => {
     if (event.profileId && event.profileId !== settings.profileId) return;
@@ -60,7 +64,8 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     const run = runs.get(event.runId);
     if (run && run.generation === generation && !run.controller.signal.aborted) emit({ ...event, profileId: run.profileId });
   } });
-  const publicSettings = () => ({ ...settings, apps: [], hasKey: Boolean(key || process.env.OPENAI_API_KEY) });
+  const startupService = new StartupGreetingService({ getSettings: () => settings, getKey: () => elevenKey || process.env.ELEVENLABS_API_KEY || '' });
+  const publicSettings = () => ({ ...settings, apps: [], hasKey: Boolean(key || process.env.OPENAI_API_KEY), hasElevenKey: Boolean(elevenKey || process.env.ELEVENLABS_API_KEY) });
   const profile = input => { if (input.profileId !== undefined && input.profileId !== settings.profileId) reject('O perfil mudou. Inicie outra solicitação no perfil atual.'); return settings.profileId; };
   function runFor(runId, profileId) {
     const previous = runs.get(runId);
@@ -73,20 +78,21 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     for (const [runId, run] of runs) { run.controller.abort(); runtime.cancel(runId); }
     for (const controller of connections) controller.abort();
     for (const [id] of approvals) runtime.approve(id, false);
-    approvals.clear(); runs.clear(); connections.clear(); textRunId = undefined;
+    approvals.clear(); runs.clear(); connections.clear(); startupFlights.clear(); textRunId = undefined;
     await vision.handle({ type: 'reset' });
     emit({ type: 'session.reset', reason });
   }
   const handlers = {
     async boot() { const status = await vision.handle({ type: 'status' }); return { settings: publicSettings(), snapshot: runtime.getSnapshot(settings.profileId), capabilities: { desktop: false, vision: status.available === true, localTest: true, ephemeralBiometrics: true } }; },
     async saveSettings(input) {
-      object(input, ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey']);
+      object(input, ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey']);
       let valid;
       try { valid = validateSettings(input); } catch (error) { reject(error.message); }
-      if (input.apiKey !== undefined && (typeof input.apiKey !== 'string' || input.apiKey.length > 512 || /[\r\n\0]/.test(input.apiKey))) reject('Chave inválida.');
+      for (const field of ['apiKey', 'elevenApiKey']) if (input[field] !== undefined && (typeof input[field] !== 'string' || input[field].length > 512 || /[\r\n\0]/.test(input[field]))) reject('Chave inválida.');
       await reset(input.profileId && input.profileId !== settings.profileId ? 'profile_changed' : 'settings_changed');
       settings = { ...settings, ...valid };
       if (input.apiKey?.trim()) key = input.apiKey.trim();
+      if (input.elevenApiKey?.trim()) elevenKey = input.elevenApiKey.trim();
       return publicSettings();
     },
     async chooseWorkspace() { return workspaceRoot; },
@@ -129,6 +135,27 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     async vision(input) { object(input, ['type', 'profileId', 'name', 'imageDataUrl']); const profileId = profile(input); try { return await vision.handle(['enroll', 'delete'].includes(input.type) ? { ...input, profileId } : input); } catch { reject('Não foi possível concluir a análise facial local. Confira os modelos e a câmera.'); } },
     async openExternal() { reject('A abertura de aplicativos externos está desativada no teste local.'); },
     async listModels() { return provider.listModels(); },
+    async startupGreeting(input) {
+      object(input, ['hour', 'timezone']);
+      if (!Number.isInteger(input.hour) || input.hour < 0 || input.hour > 23) reject('Horário inválido para a saudação.');
+      if (input.timezone !== undefined) {
+        if (typeof input.timezone !== 'string' || input.timezone.length > 80 || !/^[A-Za-z][A-Za-z0-9_+-]*(?:\/[A-Za-z0-9_+-]+)*$/.test(input.timezone)) reject('Fuso horário inválido.');
+        try { new Intl.DateTimeFormat('pt-BR', { timeZone: input.timezone }).format(); } catch { reject('Fuso horário inválido.'); }
+      }
+      const profileId = settings.profileId, startGeneration = generation;
+      if (startupFlights.has(profileId)) reject('Uma saudação já está sendo preparada.');
+      if (settings.startupGreeting === true) {
+        const timestamp = Date.now(), attempts = (startupAttempts.get(profileId) ?? []).filter(at => timestamp - at < 3_600_000);
+        if (attempts.length >= 6 || (attempts.length && timestamp - attempts.at(-1) < 60_000)) reject('Aguarde um minuto para testar outra saudação. Limite de seis por hora.', 429);
+        attempts.push(timestamp); startupAttempts.set(profileId, attempts);
+      }
+      const controller = new AbortController(); startupFlights.set(profileId, controller); connections.add(controller);
+      try {
+        const result = await startupService.prepare({ hour: input.hour, ...(input.timezone ? { timezone: input.timezone } : {}) }, { signal: controller.signal });
+        if (controller.signal.aborted || startGeneration !== generation || profileId !== settings.profileId) reject('A configuração mudou. A saudação anterior foi interrompida.');
+        return result;
+      } finally { if (startupFlights.get(profileId) === controller) startupFlights.delete(profileId); connections.delete(controller); }
+    },
   };
 
   function headers(res, type = 'application/json; charset=utf-8') {
@@ -199,7 +226,7 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
       await reset('server_closed');
       for (const client of clients) client.end(); clients.clear();
       const stopped = new Promise(resolve => server.close(resolve)); server.closeIdleConnections();
-      vision.close(); await runtime.close(); server.closeAllConnections(); await stopped; faceKey.fill(0); key = '';
+      vision.close(); await runtime.close(); server.closeAllConnections(); await stopped; faceKey.fill(0); key = ''; elevenKey = '';
       const relative = path.relative(dataDir, sessionDir);
       if (!relative.startsWith('..') && !path.isAbsolute(relative) && path.basename(sessionDir).startsWith('vision-session-')) await rm(sessionDir, { recursive: true, force: true });
     })();

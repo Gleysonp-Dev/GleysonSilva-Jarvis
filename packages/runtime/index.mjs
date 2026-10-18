@@ -53,8 +53,11 @@ function plainDirectorySync(input) {
     const stat = lstatSync(current);
     if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('A pasta não pode conter links ou junções.');
   }
-  const real = realpathSync(resolved);
-  if (!samePath(real, resolved)) throw new Error('A pasta aponta para outro local.');
+  // Use the same native canonicalization as fs.promises.realpath. On Windows, the
+  // JS realpathSync implementation can preserve an 8.3 alias that the native API expands.
+  const real = realpathSync.native(resolved);
+  const requestedStat = lstatSync(resolved), canonicalStat = lstatSync(real);
+  if (requestedStat.isSymbolicLink() || canonicalStat.isSymbolicLink() || !canonicalStat.isDirectory() || requestedStat.dev !== canonicalStat.dev || requestedStat.ino !== canonicalStat.ino) throw new Error('A pasta aponta para outro local.');
   return real;
 }
 

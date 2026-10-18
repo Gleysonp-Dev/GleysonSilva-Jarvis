@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
-import { mkdtemp, writeFile, readFile, readdir, mkdir, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, readdir, mkdir, rm, realpath, symlink } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import { ElevenLabsService, ElevenLabsError, ELEVENLABS_DEFAULT_MODEL, inspectWav, ELEVENLABS_LIMITS } from '../packages/elevenlabs/index.mjs';
 import { runVoiceCLI } from '../scripts/voice.mjs';
 
@@ -116,6 +117,17 @@ test('multilingual v2 omits unsupported language parameter and aggregates audio'
   assert.equal(JSON.parse(context.requests[0].init.body).language_code, undefined);
 });
 
+test('explicit approved narration settings are forwarded exactly and out-of-range settings fail before network', async () => {
+  const context = setup({ responses: [audioResponse()] });
+  const voiceSettings = { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true, speed: 1 };
+  await context.service.synthesizeSpeech({ voiceId: VOICE, text: 'Boa tarde, senhor.', modelId: 'eleven_multilingual_v2', voiceSettings });
+  assert.deepEqual(JSON.parse(context.requests[0].init.body).voice_settings, voiceSettings);
+  for (const invalid of [{ stability: 2 }, { similarity_boost: Number.NaN }, { style: -1 }, { use_speaker_boost: 'true' }, { speed: 4 }, { injected: 'unsupported' }]) {
+    await assert.rejects(context.service.synthesizeSpeech({ voiceId: VOICE, text: 'Olá.', voiceSettings: invalid }), { code: 'invalid_input' });
+  }
+  assert.equal(context.requests.length, 1);
+});
+
 test('text limits, voice path injection, formats and JSON pretending to be audio are rejected', async () => {
   const context = setup({ responses: [Response.json({ detail: `internal ${KEY}` })] });
   for (const options of [{ voiceId: '../voice', text: 'Olá' }, { voiceId: VOICE, text: 'x'.repeat(4001) }, { voiceId: VOICE, text: 'Olá', outputFormat: 'unbounded-format' }]) {
@@ -210,4 +222,37 @@ test('CLI does not generate a saved voice awaiting verification, nor retain part
   const mockService = { async *streamSpeech() { yield Uint8Array.of(1, 2, 3); throw new ElevenLabsError('cancelled'); } };
   await assert.rejects(runVoiceCLI(['speak', '--text', 'Olá.', '--voice-id', VOICE], { rootDir: root, service: mockService }), { code: 'cancelled' });
   assert.deepEqual(await readdir(path.join(root, 'local-data/audio')), []);
+});
+
+test('CLI accepts a real directory identity when Windows expands its 8.3 alias', async t => {
+  const root = await temp(t);
+  const original = path.join(root, 'long legitimate directory spelling');
+  await mkdir(original);
+  let alias = original;
+  if (process.platform === 'win32') {
+    const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+      '$jarvisFs = New-Object -ComObject Scripting.FileSystemObject; $jarvisFs.GetFolder($env:JARVIS_ALIAS_TEST_PATH).ShortPath'],
+    { env: { ...process.env, JARVIS_ALIAS_TEST_PATH: original }, encoding: 'utf8', windowsHide: true, timeout: 10_000 });
+    const candidate = result.stdout?.trim();
+    if (result.status === 0 && candidate && path.isAbsolute(candidate) && (await realpath(candidate)).toLowerCase() === (await realpath(original)).toLowerCase()) {
+      alias = candidate;
+      t.diagnostic(candidate.toLowerCase() === original.toLowerCase() ? '8.3 spelling is disabled here; ordinary directory identity still exercised.' : 'Genuine Windows short-path alias exercised.');
+    } else t.diagnostic('No additional 8.3 alias was available; original directory identity still exercised.');
+  }
+  const service = { async *streamSpeech() { yield Uint8Array.of(73, 68, 51); } };
+  const result = await runVoiceCLI(['speak', '--text', 'Olá.', '--voice-id', VOICE], { rootDir: alias, service, stdout: { write() {} } });
+  assert.deepEqual(await readFile(result.destination), Buffer.from([73, 68, 51]));
+  assert.equal(await realpath(path.dirname(path.dirname(result.destination))), await realpath(path.join(original, 'local-data')));
+});
+
+test('CLI still rejects a private directory beneath a junction or symlink ancestor', async t => {
+  const root = await temp(t);
+  const actual = path.join(root, 'actual-private-parent'), alias = path.join(root, 'linked-private-parent');
+  await mkdir(actual);
+  await symlink(actual, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  let networkCalls = 0;
+  const service = { async *streamSpeech() { networkCalls++; yield Uint8Array.of(1); } };
+  await assert.rejects(runVoiceCLI(['speak', '--text', 'Olá.', '--voice-id', VOICE], { rootDir: alias, service, stdout: { write() {} } }), { code: 'storage' });
+  assert.equal(networkCalls, 0);
+  assert.deepEqual(await readdir(actual), [], 'reject before creating any private child through the junction');
 });

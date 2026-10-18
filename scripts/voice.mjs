@@ -35,11 +35,27 @@ function argumentsFor(argv) {
   return { command, options };
 }
 
+async function plainDirectoryComponents(directory) {
+  const absolute = path.resolve(directory), root = path.parse(absolute).root;
+  let current = root;
+  for (const part of absolute.slice(root.length).split(path.sep).filter(Boolean)) {
+    current = path.join(current, part);
+    const component = await lstat(current);
+    if (!component.isDirectory() || component.isSymbolicLink()) throw cliError('storage', 'A pasta privada não pode ser um link ou junção.');
+  }
+}
 async function safeDirectory(parent, name) {
+  // Check the parent before creating a child: even mkdir must not cross a junction.
+  await plainDirectoryComponents(parent);
   const location = path.join(parent, name);
   try { await mkdir(location, { mode: 0o700 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
-  const stat = await lstat(location);
-  if (!stat.isDirectory() || stat.isSymbolicLink() || path.resolve(await realpath(location)).toLowerCase() !== path.resolve(location).toLowerCase()) throw cliError('storage', 'A pasta privada não pode ser um link ou junção.');
+  await plainDirectoryComponents(location);
+  const canonical = await realpath(location);
+  const [requested, resolved] = await Promise.all([lstat(location, { bigint: true }), lstat(canonical, { bigint: true })]);
+  // Windows may expand RUNNER~1/other genuine 8.3 aliases without any reparse point.
+  // Compare directory identities instead of rejecting a harmless spelling difference.
+  if (!requested.isDirectory() || requested.isSymbolicLink() || !resolved.isDirectory() || resolved.isSymbolicLink()
+    || requested.dev !== resolved.dev || requested.ino !== resolved.ino) throw cliError('storage', 'A pasta privada não pode ser um link ou junção.');
   return location;
 }
 async function configExists(file) {

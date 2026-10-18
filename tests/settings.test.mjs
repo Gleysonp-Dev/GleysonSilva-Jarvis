@@ -36,3 +36,18 @@ test('secret save fails closed when protected storage is unavailable',t=>{
  assert.throws(()=>store.save({apiKey:'sk-private'}),/protegido/);
  assert.deepEqual(readdirSync(dir),[]);
 });
+test('ElevenLabs has a separate encrypted credential and public settings only expose availability',t=>{
+ const {dir,store,crypto}=fixture(t);store.save({apiKey:'openai-test',elevenApiKey:'eleven-private-test',elevenVoiceId:'testVoice123',startupGreeting:true,weatherLocation:{name:'Cidade de ensaio',latitude:10,longitude:20}});
+ const restored=new SettingsStore(dir,crypto);
+ assert.equal(restored.getSecret(),'openai-test');assert.equal(restored.getElevenSecret(),'eleven-private-test');assert.equal(restored.public().hasElevenKey,true);
+ assert.equal(JSON.stringify(restored.public()).includes('eleven-private-test'),false);
+ for(const file of readdirSync(dir))assert.equal(readFileSync(join(dir,file)).includes(Buffer.from('eleven-private-test')),false);
+ assert.equal(restored.public().weatherLocation.name,'Cidade de ensaio');
+});
+test('weather settings reject malformed locations and do not modify stored credentials',t=>{
+ const {store}=fixture(t);store.save({elevenApiKey:'eleven-original'});
+ for(const location of [{name:'Cidade',latitude:100,longitude:0},{name:'Cidade',latitude:0,longitude:NaN},{name:'Cidade',latitude:0,longitude:0,url:'https://bad.test'},{name:'<script>',latitude:0,longitude:0}])assert.throws(()=>store.save({weatherLocation:location,elevenApiKey:'replacement'}));
+ assert.equal(store.getElevenSecret(),'eleven-original');
+ assert.throws(()=>store.save({apiKey:'openai-would-change',elevenApiKey:'bad\nkey'}));
+ assert.throws(()=>store.save({startupGreeting:'yes'}));
+});

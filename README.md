@@ -19,6 +19,7 @@ O painel **Conversa** exibe texto progressivo e transcrições. **Memória** apr
 | Texto com OpenAI | Responses com streaming, histórico limitado e chamadas de ferramentas. |
 | Voz com OpenAI | Realtime por WebRTC, transcrição, resposta audível e interrupção por fala ou botão. Requer chave e acesso aos modelos. |
 | Adaptador ElevenLabs | CLI separada de clonagem autorizada e TTS com streaming; ainda não substitui a voz da conversa da interface. |
+| Amostra da voz Jarvis | Clone real criado na ElevenLabs e frase fixa em MP3. O botão “Ouvir amostra Jarvis” reproduz o arquivo local e anima o núcleo pelo áudio, sem API ou microfone. |
 | Teste local de microfone | Captura sinal e move o núcleo sem chave de API e sem enviar esse áudio ao provedor. |
 | Câmera | Prévia local iniciada por clique. Funciona como teste de hardware mesmo sem modelos faciais. |
 | Reconhecimento facial | Opcional: YuNet/SFace em um processo Python local, três amostras de cadastro, consistência temporal e escolha explícita de perfil. |
@@ -57,6 +58,14 @@ Se um assistente de código estiver preparando a instalação, use o roteiro [AI
 
 A sessão de voz pode gerar consumo na conta OpenAI. Texto e voz são modos distintos: digitar não aciona síntese de fala automaticamente.
 
+### Ouvir a amostra da voz Jarvis
+
+Clique em **Ouvir amostra Jarvis** para reproduzir a demonstração local. O botão **Parar amostra** encerra a reprodução. O núcleo mantém o ciano e acompanha o áudio reproduzido; esse controle não captura o microfone nem faz uma chamada à API.
+
+A voz **GleysonSilva-Jarvis** foi criada e a frase foi gerada pelo painel ElevenLabs, com **Eleven Multilingual v2**, em MP3 44,1 kHz/128 kbps. [Arquivo da amostra](assets/voice/jarvis-demo.mp3) e [aviso de distribuição](assets/voice/README.md). O autor ouviu e aprovou a amostra e a narração de abertura com tempo/previsão. A saudação dinâmica preserva o modelo e os parâmetros aprovados; veja [Saudação de abertura](docs/startup-greeting.md).
+
+Essa amostra contém uma frase fixa. Conversas ao vivo continuam usando OpenAI `marin`; a síntese de novas respostas com a voz ElevenLabs ainda precisa ser integrada.
+
 ### Primeira ação
 
 Escolha em **Ajustes** uma pasta de ensaio com arquivos descartáveis. Peça: “Mostre uma prévia para organizar os arquivos desta pasta”. Revise a proposta; se desejar, corrija: “Somente os modificados neste mês”. Autorize apenas depois de comparar a lista.
@@ -90,7 +99,7 @@ No painel **Presença**, ative a câmera, escolha o perfil e cadastre voluntaria
 - Texto, histórico necessário, memórias do perfil e resultados de ferramentas podem ser enviados à OpenAI para responder. Com voz aberta, o áudio do microfone é transmitido ao provedor.
 - Teste local de microfone e reconhecimento facial são fluxos locais. Ativar a câmera exige uma ação explícita; fechar o painel libera o dispositivo.
 - Memórias e tarefas podem conter conteúdo pessoal. Não publique a base privada, cadastros, imagens, gravações, chaves ou arquivos da pasta de ensaio.
-- A voz inicial da conversa é sintetizada pela OpenAI. O adaptador [ElevenLabs](docs/elevenlabs.md) já prepara clonagem e áudios gerados por uma CLI separada, com consentimento confirmado pelo autor. A clonagem real ainda depende de envio e confirmação pela conta; não há modelo de voz exportável nem fala ElevenLabs conectada à interface.
+- A voz inicial da conversa é sintetizada pela OpenAI. O clone real ElevenLabs já foi criado e uma amostra gerada foi incluída com autorização do autor. O botão de amostra reproduz somente esse arquivo; respostas dinâmicas ElevenLabs ainda não estão conectadas. O adaptador [ElevenLabs](docs/elevenlabs.md) permite preparar novas gerações; o modelo clonado não é exportável.
 
 Detalhes de fluxo, armazenamento e limites estão em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md) e [Voz e câmera](docs/voice-and-camera.md).
 

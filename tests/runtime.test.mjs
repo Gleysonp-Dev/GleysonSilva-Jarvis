@@ -3,13 +3,15 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import os from 'node:os';
 import * as fs from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import { createRuntime, toolDefinitions } from '../packages/runtime/index.mjs';
 
 async function fixture(t, options = {}) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'jarvis-runtime-'));
-  const workspaceRoot = path.join(directory, 'workspace');
+  let workspaceRoot = path.join(directory, 'workspace');
   const dataDir = path.join(directory, 'private');
   await fs.mkdir(workspaceRoot);
+  workspaceRoot = await fs.realpath(workspaceRoot);
   const events = [];
   let runtime;
   const setup = () => createRuntime({ dataDir, workspaceRoot, platformAdapters: options.platformAdapters, onEvent(event) {
@@ -395,4 +397,30 @@ test('executed plans leave preview context and completed file effects remain sco
   f.runtime.setWorkspace(f.workspaceRoot);
   assert.equal((await f.runtime.call(request('workspace_compensate', { runId: 'context-run' }, { profileId: 'alice' }))).status, 'verified');
   assert.deepEqual(f.runtime.getPlanContext('alice').recentEffects, []);
+});
+
+test('Windows native canonicalization accepts a real 8.3 alias while still rejecting junction workspaces', { skip: process.platform !== 'win32' }, async t => {
+  const f = await fixture(t);
+  const longWorkspace = path.join(f.directory, 'Workspace with long name for short alias');
+  await fs.mkdir(longWorkspace);
+  const escaped = longWorkspace.replaceAll("'", "''");
+  const script = `[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); (New-Object -ComObject Scripting.FileSystemObject).GetFolder('${escaped}').ShortPath`;
+  const result = spawnSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'), ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { windowsHide: true, encoding: 'utf8', timeout: 10_000 });
+  const shortWorkspace = result.stdout?.trim();
+  if (result.status !== 0 || !shortWorkspace || shortWorkspace.toLowerCase() === longWorkspace.toLowerCase()) { t.skip('Este volume não fornece um nome curto 8.3 para o diretório de teste.'); return; }
+  let runtime;
+  runtime = createRuntime({ dataDir: path.join(f.directory, 'short-alias-private'), workspaceRoot: shortWorkspace, onEvent(event) { if (event.type === 'approval') queueMicrotask(() => runtime.approve(event.approvalId, true)); } });
+  try {
+    await fs.writeFile(path.join(longWorkspace, 'a.txt'), 'alias-safe');
+    const preview = await runtime.call(request('workspace_preview_organize', { onlyThisMonth: false }));
+    assert.equal(preview.data.steps.length, 1, JSON.stringify(preview));
+    assert.equal((await runtime.call(request('workspace_apply_organize', { planId: preview.data.planId }))).status, 'verified');
+    assert.equal(await fs.readFile(path.join(longWorkspace, 'documents', 'a.txt'), 'utf8'), 'alias-safe');
+    const note = await runtime.call(request('notes_dictate', { text: 'Alias note' }));
+    assert.equal(note.status, 'verified', note.summary);
+    assert.equal(await fs.readFile(path.join(longWorkspace, note.data.path), 'utf8'), 'Alias note\n');
+    const junction = path.join(longWorkspace, 'linked-directory');
+    await fs.symlink(f.workspaceRoot, junction, 'junction');
+    assert.throws(() => runtime.setWorkspace(junction), /links|junções/);
+  } finally { await runtime.close(); }
 });

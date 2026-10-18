@@ -1,8 +1,8 @@
 # Projeto GleysonSilva-Jarvis: voz ElevenLabs
 
-O adaptador ElevenLabs prepara clonagem autorizada e geração de áudio a partir de texto. Ele funciona por uma CLI separada do Jarvis e por uma API de código com streaming. **A fala dinâmica da interface continua usando OpenAI Realtime com a voz `marin`; ainda não está conectada ao adaptador ElevenLabs.**
+O clone **GleysonSilva-Jarvis** foi criado na conta ElevenLabs e uma frase foi gerada e baixada pelo painel do navegador. A interface oferece **Ouvir amostra Jarvis** para reproduzir esse MP3 local, com pulsação pelo áudio e sem API ou microfone. O adaptador também fornece uma CLI e uma API de código com streaming para novas gerações. **A fala dinâmica da conversa continua usando OpenAI Realtime com a voz `marin`; ainda não está conectada ao adaptador ElevenLabs.**
 
-O responsável pelo projeto confirmou autorização para clonar a referência escolhida e distribuir publicamente os áudios gerados. A amostra original continua privada. Esta autorização não torna a gravação uma voz pronta: é necessário enviar a amostra para a conta, obter um `voice_id` e concluir eventual verificação exigida pelo provedor. Estar conectado ao painel no navegador não configura uma chave para a CLI.
+O responsável pelo projeto confirmou autorização para clonar a referência escolhida e distribuir publicamente os áudios gerados. A gravação original, a credencial e o ID de voz continuam privados. A criação foi confirmada pelo painel com a mensagem de voz pronta; a etapa adicional de microfone era apresentada como opcional e não foi utilizada. Estar conectado ao painel no navegador não configura uma chave para a CLI.
 
 ## Estado atual
 
@@ -10,13 +10,25 @@ O responsável pelo projeto confirmou autorização para clonar a referência es
 | --- | --- |
 | Adaptador REST sem SDK adicional | Implementado com `fetch` nativo no Node 24. |
 | Consentimento explícito na CLI | Obrigatório antes de ler ou enviar a amostra. |
-| Clonagem remota confirmada | Ainda não confirmada nesta etapa; falta `voice_id` real. |
-| MP3 por texto e streaming | Código implementado e verificado com respostas simuladas. |
-| Reprodução ElevenLabs dentro do Jarvis | Não conectada. |
+| Clonagem remota confirmada | Voz GleysonSilva-Jarvis criada pelo painel; conta observada no plano Creator. |
+| MP3 real de demonstração | Frase gerada pelo painel e baixada; arquivo de 137.309 bytes incluído no projeto com aviso de distribuição. |
+| Streaming pela API do adaptador | Implementado e verificado com respostas simuladas; não foi a origem do áudio de demonstração. |
+| Reprodução da amostra no Jarvis | Botão explícito usa o arquivo local, sem captura e sem API. A qualidade da amostra foi aprovada pelo autor. |
+| Respostas dinâmicas ElevenLabs no Jarvis | Ainda não conectadas. |
 | Exportar modelo clonado para o GitHub | Não é fornecido pelo serviço. |
 | Credencial e amostra no repositório | Não incluídas. |
 
-A referência indicada tem aproximadamente **20,2 segundos**. É possível preparar o envio desse WAV, mas esse trecho é menor que a recomendação de 1–2 minutos de fala limpa e consistente. Sem gerar e ouvir uma comparação real, não há resultado de qualidade confirmado. O guia oficial também informa que clones permanecem na conta e não podem ser exportados como um modelo independente. [Instant Voice Cloning](https://elevenlabs.io/docs/eleven-creative/voices/voice-cloning/instant-voice-cloning).
+A referência utilizada tem aproximadamente **20,2 segundos**, menor que a recomendação de 1–2 minutos de fala limpa e consistente. O autor ouviu e aprovou a amostra gerada e a narração de abertura com tempo/previsão; essa aprovação de uso não é um benchmark de fidelidade. O guia oficial também informa que clones permanecem na conta e não podem ser exportados como um modelo independente. [Instant Voice Cloning](https://elevenlabs.io/docs/eleven-creative/voices/voice-cloning/instant-voice-cloning).
+
+## Amostra real incluída
+
+O arquivo [jarvis-demo.mp3](../assets/voice/jarvis-demo.mp3) contém uma frase fixa de 131 caracteres. Foi gerado pelo painel com **Eleven Multilingual v2**, velocidade 1, estabilidade 0,5, similaridade 0,75, estilo 0 e speaker boost ligado; formato MP3 44,1 kHz/128 kbps. O arquivo baixado possui 137.309 bytes. A configuração do ID continua em `local-data/voice.json`, ignorado pelo Git, sem ser incorporada ao bundle.
+
+O botão **Ouvir amostra Jarvis** inicia a reprodução apenas após clique. **Parar amostra** encerra o áudio, e o núcleo ciano acompanha o sinal reproduzido por um analisador local. A amostra foi ouvida e aprovada pelo autor. O [aviso de distribuição](../assets/voice/README.md) informa sua origem sintética e a autorização concedida.
+
+A [saudação de abertura](startup-greeting.md) usa o modelo aprovado Eleven Multilingual v2 com estabilidade 0,5, similaridade 0,75, estilo 0, speaker boost ligado e velocidade 1 enviados explicitamente. O padrão Flash da CLI permanece disponível para outros ensaios, sem alterar automaticamente essa narração aprovada.
+
+Esta geração real ocorreu na interface web ElevenLabs. A suíte de testes do adaptador continua usando transporte simulado; não há afirmação de que a CLI executou uma requisição real. Não é necessário clonar novamente para ouvir a demonstração.
 
 ## Credencial privada
 
@@ -101,4 +113,4 @@ A conexão posterior deve manter a chave no processo principal, enfileirar trech
 
 O adaptador aplica limites locais de WAV até 10 MiB, 1–180 segundos, PCM ou float de 1–2 canais; texto até 4.000 caracteres por pedido; áudio até 16 MiB; timeout padrão de dois minutos. Esses limites são escolhas do aplicativo, não uma declaração dos limites de todos os planos do provedor. Cancelar pode interromper transporte e reprodução local futura sem garantir o desfazimento de um processamento já aceito pela conta.
 
-`node --test tests/elevenlabs.test.mjs` cobre consentimento antes de leitura, WAV e limites, multipart, chave restrita ao header, erros seguros, verificação pendente, chunks progressivos, abort de clonagem e áudio, timeout, saída privada e descarte de parciais. Os 25 testes iniciais usam dados e rede simulados. Não enviaram a gravação pessoal, não criaram uma voz e não geraram cobrança. O resultado de um clone real e a avaliação auditiva devem ser registrados separadamente.
+`node --test tests/elevenlabs.test.mjs` cobre consentimento antes de leitura, WAV e limites, multipart, chave restrita ao header, erros seguros, verificação pendente, chunks progressivos, parâmetros de voz explícitos, abort de clonagem e áudio, timeout, saída privada e descarte de parciais. A suíte usa dados e rede simulados. Esses testes não enviaram a gravação pessoal, não criaram uma voz e não geraram cobrança. A clonagem, o download e a aprovação auditiva pelo autor foram registrados separadamente acima.

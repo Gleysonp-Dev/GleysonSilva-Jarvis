@@ -4,7 +4,7 @@ import './styles.css';
 import { createHud, type HudFrame } from './hud';
 import { RealtimeVoice, type VoiceState } from './realtime';
 
-type Message = { id: string; role: 'user' | 'assistant'; text: string; done?: boolean };
+type Message = { id: string; role: 'user' | 'assistant'; text: string; done?: boolean; source?: string };
 type Drawer = 'settings' | 'memory' | 'activity' | 'presence' | null;
 const emptySnapshot: JarvisSnapshot = { memories: [], tasks: [], procedures: [] };
 const defaultSettings: JarvisSettings = { profileId: 'principal', textModel: '', realtimeModel: '', voice: '', maxSessionMinutes: 10, workspaceRoot: '', apps: [], hasKey: false };
@@ -34,6 +34,7 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
     trash: <><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></>,
     user: <><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></>,
     plus: <path d="M12 4v16M4 12h16"/>,
+    speaker: <><path d="m11 4-6 5H2v6h3l6 5V4Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.arrow}</svg>;
 }
@@ -84,6 +85,16 @@ function App() {
   const [micStarting, setMicStarting] = useState(false);
   const micGeneration = useRef(0);
   const micTest = useRef<{ stream: MediaStream; context: AudioContext; frame: number } | null>(null);
+  const [demoPlaying, setDemoPlaying] = useState(false);
+  const [demoStarting, setDemoStarting] = useState(false);
+  const [playbackKind, setPlaybackKind] = useState<'demo' | 'greeting'>('demo');
+  const demoGeneration = useRef(0);
+  const demo = useRef<{ audio: HTMLAudioElement; context: AudioContext; frame: number; objectUrl?: string } | null>(null);
+  const startupAttempted = useRef(false);
+  const greetingGeneration = useRef(0);
+  const [greetingBusy, setGreetingBusy] = useState(false);
+  const [greetingNeedsTap, setGreetingNeedsTap] = useState(false);
+  const greetingAudio = useRef<{ base64: string; mime: string } | null>(null);
   const [backendState, setBackendState] = useState('idle');
   const [approvals, setApprovals] = useState<JarvisEvent[]>([]);
   const [deciding, setDeciding] = useState('');
@@ -94,13 +105,17 @@ function App() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const micMeter = useRef<HTMLDivElement>(null);
   const levels = useRef({ mic: 0, speaker: 0, wave: [] as number[] });
-  const effectiveMode: HudFrame['mode'] = approvals.length ? 'approval' : micTesting ? 'listen' : voiceState === 'speak' || voiceState === 'listen' ? voiceState : ['execute', 'executing', 'running'].includes(backendState) ? 'execute' : runId ? 'think' : voiceState;
+  const effectiveMode: HudFrame['mode'] = approvals.length ? 'approval' : demoPlaying ? 'speak' : greetingBusy ? 'think' : micTesting ? 'listen' : voiceState === 'speak' || voiceState === 'listen' ? voiceState : ['execute', 'executing', 'running'].includes(backendState) ? 'execute' : runId ? 'think' : voiceState;
   const hud = useRef<HudFrame>({ mode: 'idle', levels: levels.current }); hud.current = { mode: effectiveMode, levels: levels.current };
   const seen = useRef(new Set<string>());
   const [memoryDraft, setMemoryDraft] = useState('');
   const [memoryBusy, setMemoryBusy] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [elevenApiKey, setElevenApiKey] = useState('');
   const [form, setForm] = useState(defaultSettings);
+  const [locationName, setLocationName] = useState('');
+  const [locationLatitude, setLocationLatitude] = useState('');
+  const [locationLongitude, setLocationLongitude] = useState('');
   const [saving, setSaving] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [visionStatus, setVisionStatus] = useState<any>(null);
@@ -122,12 +137,21 @@ function App() {
   useEffect(() => {
     if (!bridge) { setBooted(true); return; }
     let mounted = true;
-    bridge.boot().then(data => { if (!mounted) return; setSettings(data.settings); setForm(data.settings); setSnapshot(normalizeSnapshot(data.snapshot || emptySnapshot)); setCapabilities(data.capabilities); setBooted(true); }).catch(e => { if (mounted) { showError(e); setBooted(true); } });
+    bridge.boot().then(data => {
+      if (!mounted) return;
+      setSettings(data.settings); setForm(data.settings); syncLocationForm(data.settings); setSnapshot(normalizeSnapshot(data.snapshot || emptySnapshot)); setCapabilities(data.capabilities); setBooted(true);
+      if (!startupAttempted.current) {
+        startupAttempted.current = true;
+        if (data.settings.startupGreeting && data.settings.weatherLocation?.name && data.settings.hasElevenKey) void startGreeting(true);
+        else if (data.settings.startupGreeting) setNotice('Para ouvir a saudação ao iniciar, configure a cidade, a voz e a chave ElevenLabs em Ajustes.');
+      }
+    }).catch(e => { if (mounted) { showError(e); setBooted(true); } });
     const unsub = bridge.onEvent(raw => {
       const e = raw.payload ? { ...raw, ...raw.payload } : raw;
       if (e.profileId && e.profileId !== settingsRef.current.profileId) return;
       if (e.type === 'session.reset') {
-        voice.current?.stop(); voice.current = null; stopMicTest(); stopCamera();
+        voice.current?.stop(); voice.current = null; stopMicTest(); stopDemo(); stopCamera();
+        greetingAudio.current = null; setElevenApiKey('');
         runRef.current = null; setRunId(null); setBackendState('idle'); setVoiceActive(false); setVoiceConnected(false); setVoiceState('idle'); setApprovals([]);
         if (e.reason === 'profile_changed') { setMessages([]); setActions([]); }
         if (!['window_closed', 'app_quit'].includes(e.reason || '')) setNotice(e.reason === 'profile_changed' ? 'Perfil alterado. Microfone, câmera e sessão anterior foram encerrados.' : 'Configuração atualizada. Microfone, câmera e sessão anterior foram encerrados.');
@@ -149,7 +173,7 @@ function App() {
       if (e.type === 'memory') void refresh();
       if (e.type === 'error') showError(e.message || e.error || 'A operação não pôde ser concluída.');
     });
-    const cleanup = () => { mounted = false; unsub(); voice.current?.stop(); stopMicTest(); stopCamera(); };
+    const cleanup = () => { mounted = false; unsub(); voice.current?.stop(); stopMicTest(); stopDemo(); stopCamera(); };
     window.addEventListener('beforeunload', cleanup);
     return () => { window.removeEventListener('beforeunload', cleanup); cleanup(); };
   }, []);
@@ -160,7 +184,7 @@ function App() {
 
   async function send(text = input) {
     const clean = text.trim();
-    if (!clean || runRef.current || voice.current || !bridge) return;
+    if (!clean || runRef.current || voice.current || demo.current || demoStarting || greetingBusy || !bridge) return;
     if (!settings.hasKey) { setDrawer('settings'); return; }
     const id = crypto.randomUUID(); runRef.current = id; setRunId(id); setBackendState('think'); setError(''); setInput('');
     const history = messagesRef.current.filter(m => m.text && m.done !== false).slice(-20).map(m => ({ role: m.role, content: m.text }));
@@ -175,12 +199,13 @@ function App() {
     finally { if (runRef.current === id) { runRef.current = null; setRunId(null); setBackendState('idle'); } inputRef.current?.focus(); }
   }
   async function cancel() {
+    stopDemo();
     voice.current?.interrupt();
     if (runRef.current && bridge) { try { await bridge.cancel(runRef.current); setApprovals([]); } catch (e) { showError(e); } }
   }
   async function toggleVoice() {
     if (voice.current) { voice.current.stop(); voice.current = null; return; }
-    if (!bridge || runId) return;
+    if (!bridge || runId || demo.current || demoStarting || greetingBusy) return;
     if (!settings.hasKey) { setDrawer('settings'); return; }
     stopMicTest();
     setError(''); setVoiceActive(true);
@@ -203,7 +228,7 @@ function App() {
   }
   async function toggleMicTest() {
     if (micTest.current) { stopMicTest(); return; }
-    if (voice.current || runRef.current || micStarting) return;
+    if (voice.current || runRef.current || micStarting || demo.current || demoStarting || greetingBusy) return;
     const generation = ++micGeneration.current; setMicStarting(true);
     let stream: MediaStream | undefined;
     let context: AudioContext | undefined;
@@ -225,23 +250,115 @@ function App() {
       }; measure();
     } catch (e) { stream?.getTracks().forEach(track => track.stop()); void context?.close().catch(() => {}); showError(e); } finally { if (generation === micGeneration.current) setMicStarting(false); }
   }
+  function stopDemo() {
+    demoGeneration.current++;
+    greetingGeneration.current++; setGreetingBusy(false); setGreetingNeedsTap(false);
+    const session = demo.current;
+    if (session) {
+      demo.current = null; cancelAnimationFrame(session.frame);
+      session.audio.onended = null; session.audio.onerror = null; session.audio.pause(); session.audio.removeAttribute('src'); session.audio.load();
+      void session.context.close().catch(() => {});
+      if (session.objectUrl) URL.revokeObjectURL(session.objectUrl);
+    }
+    setDemoPlaying(false); setDemoStarting(false); levels.current = { mic: 0, speaker: 0, wave: [] };
+    if (micMeter.current) micMeter.current.style.setProperty('--level', '0');
+  }
+  async function toggleDemo() {
+    if (demo.current || demoStarting) { stopDemo(); return; }
+    if (voice.current || micTest.current || micStarting || runRef.current || greetingBusy) return;
+    await playAudio(new URL('./voice-demo.mp3', window.location.href).href, 'demo');
+  }
+  async function playAudio(source: string, kind: 'demo' | 'greeting', objectUrl?: string, automatic = false) {
+    const generation = ++demoGeneration.current; setDemoStarting(true); setError('');
+    setPlaybackKind(kind);
+    let context: AudioContext | undefined;
+    try {
+      const audio = new Audio(source);
+      audio.preload = 'auto';
+      context = new AudioContext();
+      const analyser = context.createAnalyser(); analyser.fftSize = 256;
+      context.createMediaElementSource(audio).connect(analyser); analyser.connect(context.destination);
+      const session = { audio, context, frame: 0, objectUrl }; demo.current = session;
+      audio.onended = () => { if (demo.current === session) stopDemo(); };
+      audio.onerror = () => { if (demo.current === session) { stopDemo(); setError(kind === 'greeting' ? 'Não foi possível reproduzir o áudio da saudação.' : 'A amostra de voz não está disponível nesta instalação. Atualize os arquivos do aplicativo e tente novamente.'); } };
+      if (automatic && context.state === 'suspended' && !navigator.userActivation?.hasBeenActive) {
+        stopDemo(); setGreetingNeedsTap(true); setNotice('A saudação está pronta. Clique em Ouvir saudação para liberar o áudio no navegador.'); return;
+      }
+      let resumeTimer: ReturnType<typeof setTimeout> | undefined;
+      try { await Promise.race([context.resume(), new Promise((_, reject) => { resumeTimer = setTimeout(() => reject(new Error('audio_gesture_required')), 3000); })]); }
+      finally { clearTimeout(resumeTimer); }
+      if (generation !== demoGeneration.current) return;
+      await audio.play();
+      if (generation !== demoGeneration.current) { audio.pause(); return; }
+      setDemoPlaying(true); setDemoStarting(false);
+      if (kind === 'greeting') setGreetingNeedsTap(false);
+      const measure = () => {
+        if (demo.current !== session) return;
+        const samples = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(samples);
+        let sum = 0; for (const n of samples) sum += ((n - 128) / 128) ** 2;
+        const value = Math.min(1, Math.sqrt(sum / samples.length) * 5);
+        levels.current = { mic: 0, speaker: value, wave: Array.from(samples).filter((_, i) => i % 6 === 0).slice(0, 41).map(n => Math.abs((n - 128) / 128)) };
+        if (micMeter.current) micMeter.current.style.setProperty('--level', String(value));
+        session.frame = requestAnimationFrame(measure);
+      }; measure();
+    } catch (e) {
+      if (generation !== demoGeneration.current) return;
+      stopDemo(); void context?.close().catch(() => {}); if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (kind === 'greeting') { setGreetingNeedsTap(true); setNotice('O áudio não iniciou. Clique em Ouvir saudação para tentar novamente.'); }
+      else showError(e);
+    }
+  }
+  async function playGreeting(automatic = false) {
+    const audio = greetingAudio.current;
+    if (!audio || demo.current || voice.current || micTest.current || runRef.current) return;
+    try {
+      const decoded = atob(audio.base64), bytes = new Uint8Array(decoded.length);
+      for (let index = 0; index < decoded.length; index++) bytes[index] = decoded.charCodeAt(index);
+      const objectUrl = URL.createObjectURL(new Blob([bytes], { type: audio.mime || 'audio/mpeg' }));
+      await playAudio(objectUrl, 'greeting', objectUrl, automatic);
+    } catch (e) { showError(e); }
+  }
+  async function startGreeting(automatic = false) {
+    if (!bridge?.startupGreeting || voice.current || micTest.current || runRef.current || demo.current) return;
+    stopDemo(); const generation = ++greetingGeneration.current; setGreetingBusy(true); setError(''); greetingAudio.current = null;
+    try {
+      const result = await bridge.startupGreeting({ hour: new Date().getHours(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
+      if (generation !== greetingGeneration.current) return;
+      setGreetingBusy(false);
+      if (result.text) upsertMessage({ id: `greeting-${crypto.randomUUID()}`, role: 'assistant', text: result.text, done: true, source: result.attribution });
+      if (result.audioBase64) { greetingAudio.current = { base64: result.audioBase64, mime: result.mime }; await playGreeting(automatic); }
+      else setNotice(result.reason === 'requires_key' ? 'Saudação pronta em texto. Configure a chave ElevenLabs em Ajustes para ouvi-la.' : 'Saudação pronta em texto. Confira a configuração da voz ElevenLabs para ouvir o áudio.');
+    } catch (e) { if (generation === greetingGeneration.current) showError(e); }
+    finally { if (generation === greetingGeneration.current) setGreetingBusy(false); }
+  }
   async function decide(approval: JarvisEvent, allow: boolean) {
     if (!bridge || !approval.approvalId) return;
     setDeciding(approval.approvalId);
     try { await bridge.approve({ approvalId: approval.approvalId, allow }); setApprovals(items => items.filter(x => x.approvalId !== approval.approvalId)); }
     catch (e) { showError(e); } finally { setDeciding(''); }
   }
-  function openSettings() { setForm(settings); setApiKey(''); setDrawer('settings'); }
+  function syncLocationForm(value: JarvisSettings) {
+    setLocationName(value.weatherLocation?.name || '');
+    setLocationLatitude(value.weatherLocation ? String(value.weatherLocation.latitude) : '');
+    setLocationLongitude(value.weatherLocation ? String(value.weatherLocation.longitude) : '');
+  }
+  function openSettings() { setForm(settings); syncLocationForm(settings); setApiKey(''); setElevenApiKey(''); setDrawer('settings'); }
   async function saveSettings(event: React.FormEvent) {
     event.preventDefault(); if (!bridge) return;
     if (voiceActive || runId) { setError('Encerre a sessão atual antes de alterar a configuração.'); return; }
     setSaving(true);
     try {
-      await bridge.saveSettings({ profileId: form.profileId.trim(), textModel: form.textModel.trim(), realtimeModel: form.realtimeModel.trim(), voice: form.voice.trim(), maxSessionMinutes: Number(form.maxSessionMinutes), ...(apiKey ? { apiKey: apiKey.trim() } : {}) });
-      setApiKey('');
+      let weatherLocation: JarvisSettings['weatherLocation'] = null;
+      if (locationName.trim() || locationLatitude.trim() || locationLongitude.trim()) {
+        const latitude = Number(locationLatitude), longitude = Number(locationLongitude);
+        if (!locationName.trim() || !locationLatitude.trim() || !locationLongitude.trim() || !Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) throw new Error('Informe a cidade e coordenadas válidas para o boletim do tempo.');
+        weatherLocation = { name: locationName.trim(), latitude, longitude };
+      }
+      await bridge.saveSettings({ profileId: form.profileId.trim(), textModel: form.textModel.trim(), realtimeModel: form.realtimeModel.trim(), voice: form.voice.trim(), maxSessionMinutes: Number(form.maxSessionMinutes), startupGreeting: Boolean(form.startupGreeting), weatherLocation, elevenVoiceId: (form.elevenVoiceId || '').trim(), ...(apiKey ? { apiKey: apiKey.trim() } : {}), ...(elevenApiKey ? { elevenApiKey: elevenApiKey.trim() } : {}) });
+      setApiKey(''); setElevenApiKey('');
       const data = await bridge.boot();
       if (data.settings.profileId !== settings.profileId) { setMessages([]); setActions([]); }
-      setSettings(data.settings); setForm(data.settings); setSnapshot(normalizeSnapshot(data.snapshot)); setCapabilities(data.capabilities); setNotice(data.capabilities.localTest ? 'Configuração aplicada nesta sessão de teste. A chave fica apenas na memória até encerrar o servidor local.' : 'Configuração salva neste computador.'); setDrawer(null);
+      setSettings(data.settings); setForm(data.settings); syncLocationForm(data.settings); setSnapshot(normalizeSnapshot(data.snapshot)); setCapabilities(data.capabilities); setNotice(data.capabilities.localTest ? 'Configuração aplicada nesta sessão de teste. As chaves ficam apenas na memória até encerrar o servidor local.' : 'Configuração salva neste computador.'); setDrawer(null);
     } catch (e) { showError(e); } finally { setSaving(false); }
   }
   async function selectWorkspace() { try { const path = await bridge?.chooseWorkspace(); if (path) { setSettings(s => ({ ...s, workspaceRoot: path })); setForm(s => ({ ...s, workspaceRoot: path })); } } catch (e) { showError(e); } }
@@ -302,7 +419,7 @@ function App() {
     try { await bridge?.saveSettings({ profileId }); const data = await bridge!.boot(); setSettings(data.settings); setForm(data.settings); setSnapshot(normalizeSnapshot(data.snapshot)); setMessages([]); setActions([]); stopCamera(); setDrawer(null); } catch (e) { showError(e); }
   }
 
-  const status = micTesting ? { label: 'TESTE DE MICROFONE', description: 'Fale para ver o núcleo pulsar. O áudio permanece neste computador.' } : states[effectiveMode] || states.idle;
+  const status = demoPlaying ? playbackKind === 'greeting' ? { label: 'SAUDAÇÃO JARVIS', description: 'ElevenLabs · boletim do tempo consultado para esta saudação.' } : { label: 'AMOSTRA DA VOZ JARVIS', description: 'ElevenLabs · o núcleo acompanha o áudio da amostra.' } : greetingBusy ? { label: 'PREPARANDO SAUDAÇÃO', description: 'Consultando o tempo e preparando sua saudação.' } : micTesting ? { label: 'TESTE DE MICROFONE', description: 'Fale para ver o núcleo pulsar. O áudio permanece neste computador.' } : states[effectiveMode] || states.idle;
   const currentAction = actions.find(a => ['running', 'executing', 'awaiting_approval'].includes(a.status || ''));
   const profileMemories = snapshot.memories.filter(m => !m.profileId || m.profileId === settings.profileId);
   const activity = [...actions, ...snapshot.tasks.filter(t => !actions.some(a => a.id === t.id))].slice(0, 30);
@@ -314,33 +431,45 @@ function App() {
         <div className="core-heading"><div><span className="eyebrow">SISTEMA DE INTELIGÊNCIA PESSOAL</span><h1>Seu mundo. Em sintonia.</h1></div><span className="coordinate">NÚCLEO / 01<br/><b>PT–BR</b></span></div>
         <div className="reactor-stage">
           <canvas ref={canvas} role="img" aria-label={`Núcleo holográfico ciano Jarvis. ${status.label}.`}/>
-          <div className="stage-label top-left"><span>ENTRADA</span><b>{micTesting ? 'TESTE LOCAL ATIVO' : voiceActive ? voiceConnected ? 'MICROFONE ATIVO' : 'PREPARANDO ÁUDIO' : 'TEXTO DISPONÍVEL'}</b><div className="signal-bars" ref={micMeter} aria-hidden="true">{Array.from({ length: 9 }, (_, i) => <i key={i} style={{ '--bar': `${20 + (i % 4) * 21}%` } as React.CSSProperties}/>)}</div></div>
-          <div className="stage-label top-right"><span>MODELO</span><b>{voiceActive ? settings.realtimeModel || 'NÃO DEFINIDO' : settings.textModel || 'NÃO DEFINIDO'}</b><small>{voiceActive ? 'ÁUDIO EM TEMPO REAL' : 'OPENAI · RESPOSTA PROGRESSIVA'}</small></div>
+          <div className="stage-label top-left"><span>ENTRADA</span><b>{demoPlaying ? 'ARQUIVO DE ÁUDIO LOCAL' : micTesting ? 'TESTE LOCAL ATIVO' : voiceActive ? voiceConnected ? 'MICROFONE ATIVO' : 'PREPARANDO ÁUDIO' : 'TEXTO DISPONÍVEL'}</b><div className="signal-bars" ref={micMeter} aria-hidden="true">{Array.from({ length: 9 }, (_, i) => <i key={i} style={{ '--bar': `${20 + (i % 4) * 21}%` } as React.CSSProperties}/>)}</div></div>
+          <div className="stage-label top-right"><span>MODELO</span><b>{demoPlaying ? playbackKind === 'greeting' ? 'SAUDAÇÃO ELEVENLABS' : 'AMOSTRA ELEVENLABS' : voiceActive ? settings.realtimeModel || 'NÃO DEFINIDO' : settings.textModel || 'NÃO DEFINIDO'}</b><small>{demoPlaying ? 'VOZ PERSONALIZADA · AMOSTRA' : voiceActive ? 'ÁUDIO EM TEMPO REAL' : 'OPENAI · RESPOSTA PROGRESSIVA'}</small></div>
           <div className="stage-label bottom-left"><span>CONTEXTO</span><b>{profileMemories.length ? `${profileMemories.length} MEMÓRIA${profileMemories.length === 1 ? '' : 'S'} NO PERFIL` : 'MEMÓRIA SOB SEU CONTROLE'}</b><small>Perfil: {settings.profileId}</small></div>
           <div className="stage-label bottom-right"><span>ESPAÇO DE TRABALHO</span><b>{settings.workspaceRoot ? 'PASTA DEFINIDA' : 'NENHUMA PASTA DEFINIDA'}</b><button className="text-link" onClick={openSettings}>{settings.workspaceRoot ? 'Ver permissões' : 'Configurar acesso'} <span>↗</span></button></div>
           <div className="reactor-status" aria-live="polite"><span className="status-line"/><strong>{status.label}</strong><p>{currentAction?.summary || status.description}</p></div>
         </div>
-        <div className="core-controls"><button className={`voice-button ${voiceActive ? 'enabled' : ''}`} disabled={!bridge || !booted || !!runId} onClick={toggleVoice}><Icon name={voiceActive ? 'stop' : 'mic'} size={19}/>{voiceActive ? 'Encerrar voz' : 'Iniciar conversa por voz'}<span className="keycap">{voiceActive ? 'ON' : 'MIC'}</span></button><button className="quiet-button interrupt" disabled={!runId && !voiceActive} onClick={cancel}><Icon name="stop" size={15}/>Interromper</button></div>
-        <div className="hardware-tools"><button disabled={voiceActive || !!runId || micStarting} onClick={toggleMicTest}><Icon name="mic" size={13}/>{micStarting ? 'Preparando microfone…' : micTesting ? 'Encerrar teste local' : 'Testar microfone'}</button><span>·</span><button onClick={() => setDrawer('presence')}><Icon name="camera" size={13}/>Testar câmera</button></div>
-        <div className="privacy-line"><Icon name="shield" size={13}/><span>{voiceActive ? 'Microfone ativo · áudio enviado à OpenAI enquanto a sessão estiver aberta' : micTesting ? 'Teste local de microfone · áudio não enviado à OpenAI' : cameraOn ? 'Câmera local ativa · processamento facial neste computador' : 'Microfone e câmera desligados · você decide quando ativar'}</span></div>
+        <div className="core-controls"><button className={`voice-button ${voiceActive ? 'enabled' : ''}`} disabled={!bridge || !booted || !!runId || demoPlaying || demoStarting || greetingBusy} onClick={toggleVoice}><Icon name={voiceActive ? 'stop' : 'mic'} size={19}/>{voiceActive ? 'Encerrar voz' : 'Iniciar conversa por voz'}<span className="keycap">{voiceActive ? 'ON' : 'MIC'}</span></button><button className="quiet-button interrupt" disabled={!runId && !voiceActive && !demoPlaying && !demoStarting && !greetingBusy} onClick={cancel}><Icon name="stop" size={15}/>Interromper</button></div>
+        <div className="hardware-tools"><button disabled={voiceActive || !!runId || micStarting || demoPlaying || demoStarting || greetingBusy} onClick={toggleMicTest}><Icon name="mic" size={13}/>{micStarting ? 'Preparando microfone…' : micTesting ? 'Encerrar teste local' : 'Testar microfone'}</button><span>·</span><button onClick={() => setDrawer('presence')}><Icon name="camera" size={13}/>Testar câmera</button><span>·</span><button disabled={voiceActive || micTesting || micStarting || !!runId || greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting))} onClick={toggleDemo}><Icon name={demoPlaying || demoStarting ? 'stop' : 'speaker'} size={13}/>{(demoPlaying || demoStarting) && playbackKind === 'demo' ? 'Parar amostra' : 'Ouvir amostra Jarvis'}</button></div>
+        <div className="voice-sample-note">Amostra ElevenLabs · conversas ao vivo usam voz OpenAI.</div>
+        <div className="privacy-line"><Icon name="shield" size={13}/><span>{voiceActive ? 'Microfone ativo · áudio enviado à OpenAI enquanto a sessão estiver aberta' : micTesting ? 'Teste local de microfone · áudio não enviado à OpenAI' : demoPlaying || demoStarting ? playbackKind === 'greeting' ? 'Reprodução da saudação · sem captura de microfone' : 'Reprodução local da amostra · sem captura de microfone' : cameraOn ? 'Câmera local ativa · processamento facial neste computador' : 'Microfone e câmera desligados · você decide quando ativar'}</span></div>
       </section>
       <section className="conversation" aria-label="Conversa com Jarvis"><header className="conversation-header"><div><span className="eyebrow">CANAL DIRETO</span><h2>Conversa</h2></div><span className="small-pill">{voiceActive ? 'VOZ' : 'TEXTO'}</span></header>
         {!bridge && <div className="inline-note">Prévia da interface. Abra o aplicativo desktop para conectar voz, memória e ações reais.</div>}
         {capabilities.localTest && <div className="inline-note local-test-banner"><strong>TESTE LOCAL · PASTA DE ENSAIO</strong><span>Teste de microfone, câmera e conexão às APIs. Chave temporária em memória; programas do Windows indisponíveis neste modo.</span></div>}
+        {greetingNeedsTap && <div className="greeting-ready"><span>Sua saudação está pronta para ouvir.</span><button type="button" className="quiet-button" disabled={voiceActive || micTesting || !!runId || demoPlaying || demoStarting || greetingBusy} onClick={() => void playGreeting()}><Icon name="speaker" size={15}/>Ouvir saudação</button></div>}
         {bridge && booted && !settings.hasKey && <button className="setup-banner" onClick={openSettings}><Icon name="plus" size={18}/><span>Conecte sua conta OpenAI<small>Adicione uma chave de API para começar.</small></span><Icon name="arrow" size={16}/></button>}
         <div className="messages" role="log" aria-label="Mensagens da conversa" aria-live="polite" aria-relevant="additions">
           {!messages.length && <div className="empty-conversation"><span className="empty-glyph">J</span><h3>Vamos começar.</h3><p>Converse, peça uma ação ou transforme uma ideia em um procedimento.</p><div className="suggestions">{['O que você consegue fazer?', 'Liste os arquivos da minha pasta', 'Lembre que prefiro respostas objetivas'].map((suggestion, i) => <button key={suggestion} onClick={() => { setInput(suggestion); inputRef.current?.focus(); }}><span>0{i + 1}</span>{suggestion}<Icon name="arrow" size={14}/></button>)}</div><small>Você verá e autorizará as ações que precisarem da sua decisão.</small></div>}
-          {messages.map(message => <article key={message.id} className={`message ${message.role}`}><div className="message-meta"><span>{message.role === 'user' ? 'VOCÊ' : 'J.A.R.V.I.S.'}</span>{message.done === false && <i className="stream-dot"/>}</div><p>{message.text || <span className="thinking-dots" aria-label="Preparando resposta">···</span>}</p></article>)}
+          {messages.map(message => <article key={message.id} className={`message ${message.role}`}><div className="message-meta"><span>{message.role === 'user' ? 'VOCÊ' : 'J.A.R.V.I.S.'}</span>{message.done === false && <i className="stream-dot"/>}</div><p>{message.text || <span className="thinking-dots" aria-label="Preparando resposta">···</span>}</p>{message.source && <small className="message-source">Fonte do tempo: {message.source}</small>}</article>)}
           <div ref={historyEnd}/>
         </div>
         {approvals.length > 0 && <div className="approvals">{approvals.map(approval => <div className="approval-card" key={approval.approvalId}><div className="approval-title"><Icon name="shield" size={17}/><span>AÇÃO AGUARDANDO DECISÃO</span></div><strong>{approval.title || approval.summary || approval.description || approval.name || 'Autorizar ação'}</strong>{Boolean(approval.details || approval.args) && <pre>{JSON.stringify(approval.details || approval.args, null, 2)}</pre>}<p>Esta autorização vale apenas para esta ação.</p><div className="approval-buttons"><button className="quiet-button" disabled={!!deciding} onClick={() => decide(approval, false)}>Recusar</button><button className="primary-button" disabled={!!deciding} onClick={() => decide(approval, true)}><Icon name="check" size={16}/>{deciding === approval.approvalId ? 'Aplicando…' : 'Autorizar'}</button></div></div>)}</div>}
-        <form className="composer" onSubmit={e => { e.preventDefault(); void send(); }}><label className="sr-only" htmlFor="message-input">Mensagem para Jarvis</label><textarea id="message-input" ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }} disabled={!bridge || voiceActive} placeholder={voiceActive ? 'Conversa por voz ativa…' : 'Diga o que precisa…'} rows={2} maxLength={16000}/><div className="composer-footer"><span>{voiceActive ? 'Encerre a voz para usar texto' : 'Enter envia · Shift + Enter nova linha'}</span><button className="send-button" type="submit" aria-label="Enviar mensagem" disabled={!input.trim() || !!runId || voiceActive || !bridge}><Icon name="send" size={19}/></button></div></form>
+        <form className="composer" onSubmit={e => { e.preventDefault(); void send(); }}><label className="sr-only" htmlFor="message-input">Mensagem para Jarvis</label><textarea id="message-input" ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }} disabled={!bridge || voiceActive} placeholder={voiceActive ? 'Conversa por voz ativa…' : 'Diga o que precisa…'} rows={2} maxLength={16000}/><div className="composer-footer"><span>{voiceActive ? 'Encerre a voz para usar texto' : 'Enter envia · Shift + Enter nova linha'}</span><button className="send-button" type="submit" aria-label="Enviar mensagem" disabled={!input.trim() || !!runId || voiceActive || demoPlaying || demoStarting || greetingBusy || !bridge}><Icon name="send" size={19}/></button></div></form>
       </section>
     </main>
     <footer className="statusbar"><span><i/>{capabilities.desktop ? 'MOTOR LOCAL' : capabilities.localTest ? 'TESTE LOCAL · PASTA DE ENSAIO' : bridge ? booted ? 'MOTOR DISPONÍVEL' : 'INICIALIZANDO' : 'PRÉVIA SEM CONEXÃO'}</span><span>{actions.length ? `${actions.length} ${actions.length === 1 ? 'ação' : 'ações'} nesta sessão` : 'Nenhuma ação executada nesta sessão'}</span><button onClick={() => setDrawer('activity')}>ABRIR REGISTRO <span>↗</span></button></footer>
     {(error || notice) && <div className={`toast ${error ? 'error' : ''}`} role={error ? 'alert' : 'status'}><span>{error || notice}</span><button className="icon-button" aria-label="Dispensar mensagem" onClick={() => { setError(''); setNotice(''); }}><Icon name="close" size={16}/></button></div>}
 
-    {drawer === 'settings' && <Panel title="À sua maneira." eyebrow="CONFIGURAÇÕES" onClose={() => { setDrawer(null); setApiKey(''); }}><form onSubmit={saveSettings} className="settings-form"><p className="drawer-intro">Conecte a inteligência e defina o que Jarvis pode acessar neste computador.</p><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>01 / INTELIGÊNCIA</legend><label>Chave de API OpenAI <span>{settings.hasKey ? capabilities.localTest ? 'Chave ativa nesta sessão · preencher substitui' : 'Chave já salva · preencher substitui' : 'Obrigatória para voz e respostas'}</span><input type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={settings.hasKey ? '••••••••••••••••' : 'sk-…'} spellCheck={false}/></label><p className="field-note">{capabilities.localTest ? 'Neste teste, a chave fica apenas na memória até encerrar o servidor local. Não é salva no navegador ou em arquivo.' : 'Guardada pelo aplicativo neste computador. A chave não aparece no histórico da conversa.'}</p><div className="field-grid"><label>Modelo de texto<input value={form.textModel} onChange={e => setForm({ ...form, textModel: e.target.value })} required spellCheck={false}/></label><label>Modelo de voz<input value={form.realtimeModel} onChange={e => setForm({ ...form, realtimeModel: e.target.value })} required spellCheck={false}/></label></div><div className="field-grid"><label>Voz<input value={form.voice} onChange={e => setForm({ ...form, voice: e.target.value })} required spellCheck={false}/></label><label>Limite da sessão <span>minutos</span><input type="number" min="1" max="30" value={form.maxSessionMinutes} onChange={e => setForm({ ...form, maxSessionMinutes: Number(e.target.value) })} required/></label></div></fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>02 / PERFIL</legend><label>Identificador do perfil<input value={form.profileId} onChange={e => setForm({ ...form, profileId: e.target.value })} maxLength={64} required/></label><p className="field-note">Cada perfil mantém suas próprias memórias. A troca encerra o histórico de conversa exibido.</p></fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>03 / ACESSO LOCAL</legend><div className="setting-row"><div><strong>Pasta de trabalho</strong><p>{settings.workspaceRoot || 'Nenhuma pasta selecionada'}</p></div><button className="quiet-button" type="button" disabled={capabilities.localTest} onClick={selectWorkspace}><Icon name="folder" size={16}/>Escolher</button></div><div className="setting-row"><div><strong>Aplicativos permitidos</strong><p>{settings.apps.length ? settings.apps.map(a => a.label).join(' · ') : 'Nenhum aplicativo autorizado'}</p></div><button className="quiet-button" type="button" disabled={capabilities.localTest} onClick={selectApp}><Icon name="plus" size={16}/>Adicionar</button></div><p className="field-note">Escritas em arquivos e abertura de aplicativos passam por autorização. Não há acesso livre ao terminal.</p></fieldset>{(voiceActive || runId) && <p className="inline-note">Encerre a sessão atual para alterar estas configurações.</p>}<div className="drawer-actions"><button className="quiet-button" type="button" onClick={() => { setDrawer(null); setApiKey(''); }}>Cancelar</button><button type="submit" className="primary-button" disabled={!bridge || saving || voiceActive || !!runId}>{saving ? 'Salvando…' : 'Salvar configuração'}<Icon name="arrow" size={16}/></button></div></form></Panel>}
+    {drawer === 'settings' && <Panel title="À sua maneira." eyebrow="CONFIGURAÇÕES" onClose={() => { setDrawer(null); setApiKey(''); setElevenApiKey(''); }}><form onSubmit={saveSettings} className="settings-form"><p className="drawer-intro">Conecte a inteligência e defina o que Jarvis pode acessar neste computador.</p><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>01 / INTELIGÊNCIA</legend><label>Chave de API OpenAI <span>{settings.hasKey ? capabilities.localTest ? 'Chave ativa nesta sessão · preencher substitui' : 'Chave já salva · preencher substitui' : 'Obrigatória para voz e respostas'}</span><input type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={settings.hasKey ? '••••••••••••••••' : 'sk-…'} spellCheck={false}/></label><p className="field-note">{capabilities.localTest ? 'Neste teste, a chave fica apenas na memória até encerrar o servidor local. Não é salva no navegador ou em arquivo.' : 'Guardada pelo aplicativo neste computador. A chave não aparece no histórico da conversa.'}</p><div className="field-grid"><label>Modelo de texto<input value={form.textModel} onChange={e => setForm({ ...form, textModel: e.target.value })} required spellCheck={false}/></label><label>Modelo de voz<input value={form.realtimeModel} onChange={e => setForm({ ...form, realtimeModel: e.target.value })} required spellCheck={false}/></label></div><div className="field-grid"><label>Voz<input value={form.voice} onChange={e => setForm({ ...form, voice: e.target.value })} required spellCheck={false}/></label><label>Limite da sessão <span>minutos</span><input type="number" min="1" max="30" value={form.maxSessionMinutes} onChange={e => setForm({ ...form, maxSessionMinutes: Number(e.target.value) })} required/></label></div></fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving}>
+<legend>02 / SAUDAÇÃO E TEMPO</legend>
+<label className="greeting-toggle"><input type="checkbox" checked={Boolean(form.startupGreeting)} onChange={e => setForm({ ...form, startupGreeting: e.target.checked })}/><span>Cumprimentar ao iniciar</span></label>
+<p className="field-note">Usa o horário do computador, consulta o tempo atual e a previsão para a cidade configurada e termina perguntando como pode ajudar.</p>
+<label>Chave ElevenLabs <span>{settings.hasElevenKey ? capabilities.localTest ? 'Chave ativa nesta sessão · preencher substitui' : 'Chave já salva · preencher substitui' : 'Necessária para falar a saudação com a voz Jarvis'}</span><input type="password" autoComplete="off" value={elevenApiKey} onChange={e => setElevenApiKey(e.target.value)} placeholder={settings.hasElevenKey ? '••••••••••••••••' : 'Sua chave ElevenLabs'} spellCheck={false}/></label>
+<p className="field-note">{capabilities.localTest ? 'A chave fica apenas na memória do servidor local até encerrá-lo.' : 'A chave é guardada pelo aplicativo com a proteção do sistema.'} Não a envie na conversa.</p>
+<label>Identificador da voz ElevenLabs<input value={form.elevenVoiceId || ''} onChange={e => setForm({ ...form, elevenVoiceId: e.target.value })} placeholder="ID da voz configurada na sua conta" spellCheck={false}/></label>
+<details className="weather-settings"><summary>Cidade do boletim {settings.weatherLocation?.name ? `· ${settings.weatherLocation.name}` : '· configurar'}</summary><label>Cidade<input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="Cidade e região" maxLength={120}/></label><div className="field-grid"><label>Latitude<input type="number" step="any" min="-90" max="90" value={locationLatitude} onChange={e => setLocationLatitude(e.target.value)} placeholder="Coordenada da cidade"/></label><label>Longitude<input type="number" step="any" min="-180" max="180" value={locationLongitude} onChange={e => setLocationLongitude(e.target.value)} placeholder="Coordenada da cidade"/></label></div><p className="field-note">A cidade é uma configuração privada. As coordenadas permitem consultar a previsão correta sem solicitar sua localização ao navegador.</p></details>
+<button type="button" className="quiet-button" disabled={!bridge?.startupGreeting || (demoPlaying && playbackKind !== 'greeting') || micTesting || micStarting} onClick={() => { if (greetingBusy || (demoPlaying && playbackKind === 'greeting') || (demoStarting && playbackKind === 'greeting')) void cancel(); else void startGreeting(false); }}><Icon name={greetingBusy || (demoPlaying && playbackKind === 'greeting') ? 'stop' : 'speaker'} size={16}/>{greetingBusy || ((demoPlaying || demoStarting) && playbackKind === 'greeting') ? 'Parar saudação' : 'Testar saudação'}</button>
+<p className="field-note greeting-test-note">O teste usa a configuração salva. Salve alterações de chave, voz ou cidade antes de testar. A conversa ao vivo continua usando a voz OpenAI.</p>
+</fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>03 / PERFIL</legend><label>Identificador do perfil<input value={form.profileId} onChange={e => setForm({ ...form, profileId: e.target.value })} maxLength={64} required/></label><p className="field-note">Cada perfil mantém suas próprias memórias. A troca encerra o histórico de conversa exibido.</p></fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>04 / ACESSO LOCAL</legend><div className="setting-row"><div><strong>Pasta de trabalho</strong><p>{settings.workspaceRoot || 'Nenhuma pasta selecionada'}</p></div><button className="quiet-button" type="button" disabled={capabilities.localTest} onClick={selectWorkspace}><Icon name="folder" size={16}/>Escolher</button></div><div className="setting-row"><div><strong>Aplicativos permitidos</strong><p>{settings.apps.length ? settings.apps.map(a => a.label).join(' · ') : 'Nenhum aplicativo autorizado'}</p></div><button className="quiet-button" type="button" disabled={capabilities.localTest} onClick={selectApp}><Icon name="plus" size={16}/>Adicionar</button></div><p className="field-note">Escritas em arquivos e abertura de aplicativos passam por autorização. Não há acesso livre ao terminal.</p></fieldset>{(voiceActive || runId) && <p className="inline-note">Encerre a sessão atual para alterar estas configurações.</p>}<div className="drawer-actions"><button className="quiet-button" type="button" onClick={() => { setDrawer(null); setApiKey(''); setElevenApiKey(''); }}>Cancelar</button><button type="submit" className="primary-button" disabled={!bridge || saving || voiceActive || !!runId}>{saving ? 'Salvando…' : 'Salvar configuração'}<Icon name="arrow" size={16}/></button></div></form></Panel>}
     {drawer === 'memory' && <Panel title="O que permanece." eyebrow={`MEMÓRIA / ${settings.profileId}`} onClose={() => setDrawer(null)}><div className="drawer-content"><p className="drawer-intro">Preferências e informações que você escolheu guardar. Você pode ler, adicionar e apagar cada registro.</p><form className="memory-form" onSubmit={saveMemory}><label htmlFor="memory-input">Nova memória</label><textarea id="memory-input" placeholder="Ex.: prefiro respostas curtas em português." value={memoryDraft} onChange={e => setMemoryDraft(e.target.value)} maxLength={4000} rows={3}/><button className="primary-button" disabled={!bridge || !memoryDraft.trim() || memoryBusy}><Icon name="plus" size={16}/>{memoryBusy ? 'Salvando…' : 'Guardar memória'}</button></form><div className="section-label">REGISTROS / {profileMemories.length.toString().padStart(2, '0')}</div>{!profileMemories.length && <div className="empty-panel"><Icon name="memory" size={32}/><h3>Uma página em branco.</h3><p>As memórias deste perfil aparecerão aqui.</p></div>}{profileMemories.map(memory => <article className="memory-card" key={memory.id}><div><p>{detail(memory)}</p><small>{time(memory.updatedAt || memory.createdAt)}</small></div><button className="icon-button" aria-label={`Apagar memória: ${detail(memory).slice(0, 60)}`} onClick={() => deleteMemory(memory.id)}><Icon name="trash" size={17}/></button></article>)}{snapshot.procedures.length > 0 && <><div className="section-label">PROCEDIMENTOS REVISÁVEIS</div>{snapshot.procedures.map(procedure => <article className="memory-card" key={procedure.id}><div><strong>{procedure.name || 'Procedimento'}</strong><p>{procedure.text || procedure.summary}</p><small>{humanStatus(procedure.status)}</small></div></article>)}</>}</div></Panel>}
     {drawer === 'activity' && <Panel title="Cada passo, visível." eyebrow="REGISTRO DE ATIVIDADES" onClose={() => setDrawer(null)}><div className="drawer-content"><p className="drawer-intro">Ações propostas, autorizações e resultados. Interromper uma tarefa evita os próximos passos; efeitos já concluídos permanecem registrados.</p>{!activity.length && <div className="empty-panel"><Icon name="activity" size={32}/><h3>Nenhuma ação por enquanto.</h3><p>Quando Jarvis usar uma ferramenta, você acompanhará o resultado aqui.</p></div>}<ol className="timeline">{activity.map(action => <li key={action.id}><span className={`timeline-dot ${action.status}`}/><div className="timeline-meta"><span>{humanStatus(action.status)}</span><time>{time(action.updatedAt || action.createdAt)}</time></div><strong>{detail(action)}</strong>{action.name && action.name !== detail(action) && <small>{action.name}</small>}{Boolean(action.error || action.reason) && <p>{String(action.error || action.reason)}</p>}</li>)}</ol></div></Panel>}
     {drawer === 'presence' && <Panel title="Reconhecer sua presença." eyebrow="CÂMERA / PROCESSAMENTO LOCAL" onClose={() => setDrawer(null)}><div className="drawer-content"><p className="drawer-intro">Ative a câmera para reconhecer um rosto cadastrado e escolher o perfil da conversa. Os quadros são enviados apenas ao serviço facial local.</p><div className={`camera-preview ${cameraOn ? 'on' : ''}`}>{cameraOn ? <video ref={video} muted autoPlay playsInline aria-label="Prévia local da câmera"/> : <><Icon name="camera" size={38}/><span>CÂMERA DESLIGADA</span></>}<div className="camera-bracket tl"/><div className="camera-bracket tr"/><div className="camera-bracket bl"/><div className="camera-bracket br"/></div><div className="camera-actions"><button className={cameraOn ? 'quiet-button' : 'primary-button'} disabled={!bridge || visionBusy} onClick={cameraOn ? stopCamera : startCamera}><Icon name={cameraOn ? 'stop' : 'camera'} size={17}/>{visionBusy ? 'Preparando…' : cameraOn ? 'Desligar câmera' : 'Ativar câmera local'}</button></div>{visionStatus?.available === false && <div className="inline-note">{visionStatus.reason || 'O reconhecimento facial requer os modelos locais. Consulte o guia de instalação do projeto.'}</div>}{cameraOn && visionStatus?.available && <><div className="face-result"><span className="eyebrow">{faceResult?.profileId ? 'PERFIL RECONHECIDO' : 'IDENTIFICAÇÃO'}</span><strong>{faceResult?.name || (faceResult?.faceCount > 1 ? 'Mantenha apenas um rosto no quadro' : 'Aguardando reconhecimento…')}</strong>{faceResult?.reason && <p>{faceResult.reason}</p>}{faceResult?.profileId && <button className="quiet-button" disabled={voiceActive || !!runId} onClick={() => useFaceProfile(faceResult.profileId)}>Usar perfil {faceResult.profileId}<Icon name="arrow" size={16}/></button>}</div><div className="section-label">CADASTRAR NO PERFIL ATUAL</div><label className="face-name">Seu nome<input value={faceName} onChange={e => setFaceName(e.target.value)} maxLength={64} placeholder="Como Jarvis deve chamar você"/></label><button className="primary-button" onClick={enrollFace} disabled={!faceName.trim() || enrolling}>{enrolling ? `Capturando ${enrollmentProgress}/3…` : `Cadastrar em ${settings.profileId}`}</button></>}{visionStatus?.profiles?.length > 0 && <><div className="section-label">ROSTOS CADASTRADOS</div>{visionStatus.profiles.map((profile: any) => <article className="memory-card" key={profile.profileId}><div><strong>{profile.name}</strong><small>{profile.profileId}</small></div><button className="icon-button" aria-label={`Apagar rosto de ${profile.name}`} onClick={() => deleteFace(profile.profileId)}><Icon name="trash" size={17}/></button></article>)}</>}<p className="field-note presence-note"><Icon name="shield" size={14}/>O reconhecimento personaliza a experiência. Autorizações de ações continuam dependendo da sua decisão.</p></div></Panel>}
