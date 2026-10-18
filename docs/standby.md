@@ -38,7 +38,7 @@ Com espera habilitada, fechar a janela pode mantê-lo na bandeja. Pausar a esper
 
 Há suporte a uma fonte escolhida pelo usuário, em configuração privada. **O arquivo musical já foi fornecido e importado privadamente, como MP3 de aproximadamente 13 MB. Nenhuma trilha padrão é distribuída.**
 
-A prévia atual com a saudação gravada foi ouvida e aprovada pelo usuário: 17,8577 s, pico 0,7772, RMS 0,08711 e sem saturação. Mantém ganho de 0,35 na introdução e 0,22 durante a fala, preservando o preset da voz. TypeScript e build aprovados; CI do ajuste e0d8ddaa em execução. A aprovação da prévia não comprova login, ativação ou reprodução/fim da música na recepção ao vivo.
+A prévia atual com a saudação gravada foi ouvida e aprovada pelo usuário: 17,8577 s, pico 0,7772, RMS 0,08711 e sem saturação. Mantém ganho de 0,35 na introdução e 0,22 durante a fala, preservando o preset da voz. TypeScript e build aprovados; [CI do ajuste e0d8ddaa aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), incluindo o pacote Windows. A aprovação da prévia não comprova login, ativação ou reprodução/fim da música na recepção ao vivo.
 
 A música acompanha apenas a recepção: termina com o fim ou interrupção da saudação. Não deve manter microfone em espera durante a própria reprodução. Falha no arquivo precisa ser apresentada sem alegar sucesso ou substituir por outra trilha. O arquivo, seu caminho e direitos de uso continuam sob controle do usuário; não são publicados automaticamente.
 
@@ -46,4 +46,4 @@ A música acompanha apenas a recepção: termina com o fim ou interrupção da s
 
 No Windows empacotado, conferir login real, pausar/retomar pela bandeja, palmas e palavra com os dispositivos escolhidos, fala comum/TV/ruído, ausência de autoativação durante a narração, retorno após o fim, cancelamento e saída. Testar também reconhecedor ausente, permissão negada, microfone ocupado e retomada do computador.
 
-O [registro de validação](validation.md) distingue ensaios reais e automatizados: o CI da base 0.2.0 aprovou 214 testes e o pacote Windows; o CI da revisão posterior de volume está em execução. Nenhum desses resultados comprova ativação/login reais. O [plano de testes](test-plan.md) fornece os cenários completos.
+O [registro de validação](validation.md) distingue ensaios reais e automatizados: o CI da base 0.2.0 aprovou 214 testes e o pacote Windows; o [CI da revisão de volume e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917) também aprovou testes e empacotamento. Nenhum desses resultados comprova ativação/login reais. O [plano de testes](test-plan.md) fornece os cenários completos.

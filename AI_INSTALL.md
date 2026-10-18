@@ -95,7 +95,7 @@ No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua i
 A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 
 - CI do commit ba0680: 147 testes, compilação e artefato portátil Windows aprovados.
-- Revisão 0.2.0 local: 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. O [CI 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409) também aprovou 214 testes, TypeScript, build e pacote Windows. O CI do ajuste de volume e0d8ddaa está em execução; esse ajuste não está no artefato anterior.
+- Revisão 0.2.0 local: 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. O [CI 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409) também aprovou 214 testes, TypeScript, build e pacote Windows. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também aprovou testes, TypeScript, build e pacote Windows, incluindo o ajuste.
 - Ajustes inspecionados no navegador: início no login/palavra nativa desabilitados corretamente; espera exige voz/chave/cidade e opções salvas foram preservadas.
 - Texto OpenAI correto, microfone com nível/liberação e câmera 640×480/parada foram observados.
 - Um ensaio OpenAI Realtime foi ouvido, porém usou `marin`, diferente da voz desejada. Ele motivou a nova rota OpenAI → texto → ElevenLabs.
