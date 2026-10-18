@@ -1,12 +1,13 @@
 # Validação do MVP — baseline e revisão 0.2.0
 
-Registro de 18 de outubro de 2026. Este documento separa implementação, testes com substitutos e observação real. **O CI confirmado abaixo pertence ao commit ba0680 e antecede os novos recursos 0.2.0. O CI da nova revisão ainda estava pendente ao atualizar este registro.**
+Registro de 18 de outubro de 2026. Este documento separa implementação, testes com substitutos e observação real. **O CI da base 0.2.0, commit 63cf00153dbab0a52cf3f05a82eb9e7fab3ba385, foi concluído com sucesso. A revisão posterior de volume ainda aguarda CI próprio e não está no artefato dessa execução.**
 
 ## Baseline confirmada
 
 | Verificação | Evidência e limite |
 | --- | --- |
 | CI ba0680 | **147 testes aprovados**, zero falhas; verificação TypeScript, compilação e empacotamento portátil Windows aprovados. [Execução registrada](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39156421498). Não comprova execução física do EXE. |
+| CI 0.2.0 — 63cf001 | **214 testes, TypeScript, build e pacote Windows aprovados.** [Execução 39159266409](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409), [job 117768920735](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409/job/117768920735), artefato 12148216729. Base anterior ao ajuste de volume; não comprova execução física. |
 | Python opcional | Protocolo e pré-processamento testados com Python 3.12 e backend substituído. Não executa a rede facial real. |
 | Servidor local funcional | Interface e serviços usados em loopback no navegador. O ensaio em 47833 usa chaves em memória, sem comprovar persistência protegida do Electron. |
 | Interface e clima | Saudação real com tempo/previsão e atribuição exibida. Regressões React cobrem a atribuição estruturada; recuperação não repete automaticamente a síntese. |
@@ -26,7 +27,7 @@ Os testes de arquivos exercitam efeitos reais em diretórios temporários descar
 
 ## Revisão 0.2.0: implementado, ainda em validação real
 
-**Verificação local concluída:** 214 testes aprovados, zero falhas e zero skips, com Python configurado; TypeScript estrito, compilação e verificação do processo principal aprovados. Os três testes adicionais de integração do App exercitam hooks/controlador reais e detector local com provedores substituídos: capacidade disponível antes de novo render, no máximo uma permissão de microfone pendente ao pausar/retomar e cancelamento da preparação abortando o serviço de saudação antes de rearmar. Não equivalem a fala/palmas ou login físicos. O novo CI ainda está pendente.
+**Verificação local concluída:** 214 testes aprovados, zero falhas e zero skips, com Python configurado; TypeScript estrito, compilação e verificação do processo principal aprovados. Os três testes adicionais de integração do App exercitam hooks/controlador reais e detector local com provedores substituídos: capacidade disponível antes de novo render, no máximo uma permissão de microfone pendente ao pausar/retomar e cancelamento da preparação abortando o serviço de saudação antes de rearmar. Não equivalem a fala/palmas ou login físicos. O CI da base 0.2.0 também foi aprovado; a mudança posterior de volume aguarda nova execução.
 
 **Inspeção no navegador:** controles de início no login e palavra nativa ficaram corretamente desabilitados no teste HTTP; a espera exigiu voz, chave e cidade; opções salvas foram preservadas. Isso valida apresentação/configuração, sem comprovar System.Speech ou login real.
 
@@ -38,12 +39,12 @@ Os testes de arquivos exercitam efeitos reais em diretórios temporários descar
 | Palavra “Jarvis” | Worker Windows System.Speech offline, dependente de reconhecedor de idioma; validação de eventos com processo substituído. | Reconhecimento físico da palavra e indisponibilidade real do idioma. |
 | Início e bandeja | Opções opt-in `startAtLogin` e `standbyEnabled`; registro no login para pacote Windows e controle de espera. | Entrada real na conta, início em espera, bandeja, desativação e saída. Não é funcionamento antes do login. |
 | Pausa da escuta | Coordenação para suspender espera durante narração/música e uso ativo do microfone. | Ausência de autoativação pela própria fala e retorno correto depois do fim/interrupção. |
-| Música privada | Suporte ao arquivo fornecido pelo usuário, acompanhando a recepção até o fim/cancelamento. | **Arquivo ainda não fornecido; nenhuma faixa padrão.** Reprodução/volume/fim não foram aprovados com música real. |
-| Pacote 0.2.0 | Código e novos testes em integração; novo CI ainda pendente neste registro. | Empacotamento atualizado, execução física, instalação limpa, proteção nativa das chaves e assinatura. |
+| Música privada | MP3 de aproximadamente 13 MB importado privadamente. Primeira prévia ouvida, com pedido de mais volume. **Segunda prévia entregue:** 17,8577 s, pico 0,7673, RMS 0,08272, amostras finitas e sem clipping. App ajustado para 0,18 na introdução e 0,075 sob a fala; TypeScript/build aprovados, preset de voz preservado. Nenhuma trilha padrão é distribuída. | Aceite do usuário e CI do ajuste pendentes. A prévia com saudação gravada não comprova reprodução/fim na recepção ao vivo, login ou ativação. |
+| Pacote 0.2.0 | CI 63cf001 concluído com 214 testes, TypeScript, build e artefato Windows aprovados. O artefato antecede o ajuste de volume. | CI da revisão de volume, execução física, instalação limpa, proteção nativa das chaves e assinatura. |
 
 **Nenhum executável nativo foi executado fisicamente neste equipamento no ensaio registrado.** Um artefato gerado pelo CI não comprova abertura do aplicativo, início no login ou reconhecimento offline. Não há release assinada validada para distribuição.
 
-A gravação de referência, a cidade, as credenciais, o identificador da voz e eventual música permanecem privados. O [aviso de distribuição](../assets/voice/README.md) aplica-se ao MP3 selecionado, não a toda a pasta privada nem a um modelo exportável de voz.
+A gravação de referência, a cidade, as credenciais, o identificador da voz e a música recebida permanecem privados. O [aviso de distribuição](../assets/voice/README.md) aplica-se ao MP3 de voz selecionado, não à trilha privada, a toda a pasta de dados ou a um modelo exportável de voz.
 
 ## Histórico relevante
 
@@ -55,6 +56,6 @@ A origem do áudio também foi distinguida: a amostra de apresentação é fixa;
 
 ## Próximo aceite
 
-Executar a nova conversa OpenAI → texto → ElevenLabs e conferir a voz efetivamente ouvida. Depois ensaiar palmas, reconhecedor Windows, pausa/retorno, música quando fornecida e início no login no aplicativo empacotado. Registrar uma nova execução de CI separada do baseline ba0680.
+Executar a nova conversa OpenAI → texto → ElevenLabs e conferir a voz efetivamente ouvida. Depois ensaiar palmas, reconhecedor Windows, pausa/retorno, música recebida na recepção ao vivo e início no login no aplicativo empacotado. Obter aceite da segunda prévia já entregue e registrar o CI da revisão posterior a 63cf001.
 
 Não há p50/p95 de latência nem comparação de superioridade publicados. Use [o plano de testes](test-plan.md) para registrar conta, dispositivo, superfície, falhas e medições sem dados privados.

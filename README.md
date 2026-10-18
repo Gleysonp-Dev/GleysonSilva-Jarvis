@@ -16,7 +16,7 @@ O núcleo mantém a mesma cor ao ouvir, responder e executar. Brilho e expansão
 | Voz aprovada | Clone ElevenLabs já criado com autorização. Reprodução local a 0,95×, altura preservada e tom metálico fixo no preset 0,78; sem controles de ajuste. |
 | Espera local opcional | Duas palmas pelo Web Audio; palavra “Jarvis” pelo reconhecedor offline System.Speech no Windows, quando disponível. Pausa a espera durante fala e uso ativo do microfone. |
 | Início no Windows | Opção desativada por padrão; disponível no aplicativo Windows empacotado. Inicia ao entrar na conta do Windows, em espera quando configurado; não opera antes do login. |
-| Música da recepção | Suporte a arquivo privado escolhido pelo usuário, até o fim da saudação. Nenhuma faixa padrão está incluída; o arquivo ainda não foi fornecido no ensaio atual. |
+| Música da recepção | Arquivo do usuário importado privadamente; segunda prévia com maior volume entregue, aguardando aceite. Nenhuma faixa padrão é distribuída. |
 | Amostra fixa | **Ajustes → Saudação → Amostra fixa da voz** toca um MP3 de apresentação, sem API ou microfone. Não contém clima atual. |
 | Teste de microfone | Mede sinal local e pulsa o núcleo sem enviar áudio ao provedor. |
 | Câmera | Prévia por clique, independente dos modelos faciais. |
@@ -58,7 +58,7 @@ Em **Ajustes → Início e espera**, escolha conscientemente manter o microfone 
 
 **Iniciar ao entrar no Windows** é uma opção separada para a versão empacotada. Instalar o código não ativa captura em segundo plano nem registra início automático. O navegador de teste não altera o login do Windows e não oferece a palavra de ativação nativa.
 
-A música depende de um arquivo fornecido pelo usuário e mantido privado. Não existe trilha padrão nesta entrega. Consulte [Espera e início no Windows](docs/standby.md) para requisitos, pausa, encerramento e limitações.
+A música depende de um arquivo fornecido pelo usuário e mantido privado. No ensaio atual, a primeira prévia foi ouvida e, após pedido de mais volume, a segunda foi entregue; seu aceite ainda está pendente. Não existe trilha padrão nesta entrega. Consulte [Espera e início no Windows](docs/standby.md) para requisitos, pausa, encerramento e limitações.
 
 ### Primeira ação
 
@@ -103,7 +103,7 @@ Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [Elev
 npm run verify
 ```
 
-A baseline do [CI ba0680](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39156421498) aprovou **147 testes**, compilação e empacotamento portátil Windows. Isso antecede os novos recursos 0.2.0; o novo CI ainda está pendente no registro desta revisão.
+O [CI da base 0.2.0, commit 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409), aprovou **214 testes**, TypeScript, build e empacotamento Windows. O ajuste de volume posterior ainda aguarda seu próprio CI; o artefato dessa execução não inclui esse ajuste. A baseline anterior ba0680 havia aprovado 147 testes.
 
 A revisão 0.2.0 passou localmente por **214 testes**, zero falhas/skips, com Python configurado, TypeScript estrito e build aprovados. A interface de ajustes foi inspecionada no navegador: opções nativas indisponíveis ficaram desabilitadas e a configuração da espera foi preservada. Testes com substitutos e inspeção de controles não comprovam ativação física.
 

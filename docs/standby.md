@@ -36,7 +36,9 @@ Com espera habilitada, fechar a janela pode mantê-lo na bandeja. Pausar a esper
 
 ## Música da recepção
 
-Há suporte a uma fonte de áudio escolhida pelo usuário, em configuração privada. **Nenhuma trilha padrão está incluída e nenhum arquivo musical foi fornecido no ensaio atual.**
+Há suporte a uma fonte escolhida pelo usuário, em configuração privada. **O arquivo musical já foi fornecido e importado privadamente, como MP3 de aproximadamente 13 MB. Nenhuma trilha padrão é distribuída.**
+
+Uma primeira prévia com a saudação gravada foi ouvida pelo usuário. Após pedido de mais volume, a segunda prévia foi entregue: 17,86 s, sem saturação, ainda aguardando aceite. O ajuste do aplicativo passou por TypeScript e build; seu CI está pendente. Isso não comprova login, ativação ou reprodução/fim da música na recepção ao vivo.
 
 A música acompanha apenas a recepção: termina com o fim ou interrupção da saudação. Não deve manter microfone em espera durante a própria reprodução. Falha no arquivo precisa ser apresentada sem alegar sucesso ou substituir por outra trilha. O arquivo, seu caminho e direitos de uso continuam sob controle do usuário; não são publicados automaticamente.
 
@@ -44,4 +46,4 @@ A música acompanha apenas a recepção: termina com o fim ou interrupção da s
 
 No Windows empacotado, conferir login real, pausar/retomar pela bandeja, palmas e palavra com os dispositivos escolhidos, fala comum/TV/ruído, ausência de autoativação durante a narração, retorno após o fim, cancelamento e saída. Testar também reconhecedor ausente, permissão negada, microfone ocupado e retomada do computador.
 
-O [registro de validação](validation.md) distingue a baseline já observada dos novos recursos. O [plano de testes](test-plan.md) fornece os cenários completos.
+O [registro de validação](validation.md) distingue ensaios reais e automatizados: o CI da base 0.2.0 aprovou 214 testes e o pacote Windows, mas a revisão posterior de volume ainda aguarda seu próprio CI. Nenhum desses resultados comprova ativação/login reais. O [plano de testes](test-plan.md) fornece os cenários completos.

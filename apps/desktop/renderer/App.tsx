@@ -278,7 +278,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     if (musicPlaying.current || !current.hasGreetingMusic || current.greetingMusicEnabled === false) return;
     music.current ||= new GreetingMusic({ onError: setNotice });
     musicPlaying.current = true;
-    void music.current.start({ src: new URL('./greeting-music', window.location.href).href, volume: 0.12 }).catch(() => { musicPlaying.current = false; });
+    void music.current.start({ src: new URL('./greeting-music', window.location.href).href, volume: 0.18 }).catch(() => { musicPlaying.current = false; });
   }
 
   async function send(text = input) {
@@ -415,7 +415,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       await audio.play();
       if (generation !== demoGeneration.current) { audio.pause(); return; }
       setDemoPlaying(true); setDemoStarting(false);
-      if (kind === 'greeting') { setGreetingNeedsTap(false); music.current?.duck(0.045); }
+      if (kind === 'greeting') { setGreetingNeedsTap(false); music.current?.duck(0.075); }
       const measure = () => {
         if (demo.current !== session) return;
         const samples = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(samples);
