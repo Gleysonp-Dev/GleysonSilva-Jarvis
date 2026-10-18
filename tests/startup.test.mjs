@@ -5,7 +5,7 @@ import { PassThrough, Writable } from 'node:stream';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { configureStartup, isStandbyLaunch, WindowsWakeService } from '../apps/desktop/startup.mjs';
+import { configureStartup, isStandbyLaunch, WindowsWakeService, NATIVE_WAKE_POLICY } from '../apps/desktop/startup.mjs';
 
 function nativeApp({ packaged = true, observed = true } = {}) {
  const writes=[],reads=[];
@@ -28,6 +28,7 @@ function wakeRig({ initial = {type:'ready',culture:'en-US'}, acknowledgeStop = t
  return {children,calls,spawnImpl};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
+const wake = (overrides = {}) => ({ type: 'wake', keyword: 'Jarvis', confidence: 0.98, wordConfidence: 0.97, wordCount: 1, durationMs: 650, ...overrides });
 
 test('login startup uses only the packaged Windows executable and the fixed standby argument',()=>{
  const {app,writes,reads}=nativeApp();
@@ -76,19 +77,49 @@ test('wake service accepts only the fixed keyword above threshold and debounces 
  assert.equal(rig.calls.length,1);assert.equal(rig.calls[0].options.shell,false);assert.equal(rig.calls[0].options.windowsHide,true);
  assert.match(rig.calls[0].args.at(-1),/windowsSpeech\.ps1$/);assert.equal(rig.calls[0].args.includes('-Command'),false);
  const child=rig.children[0];
+ at += NATIVE_WAKE_POLICY.startupQuietMs;
  for(const value of [
-  {type:'wake',keyword:'not Jarvis',confidence:1},
-  {type:'wake',keyword:'Jarvis',confidence:0.71},
-  {type:'wake',keyword:'Jarvis',confidence:1.01},
-  {type:'wake',keyword:'Jarvis',confidence:'0.99'},
-  {type:'wake',keyword:'Jarvis',confidence:0.9},
-  {type:'wake',keyword:'Jarvis',confidence:0.95}
+  wake({keyword:'not Jarvis'}),
+  wake({confidence:0.71}),
+  wake({confidence:1.01}),
+  wake({confidence:'0.99'}),
+  wake({confidence:0.9}),
+  wake({confidence:0.95}),
+  wake()
  ])child.stdout.write(JSON.stringify(value)+'\n');
- assert.deepEqual(events,[{source:'voice',keyword:'Jarvis',confidence:0.9}]);
- at+=2500;child.stdout.write('{"type":"wake","keyword":"Jarvis","confidence":0.8}\n');assert.equal(events.length,2);
+ assert.deepEqual(events,[{source:'voice',keyword:'Jarvis',confidence:0.95}]);
+ at+=NATIVE_WAKE_POLICY.cooldownMs;child.stdout.write(JSON.stringify(wake())+'\n');assert.equal(events.length,2);
  await service.start();assert.equal(rig.calls.length,1);
  await service.stop();assert.equal(child.input,'STOP\n');assert.equal(service.status().running,false);
  child.stdout.write('{"type":"wake","keyword":"Jarvis","confidence":1}\n');assert.equal(events.length,2);
+});
+
+test('native wake rejects missing, weak, multiword and implausible-duration evidence before notifying main', async t => {
+ const rig = wakeRig(), events = []; let at = 0;
+ const service = new WindowsWakeService({ platform: 'win32', spawnImpl: rig.spawnImpl, now: () => at, onWake: event => events.push(event) }); t.after(() => service.stop());
+ await service.start(); const child = rig.children[0]; at = NATIVE_WAKE_POLICY.startupQuietMs;
+ for (const invalid of [
+  { confidence: 0.9199 }, { wordConfidence: 0.8999 }, { wordConfidence: 1.001 }, { wordConfidence: '0.99' }, { wordConfidence: undefined },
+  { durationMs: 249.9 }, { durationMs: 1500.1 }, { durationMs: Infinity }, { durationMs: '650' }, { durationMs: undefined },
+  { wordCount: 2 }, { wordCount: '1' }, { wordCount: undefined }
+ ]) child.stdout.write(JSON.stringify(wake(invalid)) + '\n');
+ assert.equal(events.length, 0);
+ child.stdout.write(JSON.stringify(wake({ confidence: NATIVE_WAKE_POLICY.minConfidence, wordConfidence: NATIVE_WAKE_POLICY.minWordConfidence, durationMs: NATIVE_WAKE_POLICY.minDurationMs })) + '\n');
+ assert.equal(events.length, 1);
+ at += NATIVE_WAKE_POLICY.cooldownMs;
+ child.stdout.write(JSON.stringify(wake({ durationMs: NATIVE_WAKE_POLICY.maxDurationMs })) + '\n'); assert.equal(events.length, 2);
+});
+
+test('microphone warmup rejects early matches and stopping/restarting cannot erase the wake cooldown', async t => {
+ const rig = wakeRig(), events = []; let at = 0;
+ const service = new WindowsWakeService({ platform: 'win32', spawnImpl: rig.spawnImpl, now: () => at, onWake: event => events.push(event) }); t.after(() => service.stop());
+ await service.start(); rig.children[0].stdout.write(JSON.stringify(wake()) + '\n'); assert.equal(events.length, 0);
+ at = NATIVE_WAKE_POLICY.startupQuietMs - 1; rig.children[0].stdout.write(JSON.stringify(wake()) + '\n'); assert.equal(events.length, 0);
+ at++; rig.children[0].stdout.write(JSON.stringify(wake()) + '\n'); assert.equal(events.length, 1);
+ await service.stop(); at += 500; await service.start();
+ at += NATIVE_WAKE_POLICY.startupQuietMs; rig.children[1].stdout.write(JSON.stringify(wake()) + '\n'); assert.equal(events.length, 1);
+ at = NATIVE_WAKE_POLICY.startupQuietMs + NATIVE_WAKE_POLICY.cooldownMs;
+ rig.children[1].stdout.write(JSON.stringify(wake()) + '\n'); assert.equal(events.length, 2);
 });
 
 test('missing recognition engines fail without claiming active listening',async()=>{
@@ -121,11 +152,11 @@ test('worker spawn failures do not leak system errors and a later start can reco
  assert.equal((await service.start()).running,true);await service.stop();
 });
 
-test('the native worker compiles under Windows PowerShell without opening the microphone',{skip:process.platform!=='win32'},()=>{
+test('the native worker compiles and its real C# rejection policy is exercised without opening the microphone',{skip:process.platform!=='win32'},()=>{
  const source=readFileSync(new URL('../apps/desktop/platform/windowsSpeech.ps1',import.meta.url),'utf8');
  const code=source.match(/@'\r?\n([\s\S]*?)\r?\n'@/)[1];
  const encodedSource=Buffer.from(code,'utf8').toString('base64');
- const script=`$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; Add-Type -AssemblyName System.Speech; $refs=@([System.Speech.Recognition.SpeechRecognitionEngine].Assembly.Location,[Console].Assembly.Location,[System.Threading.Monitor].Assembly.Location)|Select-Object -Unique; Add-Type -ReferencedAssemblies $refs -TypeDefinition ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodedSource}'))); [Console]::WriteLine('compiled');`;
+ const script=`$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; Add-Type -AssemblyName System.Speech; $refs=@([System.Speech.Recognition.SpeechRecognitionEngine].Assembly.Location,[Console].Assembly.Location,[System.Threading.Monitor].Assembly.Location,[Diagnostics.Stopwatch].Assembly.Location)|Select-Object -Unique; Add-Type -ReferencedAssemblies $refs -TypeDefinition ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodedSource}'))); $accepted=@([JarvisLocalWake]::IsWakeCandidate('Jarvis',.98,.97,1,650),[JarvisLocalWake]::IsWakeCandidate('jarvis',.92,.9,1,250),[JarvisLocalWake]::IsWakeCandidate('Jarvis',1,1,1,1500)); $rejected=@([JarvisLocalWake]::IsWakeCandidate('outra palavra',1,1,1,650),[JarvisLocalWake]::IsWakeCandidate('Jarvis',.919,.99,1,650),[JarvisLocalWake]::IsWakeCandidate('Jarvis',.99,.899,1,650),[JarvisLocalWake]::IsWakeCandidate('Jarvis',.99,.99,2,650),[JarvisLocalWake]::IsWakeCandidate('Jarvis',.99,.99,1,249),[JarvisLocalWake]::IsWakeCandidate('Jarvis',.99,.99,1,1501),[JarvisLocalWake]::IsWakeCandidate('Jarvis',[float]::NaN,.99,1,650),[JarvisLocalWake]::IsWakeCandidate('Jarvis',.99,.99,1,[double]::PositiveInfinity)); if(($accepted -contains $false)-or($rejected -contains $true)){throw 'wake-policy-failed'}; [Console]::WriteLine('compiled-and-policy-verified');`;
  const output=execFileSync(join(process.env.SystemRoot||'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe'),['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,timeout:15000,maxBuffer:64000});
- assert.match(output,/compiled/);
+ assert.match(output,/compiled-and-policy-verified/);
 });

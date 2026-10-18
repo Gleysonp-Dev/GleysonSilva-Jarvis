@@ -116,7 +116,7 @@ Registrar tempo até o primeiro som, falhas e consumo por provedor. Não substit
 3. No Windows nativo, teste “Jarvis” com reconhecedor de idioma instalado, e indisponibilidade sem reconhecedor. Não permitir migração silenciosa para Web Speech em nuvem. O teste HTTP deve manter o recurso nativo indisponível.
 4. Durante a saudação e eventual música, confira que a espera está pausada e o próprio áudio não reativa o assistente. Após fim/interrupção, confirme retorno apenas se ainda habilitada. Testar microfone/conversa ativa deve suspender a captura de espera concorrente.
 5. Minimize, mude de janela, bloqueie/desbloqueie e retome suspensão. Verifique sinais e timers no pacote; registrar limitações do navegador separadamente.
-6. Pause/retome na bandeja, feche para bandeja quando configurado e saia de fato. Sair deve liberar captura e worker. Troca de perfil deve invalidar callbacks antigos.
+6. Pause/retome na bandeja e minimize para continuar em espera. Durante saudação com música ou conversa, feche pelo X: áudio, captura, worker e aplicativo devem encerrar, sem reabrir por gatilho. Repita por Sair na bandeja. Troca de perfil deve invalidar callbacks antigos.
 7. Use o arquivo musical privado já recebido e aprovado em prévia. Não há faixa padrão. Confirme início da trilha, volume/ducking, fim junto da saudação, cancelamento, erro de arquivo e ausência de reprodução residual. Não publicar trilha ou caminho.
 
 ## Início no login e executável Windows

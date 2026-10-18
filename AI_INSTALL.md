@@ -88,7 +88,7 @@ Em Ajustes → Início e espera, as opções `startAtLogin` e `standbyEnabled` c
 - **Iniciar ao entrar no Windows:** somente no app Windows empacotado, com executável em caminho estável. É entrada na conta, não boot antes do login. O modo de desenvolvimento não comprova esse recurso.
 - **Música:** somente arquivo fornecido/selecionado pelo usuário, mantido privado, encerrado ao terminar ou interromper a saudação. O arquivo do ensaio foi importado e a prévia atual com a saudação foi ouvida e aprovada. Não há faixa padrão distribuída; não invente nem gere uma.
 
-Teste pausar/retomar, fechar para bandeja quando configurado, sair de fato e desativar login. Registre reconhecedor ausente ou permissão negada. No navegador, palmas podem sofrer limitações de segundo plano; ele não equivale ao ensaio nativo. Detalhes em [docs/standby.md](docs/standby.md).
+Teste pausar/retomar, minimizar para continuar em espera, fechar pelo X para encerrar áudio/captura/aplicativo e desativar login. X e Sair não devem manter a voz tocando nem permitir nova ativação em segundo plano. Registre reconhecedor ausente ou permissão negada. No navegador, palmas podem sofrer limitações de segundo plano; ele não equivale ao ensaio nativo. Detalhes em [docs/standby.md](docs/standby.md).
 
 ## 6. Visão opcional
 

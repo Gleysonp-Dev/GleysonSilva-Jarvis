@@ -8,10 +8,14 @@ export type ClapFrame = {
 };
 export type DoubleClapOptions = { minGapMs?: number; maxGapMs?: number; cooldownMs?: number };
 type Transient = { atMs: number; peakRms: number };
+const SETTLING_MS = 750;
+const MIN_CLAP_RMS = 0.05;
+const MIN_CLAP_PEAK = 0.25;
 
 /**
  * Continuous local 20 ms frames, with no recording, network or speech recognition.
  * Two short broadband attacks are required; sustained speech/noise is rejected.
+ * Opening/resetting capture settles the noise floor before accepting a pair.
  * Acoustic detection is heuristic: claps and other similar impacts can be confused.
  */
 export class DoubleClapDetector {
@@ -21,6 +25,7 @@ export class DoubleClapDetector {
   private noiseFloor = 0.004;
   private previousRms = 0;
   private lastFrameAt?: number;
+  private settlingUntil?: number;
   private lastClapAt?: number;
   private candidate?: Transient;
   private rearmAt = 0;
@@ -32,7 +37,7 @@ export class DoubleClapDetector {
   }
 
   reset() {
-    this.noiseFloor = 0.004; this.previousRms = 0; this.lastFrameAt = undefined;
+    this.noiseFloor = 0.004; this.previousRms = 0; this.lastFrameAt = undefined; this.settlingUntil = undefined;
     this.lastClapAt = undefined; this.candidate = undefined; this.rearmAt = 0; this.cooldownUntil = 0;
   }
 
@@ -47,9 +52,13 @@ export class DoubleClapDetector {
     }
     this.lastFrameAt = atMs;
     const previous = this.previousRms; this.previousRms = rms;
+    this.settlingUntil ??= atMs + SETTLING_MS;
+    if (atMs < this.settlingUntil) {
+      this.candidate = undefined; this.lastClapAt = undefined; this.adaptNoise(rms); return false;
+    }
     if (this.lastClapAt !== undefined && atMs - this.lastClapAt > this.maxGapMs + 120) this.lastClapAt = undefined;
 
-    const threshold = Math.max(0.028, this.noiseFloor * 4.5);
+    const threshold = Math.max(MIN_CLAP_RMS, this.noiseFloor * 4.5);
     if (atMs < this.cooldownUntil) { this.candidate = undefined; this.adaptNoise(rms); return false; }
     if (this.candidate) {
       const transient = this.candidate;
@@ -67,7 +76,7 @@ export class DoubleClapDetector {
     const sharpRise = rms >= previous * 2.4 && rms - previous >= threshold * 0.55;
     const broadband = highFrequencyRatio >= 0.33;
     const impulsive = peak / Math.max(rms, 0.000001) >= 2.2;
-    if (atMs >= this.rearmAt && rms >= threshold && sharpRise && broadband && impulsive) {
+    if (atMs >= this.rearmAt && rms >= threshold && peak >= MIN_CLAP_PEAK && sharpRise && broadband && impulsive) {
       this.candidate = { atMs, peakRms: rms }; return false;
     }
     this.adaptNoise(rms);

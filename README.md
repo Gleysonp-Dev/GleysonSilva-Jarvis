@@ -1,5 +1,7 @@
 # Projeto GleysonSilva-Jarvis
 
+**Revisão 0.2.3 em validação:** X passa a encerrar o aplicativo e cortar áudio/captura; minimizar mantém a espera. Detectores mais conservadores buscam reduzir saudações acionadas indevidamente. A confirmação física permanece pendente. Os resultados da base 0.2.2 estão registrados abaixo.
+
 Assistente pessoal para Windows com interface holográfica ciano, conversa por voz e ações locais que você pode revisar antes de autorizar.
 
 **Estado: MVP 0.2.2 implementado, com CI Windows aprovado.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão passou por 221 testes e abertura nativa real do pacote no CI. A abertura no computador do usuário foi confirmada por captura de tela da base 0.2.1. Isso confirma a interface aberta, sem comprovar conversa com o clone, microfone nativo, login ou proteção das chaves. Não há release assinada ou validação completa em instalação limpa.

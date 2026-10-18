@@ -8,6 +8,8 @@ Recursos introduzidos no código 0.2.0. **Ainda precisam de ensaio real de ativa
 
 A espera processa o microfone localmente. Ela não inicia conexão de conversa com a OpenAI. Ao detectar um gatilho elegível, pausa a própria captura e prepara a saudação com clima. O processamento do clima e a síntese continuam sendo serviços externos; “ativação local” não torna a recepção inteira offline.
 
+O reconhecedor Windows usa filtros conservadores de frase, palavra, duração e confiança relativa, além de acomodação ao abrir o microfone e intervalo entre ativações. Esses escores não são probabilidades de intenção. A análise de palmas também é uma heurística: impactos semelhantes e áudio de TV podem confundir detectores, portanto é necessário ensaio no ambiente real. As revisões dos filtros não ativam conversa na nuvem automaticamente.
+
 O controlador deve ceder o microfone ao teste/conversa ativa e suspender a espera durante sua própria fala e música, evitando reativação pelo áudio de saída. Ao terminar, pode retomar se a pessoa manteve a espera habilitada. Cancelar, trocar perfil e sair precisam descartar resultados antigos.
 
 ## Duas palmas
@@ -32,7 +34,7 @@ A opção nativa registra o executável Windows empacotado para iniciar **depois
 
 O código usa o caminho estável do executável externo na versão portátil. Mover ou apagar o arquivo pode invalidar o início; confirme o resultado observado, não apenas a opção salva. `npm start` e o navegador não comprovam o registro do pacote.
 
-Com espera habilitada, fechar a janela pode mantê-lo na bandeja. Pausar a espera deve parar a escuta; sair pelo aplicativo deve encerrar os recursos e processos. Desativar início no Windows deve remover esse registro. Esses comportamentos estão implementados, com validação física ainda pendente.
+Na revisão 0.2.3, **X encerra o aplicativo**, mesmo com espera habilitada. Voz, música e captura devem parar imediatamente; a finalização dos provedores e workers ocorre em seguida. Para continuar em espera, use **minimizar**. Pausar a espera deve parar a escuta; Sair na bandeja também encerra os recursos e processos. Desativar início no Windows deve remover esse registro. O ensaio físico do fechamento corrigido ainda precisa ser confirmado.
 
 ## Música da recepção
 

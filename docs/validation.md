@@ -1,5 +1,11 @@
 # Validação do MVP 0.2.2
 
+## Correção 0.2.3 em validação
+
+O usuário relatou repetição da saudação com o aplicativo aberto e voz continuando após fechar a janela. O processo principal permaneceu ativo e os ajustes de espera/palmas/palavra estavam habilitados. O handler de X ocultava a janela quando a espera estava ligada, sem parar o áudio: essa causa foi localizada no código. A revisão 0.2.3 muda X para encerramento real e torna os detectores mais conservadores. Não há gravação ou registro do evento que identifique qual detector disparou; o novo comportamento ainda requer ensaio físico. Minimizar continua sendo a opção para manter a espera. A remoção das transcrições da revisão 0.2.2 permanece preservada.
+
+Verificação local 0.2.3: 229 testes aprovados, zero falhas e skips, TypeScript estrito e build aprovados. As regressões de fechamento executam os handlers reais do principal com Electron/OS substituídos, incluindo interrupção imediata com worker pendente, cancelamento dos provedores e fechamento concorrente por X/Sair/before-quit. Os filtros acústicos usam sinais/eventos sintéticos; o validador C# foi executado sem abrir o microfone. Essas evidências ainda não equivalem ao ensaio físico no pacote corrigido.
+
 Registro de 18 de outubro de 2026. Este documento separa implementação, testes com substitutos e observação real. **O CI da base 0.2.0, commit 63cf00153dbab0a52cf3f05a82eb9e7fab3ba385, foi concluído com sucesso. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também foi concluído com sucesso e gerou o artefato atualizado 12148553183.**
 
 **Abertura nativa 0.2.1 aprovada no CI Windows:** o commit `8a074e738c6792091676702be28d9270edcf884b` passou por 218 testes, TypeScript, build, pacote e execução real do aplicativo empacotado. O usuário confirmou a janela aberta no próprio computador por captura de tela. A falha sem janela do 0.2.0 e o bloqueio por ACL no ambiente Codex são resultados anteriores distintos. **A revisão 0.2.2 está implementada e seu CI foi aprovado com 221 testes e abertura nativa real.**

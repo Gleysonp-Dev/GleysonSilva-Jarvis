@@ -68,7 +68,7 @@ if (!singleInstance) app.quit();
 
 let mainWindow, settings, runtime, provider, vision, startupService, speech, musicStore, wakeService, tray;
 let startupStatus = { available: false, enabled: false }, standbyActive = false;
-let generation = 0, shuttingDown = false, cleanupPromise, textRunId;
+let generation = 0, shuttingDown = false, cleanupPromise, shutdownPromise, shutdownComplete = false, textRunId;
 const runs = new Map();
 const knownRuns = new Map();
 const approvals = new Map();
@@ -338,8 +338,33 @@ function registerIPC() {
 async function cleanup(reason = 'window_closed') {
   if (cleanupPromise) return cleanupPromise;
   shuttingDown = true;
-  cleanupPromise = (async () => { await clearSessions(reason); vision?.close(); tray?.destroy(); tray = undefined; await runtime?.close(); })();
+  cleanupPromise = (async () => {
+    try { await clearSessions(reason); }
+    finally {
+      await Promise.allSettled([
+        Promise.resolve().then(() => vision?.close()),
+        Promise.resolve().then(() => { tray?.destroy(); tray = undefined; }),
+        Promise.resolve().then(() => runtime?.close()),
+      ]);
+    }
+  })();
   return cleanupPromise;
+}
+
+function requestShutdown(reason = 'window_closed') {
+  if (shutdownPromise) return shutdownPromise;
+  shuttingDown = true;
+  shutdownPromise = (async () => {
+    // Stop playback and renderer-owned capture immediately, before any worker awaits.
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try { mainWindow.webContents.setAudioMuted(true); } catch { /* Destruction still stops the renderer. */ }
+      try { mainWindow.destroy(); } catch { console.error('[Jarvis] JARVIS_WINDOW_DESTROY_FAILED'); }
+    }
+    try { await cleanup(reason); }
+    catch { console.error('[Jarvis] JARVIS_SHUTDOWN_FAILED'); }
+    finally { shutdownComplete = true; app.quit(); }
+  })();
+  return shutdownPromise;
 }
 
 async function startApplication() {
@@ -387,10 +412,10 @@ async function startApplication() {
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, url) => { if (url !== APP_URL) event.preventDefault(); });
   mainWindow.webContents.on('will-attach-webview', event => event.preventDefault());
-  mainWindow.webContents.on('render-process-gone', () => { void clearSessions('renderer_closed'); vision.close(); });
-  mainWindow.on('close', event => { if (!shuttingDown) { event.preventDefault(); if (settings.get().standbyEnabled && tray) { mainWindow.hide(); return; } void cleanup().finally(() => { if (!mainWindow.isDestroyed()) mainWindow.destroy(); app.quit(); }); } });
-  app.on('before-quit', event => { if (!shuttingDown) { event.preventDefault(); void cleanup().finally(() => app.quit()); } });
-  app.on('window-all-closed', () => app.quit());
+  mainWindow.webContents.on('render-process-gone', () => { if (!shuttingDown) { void clearSessions('renderer_closed'); vision.close(); } });
+  mainWindow.on('close', event => { if (!shutdownComplete) { event.preventDefault(); void requestShutdown('window_closed'); } });
+  app.on('before-quit', event => { if (!shutdownComplete) { event.preventDefault(); void requestShutdown('app_quit'); } });
+  app.on('window-all-closed', () => { if (!shuttingDown) void requestShutdown('all_windows_closed'); });
   registerIPC();
   if (process.platform === 'win32' && !smoke) { try { tray = new Tray(nativeImage.createFromBuffer(Buffer.from(TRAY_ICON, 'base64'))); tray.setToolTip(PRODUCT); tray.on('double-click', () => { mainWindow.show(); mainWindow.focus(); }); updateTray(); } catch { tray = undefined; mainWindow.show(); } }
   await mainWindow.loadURL(APP_URL);
@@ -427,6 +452,6 @@ function updateTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir Jarvis', click: () => { mainWindow.show(); mainWindow.focus(); } },
     { label: standbyActive ? 'Pausar espera' : 'Ativar espera', enabled: settings.get().standbyEnabled, click: () => { const active = standbyActive; if (active) { standbyActive = false; void wakeService.stop(); } publish({ type: active ? 'standby.pause' : 'standby.resume' }); updateTray(); } },
-    { type: 'separator' }, { label: 'Sair', click: () => { void cleanup('app_quit').finally(() => app.quit()); } },
+    { type: 'separator' }, { label: 'Sair', click: () => { void requestShutdown('app_quit'); } },
   ]));
 }

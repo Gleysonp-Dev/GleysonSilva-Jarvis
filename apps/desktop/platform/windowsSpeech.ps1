@@ -3,15 +3,25 @@ $ErrorActionPreference = 'Stop'
 try {
   Add-Type -AssemblyName System.Speech
   # Event handlers run in managed code so they do not depend on a PowerShell runspace.
-  $wakeReferences = @([System.Speech.Recognition.SpeechRecognitionEngine].Assembly.Location, [Console].Assembly.Location, [System.Threading.Monitor].Assembly.Location) | Select-Object -Unique
+  $wakeReferences = @([System.Speech.Recognition.SpeechRecognitionEngine].Assembly.Location, [Console].Assembly.Location, [System.Threading.Monitor].Assembly.Location, [System.Diagnostics.Stopwatch].Assembly.Location) | Select-Object -Unique
   Add-Type -ReferencedAssemblies $wakeReferences -TypeDefinition @'
 using System;
 using System.Globalization;
+using System.Diagnostics;
 using System.Speech.Recognition;
 
 public static class JarvisLocalWake {
   private static readonly object OutputLock = new object();
-  private static DateTime lastWake = DateTime.MinValue;
+  private static readonly Stopwatch Clock = Stopwatch.StartNew();
+  private static long lastWake = -10000;
+  private static long listeningAt;
+  // No recognizer/registry configuration is changed. Rejection stays local to this worker.
+  public static bool IsWakeCandidate(string text, float confidence, float wordConfidence, int wordCount, double durationMs) {
+    return String.Equals(text, "Jarvis", StringComparison.OrdinalIgnoreCase)
+      && !Single.IsNaN(confidence) && confidence >= 0.92f && confidence <= 1f
+      && !Single.IsNaN(wordConfidence) && wordConfidence >= 0.90f && wordConfidence <= 1f
+      && wordCount == 1 && !Double.IsNaN(durationMs) && durationMs >= 250 && durationMs <= 1500;
+  }
   private static void Emit(string value) {
     lock (OutputLock) { Console.WriteLine(value); Console.Out.Flush(); }
   }
@@ -33,17 +43,22 @@ public static class JarvisLocalWake {
       grammar.Name = "JarvisWakeWord";
       recognizer.LoadGrammar(grammar);
       recognizer.SpeechRecognized += delegate(object sender, SpeechRecognizedEventArgs e) {
-        if (!String.Equals(e.Result.Text, "Jarvis", StringComparison.OrdinalIgnoreCase) || e.Result.Confidence < 0.72f) return;
-        var now = DateTime.UtcNow;
+        if (e.Result == null || e.Result.Grammar == null || e.Result.Grammar.Name != "JarvisWakeWord" || e.Result.Audio == null || e.Result.Words.Count != 1) return;
+        var word = e.Result.Words[0];
+        var durationMs = e.Result.Audio.Duration.TotalMilliseconds;
+        if (!String.Equals(word.Text, "Jarvis", StringComparison.OrdinalIgnoreCase) || !IsWakeCandidate(e.Result.Text, e.Result.Confidence, word.Confidence, e.Result.Words.Count, durationMs)) return;
+        var now = Clock.ElapsedMilliseconds;
         lock (OutputLock) {
-          if ((now - lastWake).TotalMilliseconds < 2500) return;
+          if (now - listeningAt < 1200 || now - lastWake < 10000) return;
           lastWake = now;
-          Emit("{\"type\":\"wake\",\"keyword\":\"Jarvis\",\"confidence\":" + e.Result.Confidence.ToString("0.0000", CultureInfo.InvariantCulture) + "}");
+          Emit("{\"type\":\"wake\",\"keyword\":\"Jarvis\",\"wordCount\":1,\"confidence\":" + e.Result.Confidence.ToString("0.0000", CultureInfo.InvariantCulture)
+            + ",\"wordConfidence\":" + word.Confidence.ToString("0.0000", CultureInfo.InvariantCulture) + ",\"durationMs\":" + durationMs.ToString("0.0", CultureInfo.InvariantCulture) + "}");
         }
       };
       try { recognizer.SetInputToDefaultAudioDevice(); }
       catch { Emit("{\"type\":\"unavailable\",\"reason\":\"microphone_unavailable\"}"); return; }
       try {
+        listeningAt = Clock.ElapsedMilliseconds;
         recognizer.RecognizeAsync(RecognizeMode.Multiple);
         Emit("{\"type\":\"ready\",\"culture\":\"" + selected.Culture.Name + "\"}");
         string command;

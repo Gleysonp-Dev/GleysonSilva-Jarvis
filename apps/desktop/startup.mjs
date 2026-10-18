@@ -3,8 +3,9 @@ import { join, win32 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const STANDBY_ARGUMENT = '--jarvis-standby';
-const MIN_CONFIDENCE = 0.72;
-const DEBOUNCE_MS = 2500;
+// Conservative local heuristics; engine confidence is relative, not identity or intent proof.
+export const NATIVE_WAKE_POLICY = Object.freeze({ minConfidence: 0.92, minWordConfidence: 0.9,
+  minDurationMs: 250, maxDurationMs: 1500, startupQuietMs: 1200, cooldownMs: 10000 });
 const bundledHelper = fileURLToPath(new URL('./platform/windowsSpeech.ps1', import.meta.url))
   .replace(/([\\/])app\.asar([\\/])/i, '$1app.asar.unpacked$2');
 
@@ -47,6 +48,7 @@ export class WindowsWakeService {
   #abortCleanup = null;
   #buffer = '';
   #lastWake = -Infinity;
+  #listeningAt = Infinity;
   #generation = 0;
 
   constructor({ onWake = () => {}, onState = () => {}, platform = process.platform, spawnImpl = spawn, now = Date.now } = {}) {
@@ -80,7 +82,7 @@ export class WindowsWakeService {
     if (signal?.aborted) return { ...this.status(), running: false, reason: 'cancelled' };
     if (this.platform !== 'win32') return this.status();
     this.#buffer = '';
-    this.#lastWake = -Infinity;
+    this.#listeningAt = Infinity;
     const generation = ++this.#generation;
     this.#update({ available: false, running: false, state: 'starting' });
     this.#starting = new Promise(resolve => { this.#resolveStart = resolve; });
@@ -116,14 +118,18 @@ export class WindowsWakeService {
         let event;
         try { event = JSON.parse(line); } catch { return fail('invalid_worker_output'); }
         if (event?.type === 'ready' && typeof event.culture === 'string' && /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,2}$/.test(event.culture)) {
+          if (!this.#status.running) this.#listeningAt = this.now();
           this.#update({ available: true, running: true, state: 'listening', culture: event.culture });
           this.#settleStart();
         } else if (event?.type === 'unavailable') {
           const reasons = ['speech_engine_missing', 'microphone_unavailable', 'speech_initialization_failed'];
           return fail(reasons.includes(event.reason) ? event.reason : 'speech_initialization_failed');
-        } else if (event?.type === 'wake' && this.#status.running && event.keyword === 'Jarvis' && Number.isFinite(event.confidence) && event.confidence >= MIN_CONFIDENCE && event.confidence <= 1) {
+        } else if (event?.type === 'wake' && this.#status.running && event.keyword === 'Jarvis'
+          && Number.isFinite(event.confidence) && event.confidence >= NATIVE_WAKE_POLICY.minConfidence && event.confidence <= 1
+          && Number.isFinite(event.wordConfidence) && event.wordConfidence >= NATIVE_WAKE_POLICY.minWordConfidence && event.wordConfidence <= 1
+          && event.wordCount === 1 && Number.isFinite(event.durationMs) && event.durationMs >= NATIVE_WAKE_POLICY.minDurationMs && event.durationMs <= NATIVE_WAKE_POLICY.maxDurationMs) {
           const at = this.now();
-          if (at - this.#lastWake < DEBOUNCE_MS) continue;
+          if (!Number.isFinite(at) || at - this.#listeningAt < NATIVE_WAKE_POLICY.startupQuietMs || at - this.#lastWake < NATIVE_WAKE_POLICY.cooldownMs) continue;
           this.#lastWake = at;
           try { this.onWake({ source: 'voice', keyword: 'Jarvis', confidence: event.confidence }); } catch { /* Keep listening. */ }
         }
@@ -155,6 +161,7 @@ export class WindowsWakeService {
     this.#child = null;
     this.#abortCleanup?.(); this.#abortCleanup = null;
     this.#buffer = '';
+    this.#listeningAt = Infinity;
     if (!preserveStatus) this.#update({ available: this.#status.available, running: false, state: 'stopped' });
     this.#settleStart();
     if (!child) return this.status();
