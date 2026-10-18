@@ -38,7 +38,7 @@ Com espera habilitada, fechar a janela pode mantê-lo na bandeja. Pausar a esper
 
 Há suporte a uma fonte escolhida pelo usuário, em configuração privada. **O arquivo musical já foi fornecido e importado privadamente, como MP3 de aproximadamente 13 MB. Nenhuma trilha padrão é distribuída.**
 
-Uma primeira prévia com a saudação gravada foi ouvida pelo usuário. Após pedido de mais volume, a segunda prévia foi entregue: 17,86 s, sem saturação, ainda aguardando aceite. O ajuste do aplicativo passou por TypeScript e build; seu CI está pendente. Isso não comprova login, ativação ou reprodução/fim da música na recepção ao vivo.
+A prévia atual com a saudação gravada dura 17,86 s e mantém a trilha mais presente: ganho de 0,35 na introdução e 0,22 durante a fala, preservando o preset da voz. Pico 0,7772, sem saturação; aceite auditivo pendente. O ajuste passou por TypeScript e build e aguarda CI próprio. Isso não comprova login, ativação ou reprodução/fim da música na recepção ao vivo.
 
 A música acompanha apenas a recepção: termina com o fim ou interrupção da saudação. Não deve manter microfone em espera durante a própria reprodução. Falha no arquivo precisa ser apresentada sem alegar sucesso ou substituir por outra trilha. O arquivo, seu caminho e direitos de uso continuam sob controle do usuário; não são publicados automaticamente.
 

@@ -39,7 +39,7 @@ Os testes de arquivos exercitam efeitos reais em diretórios temporários descar
 | Palavra “Jarvis” | Worker Windows System.Speech offline, dependente de reconhecedor de idioma; validação de eventos com processo substituído. | Reconhecimento físico da palavra e indisponibilidade real do idioma. |
 | Início e bandeja | Opções opt-in `startAtLogin` e `standbyEnabled`; registro no login para pacote Windows e controle de espera. | Entrada real na conta, início em espera, bandeja, desativação e saída. Não é funcionamento antes do login. |
 | Pausa da escuta | Coordenação para suspender espera durante narração/música e uso ativo do microfone. | Ausência de autoativação pela própria fala e retorno correto depois do fim/interrupção. |
-| Música privada | MP3 de aproximadamente 13 MB importado privadamente. Primeira prévia ouvida, com pedido de mais volume. **Segunda prévia entregue:** 17,8577 s, pico 0,7673, RMS 0,08272, amostras finitas e sem clipping. App ajustado para 0,18 na introdução e 0,075 sob a fala; TypeScript/build aprovados, preset de voz preservado. Nenhuma trilha padrão é distribuída. | Aceite do usuário e CI do ajuste pendentes. A prévia com saudação gravada não comprova reprodução/fim na recepção ao vivo, login ou ativação. |
+| Música privada | MP3 de aproximadamente 13 MB importado privadamente. Prévia atual com saudação gravada: 17,8577 s, pico 0,7772, RMS 0,08711, amostras finitas e sem clipping. App ajustado para 0,35 na introdução e 0,22 sob a fala; TypeScript/build aprovados e preset de voz preservado. Nenhuma trilha padrão é distribuída. | Aceite do usuário e CI deste ajuste pendentes. A prévia não comprova reprodução/fim na recepção ao vivo, login ou ativação. |
 | Pacote 0.2.0 | CI 63cf001 concluído com 214 testes, TypeScript, build e artefato Windows aprovados. O artefato antecede o ajuste de volume. | CI da revisão de volume, execução física, instalação limpa, proteção nativa das chaves e assinatura. |
 
 **Nenhum executável nativo foi executado fisicamente neste equipamento no ensaio registrado.** Um artefato gerado pelo CI não comprova abertura do aplicativo, início no login ou reconhecimento offline. Não há release assinada validada para distribuição.
@@ -56,6 +56,6 @@ A origem do áudio também foi distinguida: a amostra de apresentação é fixa;
 
 ## Próximo aceite
 
-Executar a nova conversa OpenAI → texto → ElevenLabs e conferir a voz efetivamente ouvida. Depois ensaiar palmas, reconhecedor Windows, pausa/retorno, música recebida na recepção ao vivo e início no login no aplicativo empacotado. Obter aceite da segunda prévia já entregue e registrar o CI da revisão posterior a 63cf001.
+Executar a nova conversa OpenAI → texto → ElevenLabs e conferir a voz efetivamente ouvida. Depois ensaiar palmas, reconhecedor Windows, pausa/retorno, música recebida na recepção ao vivo e início no login no aplicativo empacotado. Obter aceite da prévia atual já entregue e registrar o CI da revisão posterior a 63cf001.
 
 Não há p50/p95 de latência nem comparação de superioridade publicados. Use [o plano de testes](test-plan.md) para registrar conta, dispositivo, superfície, falhas e medições sem dados privados.
