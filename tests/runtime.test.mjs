@@ -253,7 +253,7 @@ test('workspace changes invalidate old plans; private storage cannot overlap wor
   const preview = await f.runtime.call(request('workspace_preview_organize', { onlyThisMonth: false }));
   const second = path.join(f.directory, 'second');
   await fs.mkdir(second);
-  assert.equal(f.runtime.setWorkspace(second), second);
+  assert.equal(f.runtime.setWorkspace(second), await fs.realpath(second));
   assert.equal((await f.runtime.call(request('workspace_apply_organize', { planId: preview.data.planId }))).status, 'failed');
   assert.throws(() => f.runtime.setWorkspace(f.dataDir), /separados/);
   assert.equal(await f.read('a.txt'), 'aaa');

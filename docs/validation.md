@@ -15,7 +15,7 @@ Registro de 18 de outubro de 2026. Este relatório distingue implementação, te
 | Voz clonada ElevenLabs | Criação real de GleysonSilva-Jarvis confirmada no painel do navegador; conta observada como Creator. Etapa adicional de microfone, indicada como opcional, não utilizada. |
 | Áudio real ElevenLabs | Frase de 131 caracteres gerada pelo painel com Eleven Multilingual v2 e baixada como MP3 44,1 kHz/128 kbps de 137.309 bytes. Não foi uma chamada real da CLI. |
 | Amostra no aplicativo | Arquivo incluído em assets/voice e controle explícito “Ouvir amostra Jarvis”, sem API ou captura. Pulsação ligada ao analisador local. O autor ouviu e aprovou a amostra. |
-| Narração de abertura | Saudação com tempo/previsão gerada no painel com Eleven Multilingual v2 e parâmetros registrados; ouvida e aprovada pelo autor. A execução automática no aplicativo ainda exige chave e ensaio integrado. |
+| Narração de abertura | Gerada no painel com Eleven Multilingual v2 e parâmetros registrados; ouvida e aprovada pelo autor. A chave dedicada foi configurada no aplicativo; o teste integrado esbarrou em bloqueio de rede do ambiente (EACCES para os dois provedores), retornou o aviso de tempo indisponível e não anunciou reprodução inexistente. |
 | Adaptador ElevenLabs | CLI e streaming testados com respostas simuladas. Respostas dinâmicas do Jarvis ainda usam OpenAI marin. |
 | Microfone e câmera físicos | Controles de teste implementados; captura e reprodução reais ainda não confirmadas nesta sessão. |
 | Reconhecimento facial com pesos reais | Não medido. Testes usam representações sintéticas; não demonstram acurácia nem prova de vida. |
@@ -25,5 +25,7 @@ Os testes de arquivos exercitam efeitos reais em pastas temporárias descartáve
 
 A gravação WAV de referência, as credenciais e o ID de voz permanecem privados. O autor autorizou clonagem e distribuição pública do áudio gerado; o MP3 selecionado possui [aviso de origem e distribuição](../assets/voice/README.md). O arquivo permite reproduzir a frase fixa sem API, mas não contém um modelo capaz de gerar novas falas.
 
-Próximo aceite: configurar a chave no campo mascarado, medir uma conversa real, confirmar liberação de dispositivos ao encerrar e validar o aplicativo nativo com os adaptadores Windows. Use [o roteiro completo](test-plan.md) para registrar resultados sem dados pessoais ou credenciais.
+O primeiro CI revelou um problema com caminhos abreviados Windows 8.3. A correção foi reproduzida com alias real, mantendo a rejeição de junções. O ensaio seguinte aprovou 134 de 135 testes; a única falha era uma expectativa textual do caminho no teste, corrigida para comparar o caminho canônico. O novo CI deve ser conferido antes de anunciar pacote disponível.
+
+Próximo aceite: executar fora do ambiente restrito de desenvolvimento, medir uma conversa real, confirmar liberação de dispositivos ao encerrar e validar o aplicativo nativo com os adaptadores Windows. Depois de instalar as dependências, `INICIAR-TESTE.cmd` abre o ensaio no navegador em loopback, porta 47833. Use [o roteiro completo](test-plan.md) para registrar resultados sem dados pessoais ou credenciais.
 

@@ -327,7 +327,7 @@ function App() {
       setGreetingBusy(false);
       if (result.text) upsertMessage({ id: `greeting-${crypto.randomUUID()}`, role: 'assistant', text: result.text, done: true, source: result.attribution });
       if (result.audioBase64) { greetingAudio.current = { base64: result.audioBase64, mime: result.mime }; await playGreeting(automatic); }
-      else setNotice(result.reason === 'requires_key' ? 'Saudação pronta em texto. Configure a chave ElevenLabs em Ajustes para ouvi-la.' : 'Saudação pronta em texto. Confira a configuração da voz ElevenLabs para ouvir o áudio.');
+      else setNotice(result.reason === 'requires_key' ? 'Saudação pronta em texto. Configure a chave ElevenLabs em Ajustes para ouvi-la.' : 'Saudação pronta em texto. Não foi possível gerar áudio; verifique a conexão e as permissões da chave ElevenLabs.');
     } catch (e) { if (generation === greetingGeneration.current) showError(e); }
     finally { if (generation === greetingGeneration.current) setGreetingBusy(false); }
   }

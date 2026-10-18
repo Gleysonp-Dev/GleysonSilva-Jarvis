@@ -48,6 +48,8 @@ O primeiro comando instala as dependências; o segundo compila a interface e ini
 
 Se um assistente de código estiver preparando a instalação, use o roteiro [AI_INSTALL.md](AI_INSTALL.md).
 
+Para um teste pelo Windows depois da instalação, abra [INICIAR-TESTE.cmd](INICIAR-TESTE.cmd). Ele inicia o servidor em `http://127.0.0.1:47833` e mantém a janela aberta durante o uso. As chaves desse ensaio ficam somente na memória. O aplicativo Electron continua sendo iniciado por `npm start`.
+
 ### Primeira conversa
 
 1. Abra **Ajustes** e informe sua chave OpenAI no campo de senha. Não cole a chave na conversa.
