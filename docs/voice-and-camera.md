@@ -10,7 +10,7 @@ A saída da conversa ao vivo usa `marin`, uma voz sintetizada fornecida pela Ope
 
 Use **Amostra fixa da voz** para reproduzir o [MP3 incluído](../assets/voice/jarvis-demo.mp3). Esse botão inicia um arquivo local após clique, sem API ou microfone; o analisador do áudio reproduzido conduz a pulsação ciano. **Parar amostra** encerra a reprodução. O autor ouviu e aprovou a amostra e a narração de abertura com tempo/previsão. A [saudação dinâmica](startup-greeting.md) mantém explicitamente o modelo e os parâmetros aprovados; a execução automática com a chave do aplicativo possui validação separada.
 
-A saudação e a amostra recebem um tom metálico fixo durante a reprodução local, sem controle de intensidade ou fala adicional. O refinamento mais recente deixa o metal um pouco mais presente e reproduz a narração a **0,9×, preservando a altura da voz**. A síntese ElevenLabs continua com velocidade 1 e com os parâmetros aprovados; o clone e os arquivos de origem permanecem iguais. A pulsação acompanha o sinal efetivamente ouvido com o efeito aplicado.
+A saudação e a amostra recebem um tom metálico fixo durante a reprodução local, sem controle de intensidade ou fala adicional. O refinamento mais recente deixa o metal um pouco mais presente e reproduz a narração a **0,95×, preservando a altura da voz**: apenas 5% mais lenta que a voz original. A síntese ElevenLabs continua com velocidade 1 e com os parâmetros aprovados; o clone e os arquivos de origem permanecem iguais. A pulsação acompanha o sinal efetivamente ouvido com o efeito aplicado.
 
 O autor ouviu e aprovou a versão anterior, depois pediu esse refinamento. A qualidade auditiva da nova revisão ainda aguarda confirmação do autor.
 

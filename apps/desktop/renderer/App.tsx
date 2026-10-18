@@ -283,8 +283,8 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     let context: AudioContext | undefined;
     try {
       const audio = new Audio(source);
-      audio.defaultPlaybackRate = 0.9;
-      audio.playbackRate = 0.9;
+      audio.defaultPlaybackRate = 0.95;
+      audio.playbackRate = 0.95;
       audio.preservesPitch = true;
       audio.preload = 'auto';
       context = new AudioContext();

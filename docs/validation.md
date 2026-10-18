@@ -4,7 +4,7 @@ Registro de 18 de outubro de 2026. Este relatório distingue implementação, te
 
 | Verificação | Resultado |
 | --- | --- |
-| Testes Node do runtime, provedores, ajustes, visão, renderer, áudio e servidor local | 147 aprovados no CI do commit 97bfa46; zero falhas e zero ignorados. Depois do refinamento, os 12 testes de áudio/renderização, TypeScript e build passaram novamente. |
+| Testes Node do runtime, provedores, ajustes, visão, renderer, áudio e servidor local | 147 aprovados no CI do commit 97bfa46; zero falhas e zero ignorados. Os 12 testes de áudio/renderização passaram na revisão do efeito. Após o ajuste para 0,95×, TypeScript, build e captura real do áudio passaram novamente. |
 | Python opcional nos testes | Executado com Python 3.12; protocolo e pré-processamento com backend de teste. |
 | TypeScript | Aprovado com verificação estrita, sem emissão. |
 | Compilação da interface | Aprovada; interface React e Canvas gerada. |
@@ -16,7 +16,7 @@ Registro de 18 de outubro de 2026. Este relatório distingue implementação, te
 | Áudio real ElevenLabs | Frase de 131 caracteres gerada pelo painel com Eleven Multilingual v2 e baixada como MP3 44,1 kHz/128 kbps de 137.309 bytes. Não foi uma chamada real da CLI. |
 | Amostra no aplicativo | Arquivo incluído em assets/voice e controle explícito “Amostra fixa da voz”, sem API ou captura. Pulsação ligada ao sinal processado. O autor ouviu e aprovou a versão anterior e pediu o refinamento descrito abaixo. |
 | Tom metálico fixo | Grafo atual renderizado com OfflineAudioContext sobre o MP3 aprovado. Bypass interno idêntico à entrada; sinal processado distinto e finito; pico 0,733, sem saturação; silêncio de entrada permaneceu silêncio. |
-| Refinamento de reprodução atual | Reprodução real no navegador a 0,9× com altura preservada, capturada em PCM após o efeito: 8,36 segundos para uma expectativa de 8,33; pico 0,759, sem saturação ou amostras não finitas. A mudança é local na saudação e na amostra; a síntese ElevenLabs continua com velocidade 1. A nova amostra foi preparada para avaliação auditiva do autor. |
+| Refinamento de reprodução atual | Reprodução real a 0,95× com altura preservada, apenas 5% mais lenta que a voz original. Captura PCM após o efeito: 7,94 segundos para expectativa de 7,92; pico 0,735, sem saturação ou amostras não finitas. A mudança é local na saudação e na amostra; a síntese ElevenLabs continua com velocidade 1. Amostra preparada para avaliação auditiva do autor. |
 | Narração de abertura | O autor ouviu e aprovou a versão anterior e pediu uma cadência mais lenta e natural. O processo restrito de desenvolvimento não acessa os provedores (EACCES). O servidor iniciado pelo usuário no Windows preparou texto com tempo/previsão válidos e retornou áudio; a interface ofereceu “Ouvir saudação” quando o navegador exigiu gesto. A revisão atual ainda não recebeu aprovação auditiva final. |
 | Adaptador ElevenLabs | CLI e streaming testados com respostas simuladas. Respostas dinâmicas do Jarvis ainda usam OpenAI marin. |
 | Microfone e câmera físicos | Controles de teste implementados; captura e reprodução reais ainda não confirmadas nesta sessão. |
