@@ -1,5 +1,5 @@
 /** Local, subtle metallic narration treatment. The source voice is never regenerated. */
-export const DEFAULT_SPEECH_EFFECT_AMOUNT = 0.65;
+export const DEFAULT_SPEECH_EFFECT_AMOUNT = 0.78;
 
 export type SpeechEffectsController = {
   setAmount(amount: number): void;

@@ -4,7 +4,7 @@ Registro de 18 de outubro de 2026. Este relatório distingue implementação, te
 
 | Verificação | Resultado |
 | --- | --- |
-| Testes Node do runtime, provedores, ajustes, visão, renderer, áudio e servidor local | 147 aprovados; zero falhas e zero ignorados. |
+| Testes Node do runtime, provedores, ajustes, visão, renderer, áudio e servidor local | 147 aprovados no CI do commit 97bfa46; zero falhas e zero ignorados. Depois do refinamento, os 12 testes de áudio/renderização, TypeScript e build passaram novamente. |
 | Python opcional nos testes | Executado com Python 3.12; protocolo e pré-processamento com backend de teste. |
 | TypeScript | Aprovado com verificação estrita, sem emissão. |
 | Compilação da interface | Aprovada; interface React e Canvas gerada. |
@@ -14,19 +14,22 @@ Registro de 18 de outubro de 2026. Este relatório distingue implementação, te
 | OpenAI com conta real | Não testada: chave ainda não configurada no aplicativo. Não há latência real medida. |
 | Voz clonada ElevenLabs | Criação real de GleysonSilva-Jarvis confirmada no painel do navegador; conta observada como Creator. Etapa adicional de microfone, indicada como opcional, não utilizada. |
 | Áudio real ElevenLabs | Frase de 131 caracteres gerada pelo painel com Eleven Multilingual v2 e baixada como MP3 44,1 kHz/128 kbps de 137.309 bytes. Não foi uma chamada real da CLI. |
-| Amostra no aplicativo | Arquivo incluído em assets/voice e controle explícito “Amostra fixa da voz”, sem API ou captura. Pulsação ligada ao sinal processado. O autor ouviu e aprovou a voz de origem; a nova versão metálica foi preparada para audição. |
-| Tom metálico fixo | Grafo real Web Audio renderizado com OfflineAudioContext sobre o MP3 aprovado. Bypass interno idêntico à entrada; sinal processado distinto e finito; pico 0,753, sem saturação; silêncio de entrada permaneceu silêncio. O efeito fixo é local, sem ajuste na interface. A preferência auditiva do novo efeito ainda depende da escuta do autor. |
-| Narração de abertura | A voz e a narração foram aprovadas pelo autor. O processo restrito de desenvolvimento não acessa os provedores (EACCES). O servidor iniciado pelo usuário no Windows preparou texto com tempo/previsão válidos e retornou áudio; a interface ofereceu “Ouvir saudação” quando o navegador exigiu gesto. Reprodução e percepção auditiva precisam ser confirmadas separadamente. |
+| Amostra no aplicativo | Arquivo incluído em assets/voice e controle explícito “Amostra fixa da voz”, sem API ou captura. Pulsação ligada ao sinal processado. O autor ouviu e aprovou a versão anterior e pediu o refinamento descrito abaixo. |
+| Tom metálico fixo | Grafo atual renderizado com OfflineAudioContext sobre o MP3 aprovado. Bypass interno idêntico à entrada; sinal processado distinto e finito; pico 0,733, sem saturação; silêncio de entrada permaneceu silêncio. |
+| Refinamento de reprodução atual | Reprodução real no navegador a 0,9× com altura preservada, capturada em PCM após o efeito: 8,36 segundos para uma expectativa de 8,33; pico 0,759, sem saturação ou amostras não finitas. A mudança é local na saudação e na amostra; a síntese ElevenLabs continua com velocidade 1. A nova amostra foi preparada para avaliação auditiva do autor. |
+| Narração de abertura | O autor ouviu e aprovou a versão anterior e pediu uma cadência mais lenta e natural. O processo restrito de desenvolvimento não acessa os provedores (EACCES). O servidor iniciado pelo usuário no Windows preparou texto com tempo/previsão válidos e retornou áudio; a interface ofereceu “Ouvir saudação” quando o navegador exigiu gesto. A revisão atual ainda não recebeu aprovação auditiva final. |
 | Adaptador ElevenLabs | CLI e streaming testados com respostas simuladas. Respostas dinâmicas do Jarvis ainda usam OpenAI marin. |
 | Microfone e câmera físicos | Controles de teste implementados; captura e reprodução reais ainda não confirmadas nesta sessão. |
 | Reconhecimento facial com pesos reais | Não medido. Testes usam representações sintéticas; não demonstram acurácia nem prova de vida. |
-| Pacote Windows e instalação limpa | O CI do commit f42472f aprovou os 135 testes então existentes e gerou o artefato portátil Windows. Instalação limpa e execução nativa ainda não ensaiadas; nenhum executável assinado foi lançado. As mudanças posteriores precisam de seu próprio CI. |
+| Pacote Windows e instalação limpa | O CI do commit 97bfa46 aprovou 147 testes e gerou o artefato portátil Windows. Instalação limpa e execução nativa ainda não ensaiadas; nenhum executável assinado foi lançado. O refinamento de reprodução posterior precisa de seu próprio CI. |
 
 Os testes de arquivos exercitam efeitos reais em pastas temporárias descartáveis: confirmação, movimento sem sobrescrita, mudança de plano, links, cancelamento e restauração. Os testes de provedores substituem o transporte de rede: validam contratos e erros. A geração real ElevenLabs descrita na tabela foi realizada separadamente no painel web, não por esses testes.
 
 A gravação WAV de referência, as credenciais e o ID de voz permanecem privados. O autor autorizou clonagem e distribuição pública do áudio gerado; o MP3 selecionado possui [aviso de origem e distribuição](../assets/voice/README.md). O arquivo permite reproduzir a frase fixa sem API, mas não contém um modelo capaz de gerar novas falas.
 
 O primeiro CI revelou um problema com caminhos abreviados Windows 8.3. A correção foi reproduzida com alias real, mantendo a rejeição de junções. Após corrigir a comparação textual do teste para usar o caminho canônico, o [CI do commit f42472f](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39152788680) aprovou verificação e empacotamento. O artefato é uma prévia sem assinatura, não uma release validada em instalação limpa.
+
+O CI posterior do [commit 97bfa46](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/commit/97bfa46) também concluiu verificação e empacotamento com 147 testes aprovados. O pedido de tornar o metal um pouco mais presente e a fala mais lenta ocorreu depois dessa versão. A aprovação auditiva anterior e os resultados desse CI não substituem o ensaio da nova reprodução.
 
 Um ensaio real revelou tela vazia ao receber a atribuição meteorológica estruturada: o renderer tentava inseri-la diretamente como texto. O contrato foi corrigido, a fonte/licença agora são exibidas por um componente próprio e uma proteção de recuperação evita uma tela totalmente vazia em futuras falhas de renderização. Recuperar a interface não repete automaticamente a síntese.
 

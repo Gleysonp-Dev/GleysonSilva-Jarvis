@@ -283,6 +283,9 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     let context: AudioContext | undefined;
     try {
       const audio = new Audio(source);
+      audio.defaultPlaybackRate = 0.9;
+      audio.playbackRate = 0.9;
+      audio.preservesPitch = true;
       audio.preload = 'auto';
       context = new AudioContext();
       const analyser = context.createAnalyser(); analyser.fftSize = 256;
@@ -466,7 +469,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
         </div>
         <div className="core-controls"><button className="voice-button welcome-button" disabled={!bridge?.startupGreeting || !booted || voiceActive || micTesting || micStarting || !!runId || (playbackKind === 'demo' && (demoPlaying || demoStarting))} onClick={beginJarvis}><Icon name={greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'stop' : 'speaker'} size={19}/><span>{greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'Parar recepção' : 'Iniciar Jarvis'}<small>Saudação, tempo atual e previsão</small></span></button><button className={`voice-button ${voiceActive ? 'enabled' : ''}`} disabled={!bridge || !booted || !!runId || demoPlaying || demoStarting || greetingBusy} onClick={toggleVoice}><Icon name={voiceActive ? 'stop' : 'mic'} size={19}/>{voiceActive ? 'Encerrar voz' : 'Iniciar conversa por voz'}<span className="keycap">{voiceActive ? 'ON' : 'MIC'}</span></button><button className="quiet-button interrupt" disabled={!runId && !voiceActive && !demoPlaying && !demoStarting && !greetingBusy} onClick={cancel}><Icon name="stop" size={15}/>Interromper</button></div>
         <div className="hardware-tools"><button disabled={voiceActive || !!runId || micStarting || demoPlaying || demoStarting || greetingBusy} onClick={toggleMicTest}><Icon name="mic" size={13}/>{micStarting ? 'Preparando microfone…' : micTesting ? 'Encerrar teste local' : 'Testar microfone'}</button><span>·</span><button onClick={() => setDrawer('presence')}><Icon name="camera" size={13}/>Testar câmera</button><span>·</span><button disabled={voiceActive || micTesting || micStarting || !!runId || greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting))} onClick={toggleDemo}><Icon name={demoPlaying || demoStarting ? 'stop' : 'speaker'} size={13}/>{(demoPlaying || demoStarting) && playbackKind === 'demo' ? 'Parar amostra' : 'Amostra fixa da voz'}</button></div>
-        <div className="voice-sample-note">Tom metálico fixo na recepção e na amostra · amostra sem clima · conversa ao vivo: OpenAI.</div>
+        <div className="voice-sample-note">Narração pausada · tom metálico fixo · amostra sem clima · conversa ao vivo: OpenAI.</div>
         <div className="privacy-line"><Icon name="shield" size={13}/><span>{voiceActive ? 'Microfone ativo · áudio enviado à OpenAI enquanto a sessão estiver aberta' : micTesting ? 'Teste local de microfone · áudio não enviado à OpenAI' : demoPlaying || demoStarting ? playbackKind === 'greeting' ? 'Reprodução da saudação · sem captura de microfone' : 'Reprodução local da amostra · sem captura de microfone' : cameraOn ? 'Câmera local ativa · processamento facial neste computador' : 'Microfone e câmera desligados · você decide quando ativar'}</span></div>
       </section>
       <section className="conversation" aria-label="Conversa com Jarvis"><header className="conversation-header"><div><span className="eyebrow">CANAL DIRETO</span><h2>Conversa</h2></div><span className="small-pill">{voiceActive ? 'VOZ' : 'TEXTO'}</span></header>

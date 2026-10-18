@@ -53,15 +53,15 @@ test('amount 0 routes an untouched dry signal, with no compressor or filter on t
   effect.dispose();
 });
 
-test('fixed cinematic preset keeps 74% dry voice, caps the wet mix and avoids wet amplification', () => {
-  assert.equal(DEFAULT_SPEECH_EFFECT_AMOUNT, 0.65);
+test('fixed cinematic preset keeps 68.8% dry voice, caps the wet mix and avoids wet amplification', () => {
+  assert.equal(DEFAULT_SPEECH_EFFECT_AMOUNT, 0.78);
   const context = new Context(), input = context.node('source'), output = context.node('output');
   const effect = createSpeechEffects({ context, input, output });
-  assert.equal(effect.getAmount(), 0.65);
+  assert.equal(effect.getAmount(), 0.78);
   const gains = context.nodes.filter(node => node.kind === 'gain');
-  assert.equal(gains[0].gain.value, 0.74);
-  assert.equal(gains[1].gain.value, 0.26);
-  assert.equal(gains[5].gain.value, 0.26);
+  assert(Math.abs(gains[0].gain.value - 0.688) < Number.EPSILON);
+  assert(Math.abs(gains[1].gain.value - 0.312) < Number.EPSILON);
+  assert(Math.abs(gains[5].gain.value - 0.312) < Number.EPSILON);
   for (const amount of [0, 0.2, 0.5, 1]) {
     effect.setAmount(amount);
     assert.equal(gains[1].gain.value, 0.4 * amount);
