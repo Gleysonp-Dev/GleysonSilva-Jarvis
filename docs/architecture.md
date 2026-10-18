@@ -1,6 +1,6 @@
 # Arquitetura — Projeto GleysonSilva-Jarvis
 
-O MVP separa interface, comunicação com modelos, política de execução e reconhecimento facial. O modelo interpreta a intenção e propõe ferramentas; o executor local decide quais operações aceita e registra o resultado observado. Um texto gerado não é tratado como confirmação de efeito no computador.
+O MVP 0.2.0 separa interface, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador. A nova conversa e os gatilhos nativos ainda precisam de validação real completa.
 
 ## Componentes e fronteiras
 
@@ -11,8 +11,14 @@ flowchart LR
     Bridge --> Main[Processo principal Electron]
     Main --> Provider[Serviço OpenAI]
     Provider --> Responses[Responses: texto e ferramentas]
-    UI <-->|Áudio WebRTC após ativação| Realtime[OpenAI Realtime]
+    UI -->|Microfone WebRTC após ativação| Realtime[OpenAI Realtime]
+    Realtime -->|Texto e ferramentas| UI
     Provider -->|Negociação SDP| Realtime
+    UI -->|Trechos de texto e IDs| Main
+    Main --> Speech[Controlador de fala ElevenLabs]
+    Speech -->|Áudio da voz configurada| UI
+    UI --> Standby[Palmas locais e música privada]
+    Main --> Wake[Worker Windows System.Speech]
     Main --> Runtime[Política + executor local]
     Runtime --> DB[(SQLite privado)]
     Runtime --> Files[Pasta autorizada]
@@ -25,10 +31,11 @@ flowchart LR
 
 | Camada | Responsabilidade | Não recebe como autoridade |
 | --- | --- | --- |
-| Renderer | Conversa, HUD, controles, permissões de captura, WebRTC e apresentação de aprovações. | Chave salva, Node, execução de shell ou embeddings faciais. |
+| Renderer | Conversa, HUD, captura, WebRTC, fila/reprodução de fala, palmas e aprovações. | Chave salva, Node, shell ou embeddings faciais. |
 | Preload | Expor métodos explícitos, filtrar IPC e entregar eventos. | Código arbitrário fornecido pelo modelo ou página. |
 | Processo principal | Validar origem/argumentos, guardar configuração, ligar serviços, vincular perfil e cancelar sessões. | Um perfil escolhido unilateralmente por uma ferramenta. |
 | Provider OpenAI | Responses/Realtime, streaming, memória recuperada e delegação de ferramentas. | Autoridade para ignorar a política local. |
+| Controlador de fala | Texto limitado, síntese ElevenLabs, correlação e cancelamento por geração. | Poder de executar ferramentas ou trocar silenciosamente de voz. |
 | Runtime | Limites de pasta, confirmação, idempotência, efeitos e registro persistente. | Instruções embutidas em arquivos, seleção de página ou texto de memória. |
 | Worker facial | Detectar, alinhar e extrair vetores de um quadro. | Nomes, chaves, banco de tarefas ou acesso à rede. |
 
@@ -48,15 +55,27 @@ O provider limita turnos, quantidade de ferramentas e prazo total. Repetir uma c
 
 ## Voz, pulsação e interrupção
 
-A captura só começa após o controle de voz ser acionado. O renderer pede microfone com cancelamento de eco e redução de ruído, cria `RTCPeerConnection` e envia o SDP ao principal. O principal negocia com o provedor usando a chave protegida e devolve apenas o SDP de resposta. O áudio circula no WebRTC; eventos e ferramentas usam o canal de dados.
+A conversa falada começa pelo controle de voz. O renderer pede microfone, cria `RTCPeerConnection` e envia SDP ao principal. O principal negocia com chave protegida e devolve SDP. O microfone segue para a OpenAI no WebRTC; a sessão solicita saída em texto e ferramentas. Qualquer track de áudio remota inesperada é desativada/encerrada, sem reprodução.
 
-O áudio capturado e o áudio remoto reproduzido possuem analisadores locais. O HUD usa seus envelopes reais, preservando o ciano e o título central. Uma ferramenta em andamento possui cadência visual própria. O teste local de microfone usa o mesmo tipo de análise e não abre sessão com o provedor.
+Trechos completos do texto são enfileirados para `packages/speech`, com perfil, execução e ID de trecho. O principal valida a configuração, sintetiza na ElevenLabs e retorna áudio limitado, sem chave/ID de voz. O cliente prepara/reproduz os trechos em ordem; cancelamento invalida a geração e seus resultados atrasados. Eventos `.done` não enfileiram uma nova fala. Erro de síntese mantém texto/aviso; não troca para voz OpenAI ou do navegador.
+
+Captura e fala local possuem analisadores. O HUD usa os envelopes preservando ciano e título, e uma cadência própria para ferramentas. A narração usa reprodução fixa 0,95× com altura preservada e efeito 0,78. O teste de microfone é local, sem provedor. A conversa completa com essa nova saída ainda exige aceite real.
 
 O cliente deduplica eventos e `call_id`. Uma chamada de função é delegada à bridge; o resultado volta como `function_call_output`. Só uma continuação ainda ativa dispara `response.create`. Respostas interrompidas não podem reiniciar a tarefa quando um resultado atrasado chega.
 
-Interrupção de áudio envia `response.cancel` antes de `output_audio_buffer.clear` quando aplicável. O cliente também interrompe a reprodução e cancela execuções pendentes. Cada nova resposta usa um identificador de execução novo: o identificador cancelado não é reaproveitado. Efeitos completos continuam no registro; o cancelamento não promete reversão do passado.
+Interromper solicita `response.cancel`, aborta síntese/reprodução e cancela execuções pendentes. Cada resposta usa nova execução; um identificador cancelado não é reaproveitado. Resultados atrasados não podem voltar a falar ou agir. Efeitos completos permanecem no registro; cancelamento não reverte o passado.
 
 Encerrar voz libera microfone, tracks remotas, contexto de áudio, conexão e temporizadores. O limite de sessão é de um a trinta minutos. Mudança de configuração/perfil publica `session.reset`; a interface fecha voz, teste de microfone, câmera e aprovações anteriores.
+
+## Espera, login e recepção
+
+`startAtLogin` e `standbyEnabled` começam desligados. O pacote Windows pode registrar seu executável estável para iniciar depois do login. Quando configurado para espera, o app aguarda gatilho; não é serviço antes do login. O principal mantém bandeja, pausa/retorno e worker offline System.Speech limitado à palavra “Jarvis”, dependente de idioma instalado.
+
+O renderer analisa duas palmas por Web Audio, sem enviar áudio à nuvem; o worker de palavra também é local. Esses gatilhos não abrem conversa OpenAI. Antes de recepção/música e durante uso ativo do microfone, o controlador pausa a espera. A captura retorna somente se a intenção de espera continuar ativa; limpeza e gerações descartam callbacks antigos.
+
+O serviço de saudação usa relógio do PC, coordenadas privadas e Open-Meteo, com atribuição. A síntese usa a mesma voz ElevenLabs. Cancelar também aborta a preparação no backend. Uma fonte musical privada pode acompanhar a recepção até fim/interrupção, mas não há faixa padrão e o arquivo ainda não foi fornecido.
+
+Detecção real, segundo plano, idioma, login e retorno não foram aprovados fisicamente. Navegador não altera login nem oferece o worker nativo. Consulte [Espera](standby.md).
 
 ## Arquivos e resultados verificáveis
 
@@ -88,18 +107,22 @@ A pessoa confirma o perfil sugerido. Reconhecimento não autentica, não libera 
 
 | Dado | Electron para Windows | Teste local no navegador |
 | --- | --- | --- |
-| Chave OpenAI | Protegida por `safeStorage` no principal; arquivo fora do checkout. | Temporária na memória do processo local. |
+| Chaves OpenAI/ElevenLabs | Protegidas por `safeStorage` no principal; arquivo fora do checkout. | Temporárias na memória do processo local. |
 | Memórias e tarefas | SQLite privado do aplicativo. | Dados locais de ensaio, excluídos do Git. |
 | Pasta operada | Selecionada explicitamente, com fallback privado de trabalho. | `local-data/workspace`, pasta de ensaio gerada. |
 | Programas Windows | Adaptadores limitados e executáveis cadastrados. | Indisponíveis. |
-| Áudio de conversa | Enviado ao provedor durante sessão de voz. | Mesmo requisito quando a sessão real é iniciada. |
+| Conversa | Microfone enviado à OpenAI; texto da resposta enviado à ElevenLabs. | Mesmo fluxo com ambos os provedores configurados. |
 | Teste de microfone | Análise local sem sessão paga. | Análise local sem sessão paga. |
+| Espera | Palmas e palavra locais; microfone ativo se habilitado. | Palmas locais, sujeito a limites de segundo plano; sem palavra nativa/login. |
+| Música | Fonte privada escolhida pelo usuário. | Não há arquivo padrão; o ensaio não comprova seletor nativo. |
 | Rostos | Fluxo local opcional; cadastro protegido pelo mecanismo do sistema. | Não comprova a proteção/persistência nativa do Electron. |
 
-A chave permanente não chega ao bundle nem retorna em `boot()`. Texto, memórias necessárias e resultados de ferramentas podem sair do dispositivo para a OpenAI. `store:false` no Responses não equivale a garantia geral de retenção zero. A voz sintetizada inicial é `marin`; o trabalho de voz personalizada ElevenLabs é separado e não altera a fronteira de autoridade das ferramentas.
+Chaves permanentes não chegam ao bundle nem retornam em `boot()`. Texto, memórias e resultados necessários podem sair para a OpenAI; texto narrado vai à ElevenLabs e coordenadas do clima à Open-Meteo. `store:false` não equivale a retenção zero. Configuração legada de voz OpenAI não seleciona a saída audível atual. A síntese nunca amplia a autoridade das ferramentas.
 
 ## Verificação e limites atuais
 
-Testes offline cobrem contratos, streaming, cancelamento, caminhos, idempotência e protocolo facial com backends substituídos. A compilação verifica o renderer. Esses resultados não medem a rede neural real, latência percebida, cifragem nativa, comportamento de todos os programas Windows ou executável instalado.
+Testes offline cobrem contratos, streaming, cancelamento, arquivos, fala, gatilhos e protocolo facial com backends/dispositivos substituídos. O ensaio real anterior confirmou texto OpenAI, captura/liberação de microfone, webcam 640×480 e saída OpenAI marin ouvida. Esta última motivou a nova rota de voz, ainda sem aceite real completo. OpenCV e pesos faciais permanecem ausentes.
+
+A revisão local passou por 214 testes, TypeScript e build; o CI 0.2.0 ainda está pendente no registro. Não houve execução física do EXE, login, ativação por palmas/palavra ou reconhecimento real. Consulte [Validação](validation.md).
 
 O [plano de testes](test-plan.md) define ensaios separados com conta, microfone, som audível, webcam, pessoas voluntárias, arquivos descartáveis e instalação limpa. O [roadmap](roadmap.md) usa essas evidências como critério para ampliar capacidades.

@@ -297,17 +297,22 @@ test('Realtime unified call keeps key in headers and returns only SDP, tools and
   assert.equal(request.init.body.get('sdp'), offer);
   const session = JSON.parse(request.init.body.get('session'));
   assert.equal(session.type, 'realtime');
-  assert.deepEqual(session.output_modalities, ['audio']);
-  assert.equal(session.audio.output.voice, 'marin');
+  assert.deepEqual(session.output_modalities, ['text']);
+  assert.equal(session.audio.output, undefined);
   assert.equal(session.audio.input.turn_detection.interrupt_response, true);
   assert.equal(session.tools[0].strict, undefined);
   assert.equal(session.audio.input.format, undefined, 'WebRTC negotiates its own media format');
   assert.equal(JSON.stringify({ session, result }).includes(KEY), false);
 });
 
-test('Realtime validates SDP and voice before network, and refuses a malformed answer', async t => {
+test('Realtime validates SDP, ignores legacy OpenAI voice settings, and refuses a malformed answer', async t => {
   await t.test('SDP', async () => { const context = setup(); await assert.rejects(context.service.createRealtimeSession({ sdp: 'bad' }), { code: 'invalid_input' }); assert.equal(context.requests.length, 0); });
-  await t.test('voice', async () => { const context = setup({ getSettings: () => ({ voice: 'custom-invalid' }) }); await assert.rejects(context.service.createRealtimeSession({ sdp: 'v=0\r\n' }), { code: 'invalid_settings' }); assert.equal(context.requests.length, 0); });
+  await t.test('no OpenAI voice', async () => {
+    const context = setup({ getSettings: () => ({ voice: 'custom-invalid' }), responses: [new Response('v=0\r\n')] });
+    await context.service.createRealtimeSession({ sdp: 'v=0\r\n' });
+    const session = JSON.parse(context.requests[0].init.body.get('session'));
+    assert.deepEqual(session.output_modalities, ['text']); assert.equal(session.audio.output, undefined);
+  });
   await t.test('answer', async () => { const context = setup({ responses: [new Response(`invalid ${KEY}`)] }); await assert.rejects(context.service.createRealtimeSession({ sdp: 'v=0\r\n' }), error => error.code === 'invalid_response' && !error.message.includes(KEY)); });
 });
 

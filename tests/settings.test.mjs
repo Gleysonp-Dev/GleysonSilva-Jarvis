@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
-import { SettingsStore, validateSettings } from '../apps/desktop/settings.mjs';
+import { SettingsStore, validateSettings, defaults } from '../apps/desktop/settings.mjs';
 
 function fixture(t) {
   const dir=mkdtempSync(join(tmpdir(),'jarvis-settings-')); t.after(()=>rmSync(dir,{recursive:true,force:true}));
@@ -50,5 +50,34 @@ test('weather settings reject malformed locations and do not modify stored crede
  assert.equal(store.getElevenSecret(),'eleven-original');
  assert.throws(()=>store.save({apiKey:'openai-would-change',elevenApiKey:'bad\nkey'}));
  assert.throws(()=>store.save({startupGreeting:'yes'}));
+});
+
+test('startup and standby defaults require deliberate activation and persist independently',t=>{
+ const {store,dir,crypto}=fixture(t);
+ assert.equal(defaults.startAtLogin,false);assert.equal(defaults.standbyEnabled,false);
+ for(const key of ['wakeClapEnabled','wakeVoiceEnabled','greetingMusicEnabled'])assert.equal(defaults[key],true);
+ const selected={startAtLogin:true,standbyEnabled:true,wakeClapEnabled:false,wakeVoiceEnabled:true,greetingMusicEnabled:false};
+ store.save(selected);
+ const restored=new SettingsStore(dir,crypto);
+ for(const [key,value] of Object.entries(selected)){assert.equal(restored.get()[key],value);assert.equal(restored.public()[key],value);}
+ restored.save({wakeClapEnabled:true});
+ assert.equal(restored.get().wakeClapEnabled,true);assert.equal(restored.get().greetingMusicEnabled,false);
+});
+
+test('startup options reject coercion without modifying credentials or stored configuration',t=>{
+ const {store}=fixture(t);store.save({apiKey:'private-original',startAtLogin:false});
+ for(const key of ['startAtLogin','standbyEnabled','wakeClapEnabled','wakeVoiceEnabled','greetingMusicEnabled']){
+  for(const value of ['true',0,1,null,{},[]])assert.throws(()=>store.save({[key]:value,apiKey:'replacement'}));
+ }
+ assert.equal(store.get().startAtLogin,false);assert.equal(store.getSecret(),'private-original');
+});
+
+test('enabling standby also enables its weather greeting even when an older configuration disabled it',t=>{
+ const {store}=fixture(t);store.save({startupGreeting:false});
+ assert.equal(store.get().startupGreeting,false);
+ store.save({standbyEnabled:true,startupGreeting:false});
+ assert.equal(store.get().standbyEnabled,true);assert.equal(store.get().startupGreeting,true);
+ store.save({startupGreeting:false});assert.equal(store.get().startupGreeting,true);
+ store.save({standbyEnabled:false,startupGreeting:false});assert.equal(store.get().startupGreeting,false);
 });
 

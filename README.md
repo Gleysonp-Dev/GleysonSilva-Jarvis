@@ -1,146 +1,134 @@
 # Projeto GleysonSilva-Jarvis
 
-Assistente pessoal para Windows com voz em tempo real, interface holográfica ciano e ações locais que você pode revisar antes de autorizar.
+Assistente pessoal para Windows com interface holográfica ciano, conversa por voz e ações locais que você pode revisar antes de autorizar.
 
-**Estado: MVP 0.1.0 em desenvolvimento.** A versão disponível é o código-fonte no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). Não há instalador assinado nem release de aplicativo validada para distribuição.
+**Estado: MVP 0.2.0 em desenvolvimento.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). Os novos recursos de espera e conversa com a voz Jarvis estão em validação. Não há release assinada ou executável validado em instalação limpa.
 
-O objetivo é combinar uma experiência visual cinematográfica com execução útil e transparente. Superioridade sobre outros assistentes, exclusividade comercial e números de latência dependem de comparação documentada; não são resultados demonstrados por este MVP.
-
-## Uma interface que acompanha a conversa
-
-O núcleo mantém a mesma cor ciano ao ouvir, responder e executar. Sua expansão e seu brilho acompanham o áudio real do microfone e da resposta reproduzida; a execução de ferramentas usa uma cadência própria. O nome central permanece estável. Com a preferência de movimento reduzido, os rótulos continuam explicando o estado.
-
-O painel **Conversa** exibe texto progressivo e transcrições. **Memória** apresenta preferências explícitas por perfil. **Registro** mostra ações e resultados. **Presença** reúne prévia de câmera, cadastro voluntário e reconhecimento facial local opcional. **Ajustes** centraliza chave, modelos, voz, perfil, pasta e aplicativos permitidos.
+O núcleo mantém a mesma cor ao ouvir, responder e executar. Brilho e expansão acompanham o sinal de áudio; ferramentas usam uma cadência própria. O painel mantém controles e estados funcionais, sem slogans. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
 
 ## O que está implementado
 
-| Recurso | Comportamento atual |
+| Recurso | Comportamento do código atual |
 | --- | --- |
-| Texto com OpenAI | Responses com streaming, histórico limitado e chamadas de ferramentas. |
-| Voz com OpenAI | Realtime por WebRTC, transcrição, resposta audível e interrupção por fala ou botão. Requer chave e acesso aos modelos. |
-| Adaptador ElevenLabs | CLI separada de clonagem autorizada e TTS com streaming; ainda não substitui a voz da conversa da interface. |
-| Saudação de abertura | “Iniciar Jarvis” prepara cumprimento pelo horário, tempo atual, previsão de hoje e a pergunta final. Usa a voz ElevenLabs configurada e exibe a fonte meteorológica. |
-| Amostra da voz Jarvis | Em **Ajustes → Saudação**, “Amostra fixa da voz” reproduz uma frase gravada em MP3 e anima o núcleo pelo áudio, sem API ou microfone. Não contém o boletim meteorológico. |
-| Tom metálico | Efeito fixo aplicado no computador à saudação e à amostra, preservando a voz de origem e a pulsação pelo áudio processado. Sem controle de intensidade. |
-| Teste local de microfone | Captura sinal e move o núcleo sem chave de API e sem enviar esse áudio ao provedor. |
-| Câmera | Prévia local iniciada por clique. Funciona como teste de hardware mesmo sem modelos faciais. |
-| Reconhecimento facial | Opcional: YuNet/SFace em um processo Python local, três amostras de cadastro, consistência temporal e escolha explícita de perfil. |
-| Memória | Preferências salvas por ação explícita, visíveis e apagáveis por perfil. Recuperação de contexto; não é treino de pesos do modelo. |
-| Organização de arquivos | Prévia no primeiro nível da pasta autorizada, agrupamento por extensão, filtro por mês de modificação, confirmação e registro dos movimentos. |
-| Restauração | Propõe desfazer movimentos concluídos e recusa arquivos alterados ou destinos em conflito. |
-| Ditado | Cria uma nota na pasta autorizada ou solicita abertura de um novo Bloco de Notas no Windows, com confirmação. |
-| Aplicativos | Adaptadores para Calculadora, Bloco de Notas, VS Code e navegador; executáveis cadastrados pelo usuário. A abertura ou o foco só são anunciados como confirmados quando o adaptador consegue verificar. |
-| Navegador dedicado | Abre endereços HTTP(S) e compartilha somente o trecho selecionado após confirmação. |
-| Persistência | SQLite local para memórias, tarefas, procedimentos, chamadas e registro de efeitos. Reiniciar não repete automaticamente uma ação interrompida. |
+| Texto com OpenAI | Responses com streaming, histórico limitado e ferramentas. |
+| Conversa com a voz Jarvis | Microfone via OpenAI Realtime; respostas em texto são sintetizadas pela ElevenLabs com a voz configurada. A saída de áudio OpenAI é desativada. O novo fluxo completo ainda precisa de teste real. |
+| Saudação e clima | **Iniciar Jarvis** prepara cumprimento pelo relógio do PC, tempo atual, previsão de hoje e “Em que posso ajudá-lo agora, senhor?”. Exibe atribuição Open-Meteo. |
+| Voz aprovada | Clone ElevenLabs já criado com autorização. Reprodução local a 0,95×, altura preservada e tom metálico fixo no preset 0,78; sem controles de ajuste. |
+| Espera local opcional | Duas palmas pelo Web Audio; palavra “Jarvis” pelo reconhecedor offline System.Speech no Windows, quando disponível. Pausa a espera durante fala e uso ativo do microfone. |
+| Início no Windows | Opção desativada por padrão; disponível no aplicativo Windows empacotado. Inicia ao entrar na conta do Windows, em espera quando configurado; não opera antes do login. |
+| Música da recepção | Suporte a arquivo privado escolhido pelo usuário, até o fim da saudação. Nenhuma faixa padrão está incluída; o arquivo ainda não foi fornecido no ensaio atual. |
+| Amostra fixa | **Ajustes → Saudação → Amostra fixa da voz** toca um MP3 de apresentação, sem API ou microfone. Não contém clima atual. |
+| Teste de microfone | Mede sinal local e pulsa o núcleo sem enviar áudio ao provedor. |
+| Câmera | Prévia por clique, independente dos modelos faciais. |
+| Reconhecimento facial | Opcional: Python, YuNet/SFace, cadastro voluntário e consistência temporal. Sugere um perfil; não autoriza ações. |
+| Arquivos | Prévia no primeiro nível da pasta autorizada, agrupamento por extensão, filtro por mês, confirmação, movimentos registrados e restauração condicionada. |
+| Aplicativos | Adaptadores limitados para Calculadora, Bloco de Notas, VS Code e navegador, com executáveis cadastrados. |
+| Persistência | SQLite para memórias, tarefas, procedimentos e efeitos; reiniciar não repete automaticamente ações interrompidas. |
 
-Controle de qualquer aplicativo pela tela, comandos livres de terminal, automação de contas externas, casa conectada, atualização automática e distribuição comercial pronta ainda não fazem parte desta versão. Os procedimentos persistidos são uma base para evolução; não existe um editor completo de automações na interface atual.
+Controle visual universal de aplicativos, terminal irrestrito, casa conectada, editor completo de automações e atualização automática continuam fora do escopo atual. Não há benchmark que demonstre exclusividade, superioridade geral ou resposta instantânea.
 
 ## Começar pelo código-fonte
 
-Requisitos: **Windows, Node.js 24 ou superior e npm**. Conexão é necessária para instalar dependências e usar a OpenAI. Python não é necessário para texto, voz ou prévia da câmera.
+Requisitos: **Windows, Node.js 24 ou superior e npm**. Python não é necessário para texto, voz ou prévia da câmera. Instalação de dependências e serviços externos exigem conexão.
 
-Depois de obter o código, abra um terminal na raiz do projeto:
+Na raiz do projeto:
 
 ```text
 npm install
 npm start
 ```
 
-O primeiro comando instala as dependências; o segundo compila a interface e inicia o Electron. A primeira instalação pode baixar o Electron. Caso um ambiente corporativo bloqueie o download ou a abertura de janelas, use o modo local de teste abaixo e registre essa limitação.
+O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-Se um assistente de código estiver preparando a instalação, use o roteiro [AI_INSTALL.md](AI_INSTALL.md).
+### Configuração e primeira conversa
 
-Para um teste pelo Windows depois da instalação, abra [INICIAR-TESTE.cmd](INICIAR-TESTE.cmd). Ele inicia o servidor em `http://127.0.0.1:47833` e mantém a janela aberta durante o uso. As chaves desse ensaio ficam somente na memória. O aplicativo Electron continua sendo iniciado por `npm start`.
+1. Abra **Ajustes** e informe a chave OpenAI no campo mascarado. Não cole credenciais na conversa.
+2. Os padrões são `gpt-5.4-mini` para texto e `gpt-realtime` para entrada de voz e geração de texto. O acesso depende da conta.
+3. Salve e faça uma pergunta por texto. Digitar não liga o microfone nem aciona fala automaticamente.
+4. Em **Saudação e tempo**, configure privadamente a chave ElevenLabs e o identificador da voz já criada. A conversa falada exige os dois provedores; falta de voz ou falha de síntese produz erro/texto, sem trocar para uma voz OpenAI ou do navegador.
+5. Use **Testar microfone** para conferir captura local. Depois inicie a conversa por voz e confirme transcrição, resposta realmente ouvida e interrupção. Encerre e confira a liberação do dispositivo.
 
-### Primeira conversa
+O limite padrão da sessão é dez minutos, ajustável entre um e trinta. A conversa pode consumir OpenAI e ElevenLabs. A troca do caminho de voz foi implementada após um ensaio ouvir a voz OpenAI `marin`; esse resultado anterior não comprova a nova conversa com o clone.
 
-1. Abra **Ajustes** e informe sua chave OpenAI no campo de senha. Não cole a chave na conversa.
-2. Confira os modelos. Os padrões do código são `gpt-5.4-mini` para texto, `gpt-realtime` para voz e `marin` como voz sintetizada. O acesso depende da conta e pode exigir outro ID compatível.
-3. Salve. Faça uma pergunta por texto para conferir resposta progressiva.
-4. Use **Testar microfone** para observar o sinal local. Use **Iniciar conversa por voz** para abrir uma sessão real com o provedor.
-5. Encerre a voz e confira que o indicador de microfone do sistema foi liberado. O limite padrão é dez minutos, configurável entre um e trinta.
+### Recepção, espera e música
 
-A sessão de voz pode gerar consumo na conta OpenAI. Texto e voz são modos distintos: digitar não aciona síntese de fala automaticamente.
+Configure a cidade privadamente e use **Iniciar Jarvis** para preparar uma saudação com clima. **Ouvir saudação** repete o áudio preparado sem nova consulta ou síntese. Um arquivo gravado conserva o boletim do momento da geração; reproduzi-lo não atualiza o tempo.
 
-### Ouvir a amostra da voz Jarvis
+Em **Ajustes → Início e espera**, escolha conscientemente manter o microfone em espera, usar duas palmas e/ou a palavra “Jarvis”. O detector de palmas processa o sinal no computador. A palavra exige um reconhecedor de idioma compatível instalado no Windows e não usa Web Speech do navegador. A espera não abre uma conversa com a OpenAI; o gatilho inicia a recepção com clima.
 
-Abra **Ajustes → Saudação** e clique em **Amostra fixa da voz** para ouvir a frase gravada com o tom metálico fixo. **Parar amostra** encerra a reprodução. O núcleo mantém o ciano e acompanha o áudio; esse teste não captura o microfone, não usa API e não contém tempo ou previsão.
+**Iniciar ao entrar no Windows** é uma opção separada para a versão empacotada. Instalar o código não ativa captura em segundo plano nem registra início automático. O navegador de teste não altera o login do Windows e não oferece a palavra de ativação nativa.
 
-**Iniciar Jarvis** prepara a saudação dinâmica com cumprimento pelo horário, tempo e previsão para a cidade configurada. **Ouvir saudação** reproduz o áudio já preparado, sem nova consulta ou síntese. Para preparar outro boletim, use **Iniciar Jarvis**. Um arquivo de áudio gravado mantém as informações do momento da geração e não atualiza o clima ao ser reproduzido.
-
-A voz **GleysonSilva-Jarvis** foi criada e a frase foi gerada pelo painel ElevenLabs, com **Eleven Multilingual v2**, em MP3 44,1 kHz/128 kbps. [Arquivo da amostra](assets/voice/jarvis-demo.mp3) e [aviso de distribuição](assets/voice/README.md). O autor ouviu e aprovou a amostra e a narração de abertura com tempo/previsão. A saudação dinâmica preserva o modelo e os parâmetros aprovados; veja [Saudação de abertura](docs/startup-greeting.md).
-
-Essa amostra contém uma frase fixa. Conversas ao vivo continuam usando OpenAI `marin`; a síntese de novas respostas com a voz ElevenLabs ainda precisa ser integrada.
+A música depende de um arquivo fornecido pelo usuário e mantido privado. Não existe trilha padrão nesta entrega. Consulte [Espera e início no Windows](docs/standby.md) para requisitos, pausa, encerramento e limitações.
 
 ### Primeira ação
 
-Escolha em **Ajustes** uma pasta de ensaio com arquivos descartáveis. Peça: “Mostre uma prévia para organizar os arquivos desta pasta”. Revise a proposta; se desejar, corrija: “Somente os modificados neste mês”. Autorize apenas depois de comparar a lista.
+Escolha uma pasta de ensaio com arquivos descartáveis. Peça uma prévia de organização, revise a proposta e, se necessário, corrija “somente os modificados neste mês” antes de autorizar.
 
-O registro distingue efeito concluído, falha, cancelamento e resultado não verificado. Interromper evita os próximos passos; não apaga efeitos já realizados. A restauração é uma nova ação revisável e pode ser recusada se um arquivo tiver mudado.
+O registro distingue resultado verificado, falha, cancelamento e resultado não verificado. Interromper evita os próximos passos; não desfaz efeitos concluídos. A restauração é uma nova proposta e recusa conflitos ou arquivos alterados.
 
-### Testar no navegador local
+## Testar no navegador local
 
 ```text
 npm run test:local
 ```
 
-Abra `http://127.0.0.1:47832` no mesmo computador. Esse modo usa a interface funcional, microfone/câmera reais, serviços de texto/voz e uma pasta de ensaio gerada em `local-data/workspace`. O servidor atende somente loopback e exige a bridge de sua própria origem. Não o exponha na rede.
+Abra `http://127.0.0.1:47832` no mesmo computador. O modo funcional usa microfone/câmera reais, serviços configurados e `local-data/workspace` como pasta de ensaio. O servidor aceita somente loopback e a bridge de sua origem. Não o exponha na rede.
 
-A chave fica apenas na memória do processo local e precisa ser configurada novamente após encerrá-lo. Os adaptadores que abrem programas do Windows não estão disponíveis nesse modo. Esse teste não comprova a proteção de credenciais nem a integração nativa do Electron.
+Depois de instalar as dependências, [INICIAR-TESTE.cmd](INICIAR-TESTE.cmd) oferece o mesmo ensaio na porta `47833`, mantendo a janela do servidor aberta. **As chaves ficam apenas na memória do processo** e são perdidas ao encerrá-lo. Não reinicie o servidor durante uma configuração ou ensaio em curso.
 
-`npm run preview` oferece apenas a prévia da interface, sem a bridge de serviços. Não confunda essa tela com uma sessão OpenAI conectada.
+Esse modo não oferece adaptadores de aplicativos Windows, início no login, palavra de ativação nativa nem comprova armazenamento protegido do Electron. Navegadores também podem limitar captura e temporizadores em segundo plano. `npm run preview` é somente uma prévia visual sem bridge.
 
 ## Reconhecimento facial opcional
 
-O reconhecimento utiliza **Python 3.12 recomendado**, ambiente virtual próprio e os modelos YuNet/SFace guardados na pasta privada de dados do aplicativo. O desktop continua funcionando se eles estiverem ausentes.
+Siga [Visão local: instalação e modelos](services/vision/README.md), com Python 3.12 recomendado e ambiente virtual próprio. Dependências, modelos, cadastros e imagens ficam fora do repositório. O worker usa pipe privado, não abre rede e não envia quadros ou vetores aos provedores.
 
-Siga [Visão local: instalação e modelos](services/vision/README.md). Dependências, pesos e cadastros não são incluídos no repositório. O serviço recebe quadros locais por pipe privado, não abre conexão de rede e não envia imagens ou vetores à OpenAI. Os quadros originais não são persistidos pelo worker.
+No equipamento ensaiado, a câmera produziu prévia real **640×480** e foi encerrada. **Identificação permanece indisponível:** OpenCV e os pesos faciais ainda não estão instalados. Prévia de webcam não comprova reconhecimento.
 
-No painel **Presença**, ative a câmera, escolha o perfil e cadastre voluntariamente o rosto. O reconhecimento sugere personalização; a pessoa confirma a troca de perfil. Uma webcam RGB pode ser enganada por imagem ou vídeo e não deve ser usada como autenticação. Autorizações de ações continuam sendo explícitas.
+O cadastro é voluntário. A pessoa confirma o perfil sugerido; reconhecimento nunca substitui autorização de ferramentas. Webcam RGB pode ser enganada por imagem/vídeo e não é autenticação segura.
 
-## Dados, permissões e voz
+## Dados e permissões
 
-- No Electron para Windows, a chave é protegida pelo armazenamento do sistema e fica fora do repositório. A interface não recebe a chave salva de volta.
-- A pasta autorizada limita as operações de arquivos. O modelo não recebe um terminal livre nem autoridade para inventar ferramentas.
-- Texto, histórico necessário, memórias do perfil e resultados de ferramentas podem ser enviados à OpenAI para responder. Com voz aberta, o áudio do microfone é transmitido ao provedor.
-- Teste local de microfone e reconhecimento facial são fluxos locais. Ativar a câmera exige uma ação explícita; fechar o painel libera o dispositivo.
-- Memórias e tarefas podem conter conteúdo pessoal. Não publique a base privada, cadastros, imagens, gravações, chaves ou arquivos da pasta de ensaio.
-- A voz inicial da conversa é sintetizada pela OpenAI. O clone real ElevenLabs já foi criado e uma amostra gerada foi incluída com autorização do autor. O botão de amostra reproduz somente esse arquivo; respostas dinâmicas ElevenLabs ainda não estão conectadas. O adaptador [ElevenLabs](docs/elevenlabs.md) permite preparar novas gerações; o modelo clonado não é exportável.
+- No Electron Windows, as chaves OpenAI e ElevenLabs são protegidas pelo mecanismo do sistema no processo principal, fora do checkout. A interface não recebe os valores salvos de volta. Essa proteção ainda exige ensaio nativo.
+- Texto, histórico necessário, preferências do perfil e resultados de ferramentas podem ser enviados à OpenAI. Uma conversa de voz aberta transmite áudio do microfone à OpenAI; o texto a narrar vai à ElevenLabs.
+- Teste local de microfone, palmas, palavra nativa e visão são processamento local. A espera mantém acesso ao microfone enquanto ativada; pode ser pausada.
+- A consulta de clima envia as coordenadas configuradas à Open-Meteo. A fonte e a licença acompanham o resultado.
+- Não publique chaves, banco, cidade privada, identificador da voz, rostos, gravação de referência, música privada ou arquivos de ensaio. Um MP3 autorizado não inclui um modelo exportável da voz.
+- A pasta selecionada limita o executor. O modelo não recebe terminal livre nem pode inventar autoridade para ferramentas.
 
-Detalhes de fluxo, armazenamento e limites estão em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md) e [Voz e câmera](docs/voice-and-camera.md).
+Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [ElevenLabs](docs/elevenlabs.md) e [Voz e câmera](docs/voice-and-camera.md).
 
 ## Verificação e evidências
 
 ```text
-npm test
-npm run check
-npm run build
+npm run verify
 ```
 
-`npm run verify` reúne os três comandos. A suíte usa transportes e adaptadores substituídos para validar contratos, cancelamento, aprovações, caminhos e registro de efeitos. A visão possui testes opcionais de protocolo com backend de teste.
+A baseline do [CI ba0680](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39156421498) aprovou **147 testes**, compilação e empacotamento portátil Windows. Isso antecede os novos recursos 0.2.0; o novo CI ainda está pendente no registro desta revisão.
 
-**Teste automatizado aprovado não equivale a teste com pessoas, hardware ou provedores reais.** Medição de latência, áudio efetivamente ouvido, webcam, reconhecimento com pesos instalados, armazenamento protegido do Windows, instalação limpa e executável empacotado exigem seus próprios registros. Consulte o [plano de testes](docs/test-plan.md) para executar e documentar esses ensaios.
+A revisão 0.2.0 passou localmente por **214 testes**, zero falhas/skips, com Python configurado, TypeScript estrito e build aprovados. A interface de ajustes foi inspecionada no navegador: opções nativas indisponíveis ficaram desabilitadas e a configuração da espera foi preservada. Testes com substitutos e inspeção de controles não comprovam ativação física.
 
-Não existe benchmark publicado que sustente uma promessa de “resposta instantânea” ou “melhor assistente já criado”. O [roadmap](docs/roadmap.md) define as etapas para avaliar e melhorar esses resultados.
+No ensaio real foram confirmados texto OpenAI correto, microfone com nível e liberação, prévia de câmera 640×480 e parada, saudação aprovada e áudio OpenAI Realtime ouvido. Este último usou `marin`, voz diferente da desejada, motivando a troca para ElevenLabs.
+
+**Ainda não confirmados em uso real:** nova conversa completa com o clone, ativação por palmas/palavra, retorno da espera, início no login e execução física do EXE empacotado. Não há latência comparável medida nem acurácia facial demonstrada. Veja [Validação](docs/validation.md), [Plano de testes](docs/test-plan.md) e [Roadmap](docs/roadmap.md).
 
 ## Estrutura
 
 ```text
-apps/desktop/       processo Electron, bridge limitada, ajustes e adaptadores Windows
-apps/desktop/renderer/  React, núcleo Canvas, interface e cliente WebRTC
-packages/runtime/   política, ferramentas, SQLite e execução verificável
-packages/openai/    Responses, Realtime e tratamento de erros
-packages/elevenlabs/ clonagem e síntese separadas, streaming e cancelamento
-services/vision/    worker facial Python opcional
-scripts/           build, prévia e controle do teste local
-tests/             verificações automáticas sem conta paga
-docs/              arquitetura, uso, validação e evolução
+apps/desktop/           Electron, bridge limitada, ajustes e adaptadores Windows
+apps/desktop/renderer/  React, HUD Canvas, WebRTC, áudio e detector local de palmas
+apps/desktop/platform/  reconhecimento offline Windows
+packages/runtime/      política, SQLite, ferramentas e execução
+packages/openai/       Responses, Realtime e erros
+packages/speech/       síntese da conversa, correlação e cancelamento
+packages/greeting/     cumprimento, clima e narração de abertura
+packages/elevenlabs/    transporte, clonagem autorizada e TTS
+services/vision/       worker facial Python opcional
+tests/                 testes automáticos com rede/hardware substituídos
+docs/                  arquitetura, uso, validação e evolução
 ```
 
 ## Contribuir e distribuir
 
-Abra uma descrição reproduzível do problema com sistema, versão, superfície testada e resultado esperado. Remova dados pessoais e credenciais dos anexos. Novas ferramentas precisam de argumentos estritos, escopo de acesso, confirmação quando houver efeito e uma forma de registrar o resultado observado.
+Relate sistema, versão, superfície, reprodução e resultado esperado, sem dados pessoais ou segredos. Ferramentas novas precisam de argumentos estritos, acesso limitado, aprovação de efeitos e evidência de resultado.
 
-O código do projeto usa Apache-2.0; dependências e modelos conservam suas próprias licenças. Confira os arquivos de licença e avisos antes de redistribuir. A identidade visual foi desenvolvida para este protótipo; este é um projeto independente, sem associação com Marvel, Disney, OpenAI ou ElevenLabs. O nome e a apresentação pública devem ser revisados antes de uso comercial.
-
-Responsável: **Gleysonp-Dev**. Código público: [GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). Uma release executável terá evidências próprias de instalação e funcionamento.
+O código usa Apache-2.0; dependências e modelos conservam suas licenças. Projeto independente, sem associação com Marvel, Disney, OpenAI ou ElevenLabs. O [aviso da amostra pública](assets/voice/README.md) registra origem sintética e distribuição autorizada. Revise identidade e licenças antes de uso comercial. Responsável: **Gleysonp-Dev**.

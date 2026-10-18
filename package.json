@@ -1,8 +1,8 @@
 {
   "name": "gleysonsilva-jarvis",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Assistente pessoal Windows com voz OpenAI, HUD ciano e execução verificável.",
+  "description": "Assistente pessoal Windows com inteligência OpenAI, voz ElevenLabs, espera local e HUD ciano.",
   "type": "module",
   "main": "apps/desktop/main.mjs",
   "license": "Apache-2.0",
@@ -31,6 +31,7 @@
     "appId": "dev.jarvis.personal",
     "productName": "GleysonSilva-Jarvis",
     "asar": true,
+    "asarUnpack": ["apps/desktop/platform/*.ps1"],
     "directories": { "output": "release" },
     "files": ["apps/desktop/*.mjs", "apps/desktop/preload.cjs", "apps/desktop/platform/**", "packages/**", "dist/**", "package.json"],
     "extraResources": [{ "from": "services/vision", "to": "vision", "filter": ["*.py", "requirements.txt", "README.md"] }],

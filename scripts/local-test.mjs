@@ -7,7 +7,10 @@ import { createRuntime } from '../packages/runtime/index.mjs';
 import { OpenAIService, OpenAIServiceError } from '../packages/openai/index.mjs';
 import { VisionService } from '../apps/desktop/vision.mjs';
 import { defaults, validateSettings } from '../apps/desktop/settings.mjs';
-import { StartupGreetingService } from '../packages/greeting/index.mjs';
+import { StartupGreetingService, StartupGreetingError } from '../packages/greeting/index.mjs';
+import { SpeechService, SpeechServiceError } from '../packages/speech/index.mjs';
+import { SpeechController, SpeechControlError } from '../packages/speech/controller.mjs';
+import { GreetingMusicStore } from '../apps/desktop/greeting-music.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const BRIDGE = fileURLToPath(new URL('./test-bridge.js', import.meta.url));
@@ -23,7 +26,7 @@ const object = (value, allowed) => {
 };
 
 /** Functional loopback harness: no shell/native app authority, no persisted provider key. */
-export async function createLocalTestServer({ port = 47832, dataDir = path.join(ROOT, 'local-data'), assetsDir = path.join(ROOT, 'dist'), python, modelsDir = path.join(dataDir, 'models') } = {}) {
+export async function createLocalTestServer({ port = 47832, dataDir = path.join(ROOT, 'local-data'), assetsDir = path.join(ROOT, 'dist'), python, modelsDir = path.join(dataDir, 'models'), fetch: fetchImpl = globalThis.fetch } = {}) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Porta inválida.');
   if (!path.isAbsolute(dataDir) || !path.isAbsolute(assetsDir) || !path.isAbsolute(modelsDir)) throw new Error('As pastas do servidor devem usar caminhos absolutos.');
   dataDir = path.resolve(dataDir);
@@ -60,12 +63,14 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     emit(event);
   } });
   const vision = new VisionService({ dataDir: sessionDir, modelsDir, crypto: ephemeralCrypto, ...(python ? { python } : {}) });
-  const provider = new OpenAIService({ getKey: () => key || process.env.OPENAI_API_KEY || '', getSettings: () => settings, runtime, onEvent(event) {
+  const provider = new OpenAIService({ getKey: () => key || process.env.OPENAI_API_KEY || '', getSettings: () => settings, runtime, fetch: fetchImpl, onEvent(event) {
     const run = runs.get(event.runId);
     if (run && run.generation === generation && !run.controller.signal.aborted) emit({ ...event, profileId: run.profileId });
   } });
-  const startupService = new StartupGreetingService({ getSettings: () => settings, getKey: () => elevenKey || process.env.ELEVENLABS_API_KEY || '' });
-  const publicSettings = () => ({ ...settings, apps: [], hasKey: Boolean(key || process.env.OPENAI_API_KEY), hasElevenKey: Boolean(elevenKey || process.env.ELEVENLABS_API_KEY) });
+  const startupService = new StartupGreetingService({ getSettings: () => settings, getKey: () => elevenKey || process.env.ELEVENLABS_API_KEY || '', fetch: fetchImpl });
+  const speech = new SpeechController({ service: new SpeechService({ getSettings: () => settings, getKey: () => elevenKey || process.env.ELEVENLABS_API_KEY || '', fetch: fetchImpl }), getProfile: () => settings.profileId });
+  const musicStore = new GreetingMusicStore({ dataDir });
+  const publicSettings = () => ({ ...settings, apps: [], hasKey: Boolean(key || process.env.OPENAI_API_KEY), hasElevenKey: Boolean(elevenKey || process.env.ELEVENLABS_API_KEY), hasGreetingMusic: musicStore.available() });
   const profile = input => { if (input.profileId !== undefined && input.profileId !== settings.profileId) reject('O perfil mudou. Inicie outra solicitação no perfil atual.'); return settings.profileId; };
   function runFor(runId, profileId) {
     const previous = runs.get(runId);
@@ -75,6 +80,7 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
   }
   async function reset(reason) {
     generation++;
+    speech.reset();
     for (const [runId, run] of runs) { run.controller.abort(); runtime.cancel(runId); }
     for (const controller of connections) controller.abort();
     for (const [id] of approvals) runtime.approve(id, false);
@@ -83,20 +89,26 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     emit({ type: 'session.reset', reason });
   }
   const handlers = {
-    async boot() { const status = await vision.handle({ type: 'status' }); return { settings: publicSettings(), snapshot: runtime.getSnapshot(settings.profileId), capabilities: { desktop: false, vision: status.available === true, localTest: true, ephemeralBiometrics: true } }; },
+    async boot() { const status = await vision.handle({ type: 'status' }); return { settings: publicSettings(), snapshot: runtime.getSnapshot(settings.profileId), capabilities: { desktop: false, vision: status.available === true, localTest: true, ephemeralBiometrics: true, jarvisSpeech: true, startup: false, voiceWake: false } }; },
     async saveSettings(input) {
-      object(input, ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey']);
+      object(input, ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey', 'startAtLogin', 'standbyEnabled', 'wakeClapEnabled', 'wakeVoiceEnabled', 'greetingMusicEnabled']);
       let valid;
       try { valid = validateSettings(input); } catch (error) { reject(error.message); }
       for (const field of ['apiKey', 'elevenApiKey']) if (input[field] !== undefined && (typeof input[field] !== 'string' || input[field].length > 512 || /[\r\n\0]/.test(input[field]))) reject('Chave inválida.');
       await reset(input.profileId && input.profileId !== settings.profileId ? 'profile_changed' : 'settings_changed');
       settings = { ...settings, ...valid };
+      if (settings.standbyEnabled) settings.startupGreeting = true;
       if (input.apiKey?.trim()) key = input.apiKey.trim();
       if (input.elevenApiKey?.trim()) elevenKey = input.elevenApiKey.trim();
       return publicSettings();
     },
     async chooseWorkspace() { return workspaceRoot; },
     async chooseApp() { return null; },
+    async chooseGreetingMusic() { return { available: false, hasGreetingMusic: musicStore.available(), reason: 'requires_native_windows' }; },
+    async wakeStart() { return { available: false, running: false, state: 'unavailable', reason: 'requires_native_windows' }; },
+    async wakeStop() { return { available: false, running: false, state: 'unavailable', reason: 'requires_native_windows' }; },
+    async speak(input) { return speech.speak(input); },
+    async cancelSpeech(input) { object(input, ['runId']); return speech.cancel(input); },
     async text(input) {
       object(input, ['text', 'history', 'profileId', 'runId']);
       const profileId = profile(input), runId = identifier(input.runId);
@@ -128,13 +140,21 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     async memorySave(input) { object(input, ['profileId', 'id', 'text']); try { return runtime.saveMemory({ ...input, profileId: profile(input) }); } catch (error) { if (error instanceof ClientError) throw error; reject('Memória inválida. Use até 2.000 caracteres.'); } },
     async memoryDelete(input) { object(input, ['profileId', 'id']); return runtime.deleteMemory(profile(input), identifier(input.id)); },
     async realtimeSession(input) {
-      object(input, ['profileId', 'sdp']); const profileId = profile(input), controller = new AbortController(), startGeneration = generation; connections.add(controller);
+      object(input, ['profileId', 'sdp']); const profileId = profile(input);
+      if (!(elevenKey || process.env.ELEVENLABS_API_KEY) || !settings.elevenVoiceId) reject('Configure a voz Jarvis e a chave ElevenLabs antes de iniciar a conversa.');
+      const controller = new AbortController(), startGeneration = generation; connections.add(controller);
       try { const response = await provider.createRealtimeSession({ sdp: input.sdp, profileId }, { signal: controller.signal }); if (startGeneration !== generation || controller.signal.aborted) reject('A configuração mudou. Inicie outra sessão.'); return response; }
       finally { connections.delete(controller); }
     },
     async vision(input) { object(input, ['type', 'profileId', 'name', 'imageDataUrl']); const profileId = profile(input); try { return await vision.handle(['enroll', 'delete'].includes(input.type) ? { ...input, profileId } : input); } catch { reject('Não foi possível concluir a análise facial local. Confira os modelos e a câmera.'); } },
     async openExternal() { reject('A abertura de aplicativos externos está desativada no teste local.'); },
     async listModels() { return provider.listModels(); },
+    async cancelGreeting() {
+      const profileId = settings.profileId, controller = startupFlights.get(profileId);
+      if (!controller) return { cancelled: false };
+      controller.abort(); startupFlights.delete(profileId); connections.delete(controller);
+      return { cancelled: true };
+    },
     async startupGreeting(input) {
       object(input, ['hour', 'timezone']);
       if (!Number.isInteger(input.hour) || input.hour < 0 || input.hour > 23) reject('Horário inválido para a saudação.');
@@ -201,6 +221,15 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
         res.writeHead(200); res.end(JSON.stringify({ ok: true, result })); return;
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') reject('Método não permitido.', 405);
+      if (url.pathname === '/greeting-music') {
+        if ((req.headers.origin && req.headers.origin !== origin) || (req.headers['sec-fetch-site'] && req.headers['sec-fetch-site'] !== 'same-origin')) reject('Origem não autorizada.', 403);
+        // Audio elements send same-origin Fetch Metadata; non-browser clients must prove the session token.
+        if (req.headers['sec-fetch-site'] !== 'same-origin') csrf(req);
+        const audio = await musicStore.read();
+        if (!audio) reject('Nenhuma trilha privada válida foi importada.', 404);
+        headers(res, audio.mime); res.setHeader('Content-Length', audio.bytes.length); res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+        res.writeHead(200); res.end(req.method === 'HEAD' ? undefined : audio.bytes); return;
+      }
       if (url.pathname === '/test-bridge.js') {
         headers(res, 'text/javascript; charset=utf-8'); const bridge = await readFile(BRIDGE); res.writeHead(200); res.end(req.method === 'HEAD' ? undefined : bridge); return;
       }
@@ -210,8 +239,9 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
       if (asset[0] === 'index.html') content = Buffer.from(content.toString('utf8').replace('</head>', `<meta name="jarvis-token" content="${token}"><script src="/test-bridge.js" defer></script></head>`));
       headers(res, asset[1]); res.writeHead(200); res.end(req.method === 'HEAD' ? undefined : content);
     } catch (error) {
-      const message = error instanceof ClientError || error instanceof OpenAIServiceError ? error.message : 'Não foi possível concluir a operação local.';
-      if (!res.headersSent) { res.writeHead(error instanceof ClientError ? error.status : error instanceof OpenAIServiceError ? 400 : 500); res.end(JSON.stringify({ ok: false, error: message })); }
+      const safeError = error instanceof ClientError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError || error instanceof StartupGreetingError;
+      const message = safeError ? error.message : 'Não foi possível concluir a operação local.';
+      if (!res.headersSent) { res.writeHead(error instanceof ClientError ? error.status : safeError ? 400 : 500); res.end(JSON.stringify({ ok: false, error: message })); }
       else res.end();
     }
   });

@@ -434,16 +434,14 @@ export class OpenAIService {
       requiredString(sdp, 128_000);
       if (!sdp.startsWith('v=0')) throw fail('invalid_input');
       const settings = this.#getSettings() ?? {};
-      const voice = settings.voice ?? DEFAULT_MODELS.voice;
-      if (!['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', 'cedar'].includes(voice)) throw fail('invalid_settings');
       const tools = this.#tools({ realtime: true });
       const session = {
         type: 'realtime', model: modelId(settings.realtimeModel, DEFAULT_MODELS.realtimeModel),
-        instructions: await this.#instructions(profileId, scope.signal), output_modalities: ['audio'], tools, tool_choice: tools.length ? 'auto' : 'none', max_output_tokens: 1024,
+        instructions: `Suas respostas serão narradas pela voz Jarvis configurada localmente. Produza texto natural, em frases curtas. Não leia JSON bruto, identificadores de chamadas ou saídas internas de ferramentas; explique somente o resultado verificado.\n${await this.#instructions(profileId, scope.signal)}`,
+        output_modalities: ['text'], tools, tool_choice: tools.length ? 'auto' : 'none', max_output_tokens: 1024,
         audio: {
           input: { noise_reduction: { type: 'near_field' }, transcription: { model: 'gpt-4o-mini-transcribe', language: 'pt' },
             turn_detection: { type: 'server_vad', threshold: 0.5, prefix_padding_ms: 300, silence_duration_ms: 500, create_response: true, interrupt_response: true } },
-          output: { voice },
         },
       };
       const body = new FormData();

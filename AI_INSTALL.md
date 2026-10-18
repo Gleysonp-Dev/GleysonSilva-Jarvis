@@ -1,130 +1,126 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para um assistente de código instalar o projeto e entregar um estado de funcionamento verificável. O código-fonte está no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis).
+Roteiro para instalar o [código-fonte público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis) e entregar um resultado verificável. A revisão atual é **MVP 0.2.0 em desenvolvimento**, sem release assinada ou executável comprovado em instalação limpa.
 
-## Objetivo da instalação
+Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
-Preparar o código-fonte, executar as verificações, iniciar uma superfície utilizável e explicar o que foi confirmado. Uma tela aberta, uma chamada paga, a reprodução audível e o reconhecimento de alguém são evidências diferentes. Informe os resultados separadamente.
+## 1. Inspecionar o ambiente
 
-O estado inicial é MVP 0.1.0, sem instalador assinado ou executável distribuído validado. O modo padrão de desenvolvimento é Electron para Windows. O modo de teste no navegador local ajuda a verificar hardware e serviços quando a abertura de um aplicativo nativo não for possível.
-
-## 1. Inspeção do ambiente
-
-1. Leia `README.md`, `package.json` e instruções locais aplicáveis. Confirme que o terminal está na raiz do projeto.
-2. Verifique sistema operacional, versão de Node e npm. O runtime requer Node 24 ou superior, inclusive por usar SQLite integrado.
-3. Confirme que a pasta do projeto não contém credenciais, base privada ou arquivos pessoais incluídos por engano. Não imprima valores de variáveis de ambiente.
-4. Use uma pasta de ensaio gerada para os primeiros testes de arquivos. Não selecione automaticamente pastas pessoais amplas.
-
-Comandos de diagnóstico:
+1. Leia README, package.json e instruções locais aplicáveis.
+2. Confirme Windows, Node 24 ou superior e npm; SQLite usa o runtime integrado.
+3. Não imprima variáveis de ambiente, credenciais ou arquivos privados.
+4. Use uma pasta de ensaio descartável para testar ferramentas.
+5. Não habilite início automático ou escuta em segundo plano como efeito da instalação.
 
 ```text
 node --version
 npm --version
-```
-
-Se Node estiver ausente ou fora da versão suportada, explique a dependência e siga as regras de instalação do ambiente. Não desative políticas do sistema ou proteções do aplicativo para contornar uma falha.
-
-## 2. Dependências e validação
-
-Na raiz:
-
-```text
 npm install
 npm run verify
 ```
 
-Se o checkout publicado contiver `package-lock.json` válido e o objetivo for reproduzir exatamente suas versões, `npm ci` pode substituir `npm install`. Não apague nem regenere o lockfile apenas para esconder uma divergência.
+Com lockfile válido, `npm ci` pode substituir `npm install` para reproduzir as versões. Não regenere o lockfile para esconder divergências. A instalação do Electron pode exigir rede; registre bloqueios em vez de declarar o aplicativo funcional somente pela compilação.
 
-A instalação do Electron pode precisar de rede. Diante de bloqueio de rede, falta de dependência ou recusa de execução, registre a causa real e use os mecanismos de aprovação disponíveis. Não anuncie que o aplicativo funciona com base apenas em uma compilação bem-sucedida.
+## 2. Abrir uma superfície funcional
 
-Guarde um resumo dos comandos e seus códigos de saída. Registre falhas e testes opcionais ignorados. Nunca coloque a chave no relatório.
-
-## 3. Iniciar e verificar a interface
-
-### Aplicativo Windows
+### Electron Windows
 
 ```text
 npm start
 ```
 
-Confirme que a janela do projeto abriu, que os textos estão legíveis e que **Ajustes**, **Memória**, **Registro** e **Presença** funcionam. O núcleo deve manter o ciano original em todos os estados. Sem sessão, não declare microfone, câmera ou OpenAI como conectados.
+Confirme janela, conversa, Ajustes, Memória, Registro e Presença. O núcleo permanece ciano; sem captura ou sessão real, os indicadores não devem alegar conexão.
 
-### Alternativa no navegador local
+### Navegador local
 
 ```text
 npm run test:local
 ```
 
-Abra `http://127.0.0.1:47832` no mesmo computador. O servidor deve continuar limitado a loopback. Esse modo usa `local-data/workspace` para arquivos de ensaio e chave temporária em memória. Não permite abrir aplicativos do Windows. Encerrar o processo remove a chave temporária.
+Abra `http://127.0.0.1:47832`. [INICIAR-TESTE.cmd](INICIAR-TESTE.cmd) oferece o ensaio Windows na porta `47833`. As chaves ficam só na memória do servidor e desaparecem ao encerrá-lo. **Não reinicie um servidor em uso com credenciais configuradas sem coordenar o ensaio.**
 
-Não substitua esse comando por uma hospedagem pública. Não coloque a bridge, a chave ou os dados privados em um site externo.
+O servidor aceita loopback, usa `local-data/workspace` e não deve ser exposto na rede. Não oferece abrir programas Windows, palavra nativa ou início no login e não comprova proteção nativa das chaves. `npm run preview` é somente visual.
 
-`npm run preview` é uma prévia visual sem bridge de serviços. Se essa for a única superfície que abriu, descreva-a como prévia.
+## 3. Configurar provedores privadamente
 
-## 4. Configuração privada da OpenAI
+Peça ao usuário que preencha os campos mascarados em Ajustes, sem enviar a chave ao chat, issue, screenshot ou linha de comando. Uma chave já configurada pode ser usada no escopo autorizado; nunca a revele ou copie.
 
-Peça que o usuário preencha o campo mascarado de **Ajustes**, sem enviar a chave à conversa, issue, arquivo público, screenshot ou comando que a imprima. Uma chave já configurada pode ser usada dentro do escopo autorizado; não a revele nem a copie para o renderer.
-
-Os padrões do código são:
-
-| Campo | Padrão |
+| Uso | Configuração |
 | --- | --- |
-| Texto | `gpt-5.4-mini` |
-| Voz em tempo real | `gpt-realtime` |
-| Voz sintetizada | `marin` |
-| Perfil | `default` |
-| Limite de voz | 10 minutos, permitido de 1 a 30 |
+| Texto digitado | Chave OpenAI; modelo padrão `gpt-5.4-mini`. |
+| Entrada falada e resposta em texto | OpenAI Realtime; padrão `gpt-realtime`. |
+| Resposta audível e saudação | Chave ElevenLabs e ID privado de uma voz existente. |
+| Sessão | 10 minutos por padrão; permitido de 1 a 30. |
+| Perfil | `default` por padrão; memórias separadas por perfil. |
 
-A conta precisa aceitar os modelos e dispor dos recursos necessários. Preserve escolhas explícitas do usuário. Se um ID não estiver disponível, explique o erro antes de escolher uma alternativa compatível. Consulte [docs/openai.md](docs/openai.md) para protocolo e dados enviados ao provedor.
+O fluxo de voz 0.2.0 usa OpenAI para compreender/gerar texto e ElevenLabs para narrar. A saída de áudio OpenAI fica desativada. O campo legado `voice: marin`, se presente na configuração, não seleciona a voz audível deste fluxo. Não use uma voz OpenAI ou do navegador como alternativa silenciosa a erro da ElevenLabs.
 
-## 5. Teste funcional guiado
+A voz do autor já foi criada com autorização; **não faça outra clonagem durante a instalação**. Outra instalação precisa de voz disponível na própria conta. O ID e a referência não são públicos. Preserve a síntese aprovada e a reprodução fixa a **0,95× com altura preservada e efeito metálico 0,78**, sem ajustes.
 
-Teste somente o que estiver autorizado na sessão. Microfone e câmera devem ser iniciados pelos controles explícitos da interface; instalação não implica manter dispositivos capturando em segundo plano.
+## 4. Executar testes funcionais autorizados
 
-1. **Microfone local:** ative o teste, fale e observe o envelope real. Encerre e confira a liberação do dispositivo. Esse teste não envia áudio à OpenAI.
-2. **Câmera:** abra Presença e ative a prévia. Sem modelos, a imagem pode aparecer e a identificação deve informar a dependência ausente. Feche e confirme liberação.
-3. **Texto real:** com chave configurada, faça uma pergunta curta e confira resposta progressiva. Se ocorrer erro, registre-o sem corpo bruto ou segredo.
-4. **Voz real:** abra uma sessão, confira transcrição e som efetivamente ouvido. Interrompa pela fala e pelo botão. Encerre. Uma conexão WebRTC aberta não comprova que o usuário ouviu a saída.
-5. **Arquivos de ensaio:** peça a prévia, corrija o filtro, negue uma proposta e autorize outra após revisão. Confira o sistema de arquivos e o registro. Teste restauração somente nos arquivos descartáveis.
-6. **Memória:** grave uma preferência de teste, confirme o registro, inicie nova conversa e depois apague-a. Não use informação pessoal desnecessária.
-7. **Amostra Jarvis:** em **Ajustes → Saudação**, clique em **Amostra fixa da voz**. Confirme som audível com tom metálico fixo, pulsação pelo áudio e funcionamento de **Parar amostra**. O MP3 contém uma frase fixa, sem boletim meteorológico; dispensa API e não abre microfone.
-8. **Recepção:** configure privadamente a cidade, o ID da voz e a chave ElevenLabs em **Ajustes → Saudação**. Clique em **Iniciar Jarvis** para preparar o cumprimento com tempo e previsão. Confirme texto, atribuição meteorológica e áudio. Caso o navegador solicite um gesto, use **Ouvir saudação** para reproduzir o áudio já preparado, sem nova consulta ou síntese. A interface deve continuar visível ao receber a atribuição estruturada do tempo. Um arquivo gravado preserva o boletim do momento da geração; não o trate como consulta atual ao reproduzi-lo.
+1. **Microfone:** Testar microfone, falar, observar nível, cancelar/parar e conferir liberação. Sem API. Se a permissão ficar pendente, o controle deve permitir cancelar; não gere vários prompts.
+2. **Câmera:** iniciar prévia em Presença, conferir imagem e encerrar. Modelos ausentes devem impedir identificação, sem bloquear o teste da câmera.
+3. **Texto OpenAI:** fazer pergunta curta e conferir resposta progressiva correta.
+4. **Conversa com o clone:** configurar ambos os provedores, perguntar, conferir transcrição e a voz Jarvis realmente ouvida. Testar interrupção por fala/botão, troca de perfil, erro de síntese e liberação. Não aceitar uma voz diferente como sucesso.
+5. **Arquivos:** pedir prévia em pasta descartável, corrigir filtro, negar uma proposta e autorizar outra. Conferir registro, efeitos e restauração.
+6. **Memória:** salvar preferência de teste, conferir recuperação no mesmo perfil e apagar.
+7. **Amostra fixa:** em Ajustes → Saudação, reproduzir/parar a frase gravada sem API ou microfone. Não representa clima atual nem nova conversa.
+8. **Recepção:** configurar cidade privadamente e usar Iniciar Jarvis. Conferir relógio, tempo/previsão, atribuição e áudio correspondente. Ouvir saudação repete o áudio preparado sem nova geração.
 
-Se uma etapa depender de participação humana, entregue o controle pronto para uso e diga exatamente o que falta confirmar. Não simule sucesso para completar a lista.
+A geração pode consumir as contas e está sujeita a limites. Não reinicie serviços nem altere quotas para contornar recusas. Um arquivo gravado preserva o boletim do momento da síntese, não uma previsão atualizada.
+
+## 5. Espera e início no login — somente com escolha do usuário
+
+Em Ajustes → Início e espera, as opções `startAtLogin` e `standbyEnabled` começam desligadas. Habilitá-las mantém o microfone em espera local quando aplicável; não habilite como rotina implícita da instalação.
+
+- **Palmas:** duas transientes, separadas entre 150 e 800 ms, com adaptação de ruído e intervalo de proteção. Ensaiar no microfone real; testes sintéticos não comprovam rejeição de toda fala ou música.
+- **Palavra “Jarvis”:** Windows System.Speech offline, dependente de reconhecedor de idioma compatível instalado. Não usar Web Speech do navegador como substituto.
+- **Durante a recepção:** a espera deve pausar antes da fala/música e retornar depois. Ela também deve ceder o microfone ao teste ou à conversa ativa.
+- **Iniciar ao entrar no Windows:** somente no app Windows empacotado, com executável em caminho estável. É entrada na conta, não boot antes do login. O modo de desenvolvimento não comprova esse recurso.
+- **Música:** somente arquivo fornecido/selecionado pelo usuário, mantido privado, encerrado ao terminar ou interromper a saudação. Não há faixa padrão; não invente nem gere uma.
+
+Teste pausar/retomar, fechar para bandeja quando configurado, sair de fato e desativar login. Registre reconhecedor ausente ou permissão negada. No navegador, palmas podem sofrer limitações de segundo plano; ele não equivale ao ensaio nativo. Detalhes em [docs/standby.md](docs/standby.md).
 
 ## 6. Visão opcional
 
-Texto, voz e prévia de câmera não dependem de Python. Para reconhecimento, recomende Python 3.12 em ambiente virtual e siga [services/vision/README.md](services/vision/README.md).
+Texto, voz e prévia não precisam de Python. Para reconhecimento, use Python 3.12 recomendado em ambiente virtual e siga [services/vision/README.md](services/vision/README.md).
 
-Pesos YuNet/SFace ficam na pasta privada `models` dos dados do aplicativo, fora do checkout. Instale dependências opcionais somente quando o usuário quiser habilitar reconhecimento. Use os binários reais dos modelos, confira origem/licença e registre hash antes de redistribuir. Não publique rostos, embeddings ou amostras pessoais.
+Não baixe modelos ou cadastre biometria sem a escolha do usuário. Pesos, rostos e vetores ficam privados. Cadastro voluntário exige três amostras consistentes; o perfil sugerido deve ser confirmado. Webcam RGB não autentica nem autoriza ferramentas.
 
-O cadastro é voluntário, exige três amostras consistentes e a escolha explícita de perfil. Reconhecimento não concede autoridade para ações. A webcam RGB não oferece prova de vida.
+No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua indisponível por ausência de OpenCV e pesos. Não reporte isso como identificação aprovada.
 
-## 7. Voz personalizada e distribuição
+## 7. Distinguir baseline de novos recursos
 
-A voz padrão da conversa OpenAI funciona sem clonagem. A voz **GleysonSilva-Jarvis** já foi criada pelo painel ElevenLabs, e uma frase foi gerada com Eleven Multilingual v2 e baixada em MP3. O arquivo `assets/voice/jarvis-demo.mp3` pode ser reproduzido por **Ajustes → Saudação → Amostra fixa da voz**, sem API ou microfone, com processamento metálico fixo local. Esse arquivo não contém tempo ou previsão. A saudação dinâmica usa o serviço de abertura com a configuração privada; a conversa ao vivo continua usando OpenAI `marin`. Não anuncie respostas ElevenLabs ao vivo como conectadas.
+A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 
-O adaptador [ElevenLabs](docs/elevenlabs.md) fornece `scripts/voice.mjs` com `clone` e `speak`, além de streaming no código. O autor já confirmou autorização para clonar a referência e distribuir os áudios gerados; não peça a mesma autorização novamente. A gravação de referência continua privada, assim como a credencial e o ID de voz em `local-data/voice.json`. Para uma nova clonagem pela CLI, o sinalizador explícito `--consent` e a chave ElevenLabs em variável do processo continuam necessários.
+- CI do commit ba0680: 147 testes, compilação e artefato portátil Windows aprovados.
+- Revisão 0.2.0 local: 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. Novo CI ainda pendente.
+- Ajustes inspecionados no navegador: início no login/palavra nativa desabilitados corretamente; espera exige voz/chave/cidade e opções salvas foram preservadas.
+- Texto OpenAI correto, microfone com nível/liberação e câmera 640×480/parada foram observados.
+- Um ensaio OpenAI Realtime foi ouvido, porém usou `marin`, diferente da voz desejada. Ele motivou a nova rota OpenAI → texto → ElevenLabs.
+- Saudação, velocidade 0,95× e efeito fixo foram aprovados.
+- **Ainda pendentes:** nova conversa real com o clone, ativação nativa, retorno da espera, login, música privada e execução física do EXE. O novo CI 0.2.0 ainda não está confirmado neste registro.
 
-O resultado real desta preparação veio do painel no navegador, não de uma chamada executada pela CLI. O autor já ouviu e aprovou a amostra e a narração de abertura; preserve Eleven Multilingual v2 e seus parâmetros explícitos no serviço de saudação. Estar autenticado no navegador não disponibiliza automaticamente a chave à CLI ou ao aplicativo. Não refaça a clonagem durante a instalação e não afirme que o provedor exporta pesos. O áudio de futuras gerações pela CLI começa em `local-data/audio`, privado e ignorado pelo Git; a demonstração pública selecionada possui aviso próprio em `assets/voice/README.md`. A abertura automática ainda exige ensaio da configuração privada conforme [docs/startup-greeting.md](docs/startup-greeting.md).
-
-Não execute publicação, criação de release, upload de gravações ou distribuição do aplicativo como parte automática desta instalação, salvo autorização do usuário. Não inclua credenciais, `local-data`, base SQLite, modelos, cadastros ou arquivos de ensaio no Git.
+Não transforme implementação ou teste com substituto em prova de hardware. Registre a execução atual e seus skips, sem copiar resultados antigos como se fossem novos.
 
 ## Entrega esperada
 
-Conclua com um relatório breve:
-
 ```text
-Ambiente e versão de Node:
-Dependências e verificações: aprovadas / falhas / skips
-Superfície iniciada: Electron / teste local / prévia
-Microfone: captura e liberação confirmadas / não ensaiado
-Câmera: prévia e liberação confirmadas / não ensaiado
-OpenAI texto: sessão real / não ensaiado
-OpenAI voz: conexão, áudio ouvido e interrupção / não ensaiado
-Reconhecimento facial: modelos e cadastro reais / não ensaiado
-Ações locais: pasta de ensaio e resultado observado / não ensaiado
-Pendências e comando para abrir novamente:
+Ambiente e Node:
+Versão/commit:
+Verificações: aprovadas / falhas / skips
+Superfície: Electron / navegador local / prévia / EXE
+Microfone: captura, cancelamento e liberação
+Câmera: resolução, imagem e liberação
+OpenAI texto: resposta real / não ensaiado
+Conversa com clone: voz ouvida, interrupção, erro sem fallback / não ensaiado
+Espera: palmas, palavra, reconhecedor e pausa/retorno / não ensaiado
+Login Windows: pacote, entrada real e desativação / não ensaiado
+Música privada: fornecida, fim/cancelamento / não fornecida ou não ensaiado
+Reconhecimento: pesos e cadastro real / indisponível ou não ensaiado
+Arquivos/memória: efeitos e resultado observado
+Limitações e comando para abrir novamente:
 ```
 
-Resultados de latência e qualidade só entram no relatório quando medidos. O plano completo está em [docs/test-plan.md](docs/test-plan.md).
+Não publique releases, áudios privados, dados, modelos ou credenciais como parte automática da instalação. A autorização existente de clonagem e distribuição da amostra selecionada não torna pública a gravação de referência. Veja [Plano de testes](docs/test-plan.md), [ElevenLabs](docs/elevenlabs.md) e o aviso em assets/voice.

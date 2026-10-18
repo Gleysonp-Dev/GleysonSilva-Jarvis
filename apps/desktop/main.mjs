@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, protocol, safeStorage, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, protocol, safeStorage, session, shell, Tray, Menu, nativeImage } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFile, mkdir, lstat, realpath, access } from 'node:fs/promises';
@@ -10,6 +10,11 @@ import { SettingsStore, validateSettings } from './settings.mjs';
 import { createWindowsAdapters } from './platform/windows.mjs';
 import { VisionService } from './vision.mjs';
 import { StartupGreetingService } from '../../packages/greeting/index.mjs';
+import { SpeechService, SpeechServiceError } from '../../packages/speech/index.mjs';
+import { SpeechController, SpeechControlError } from '../../packages/speech/controller.mjs';
+import { configureStartup, isStandbyLaunch, WindowsWakeService } from './startup.mjs';
+import { GreetingMusicStore } from './greeting-music.mjs';
+import { TRAY_ICON } from './tray-icon.mjs';
 
 const PRODUCT = 'Projeto GleysonSilva-Jarvis';
 const APP_ORIGIN = 'jarvis://app';
@@ -45,7 +50,8 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'jarvis', privileges: { standard
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let mainWindow, settings, runtime, provider, vision, startupService;
+let mainWindow, settings, runtime, provider, vision, startupService, speech, musicStore, wakeService, tray;
+let startupStatus = { available: false, enabled: false }, standbyActive = false;
 let generation = 0, shuttingDown = false, cleanupPromise, textRunId;
 const runs = new Map();
 const knownRuns = new Map();
@@ -100,12 +106,15 @@ function newRun(runId, profileId, kind) {
 }
 async function clearSessions(reason) {
   generation++;
+  speech?.reset();
+  const wakeStopped = wakeService?.stop(); standbyActive = false; updateTray();
   for (const [runId, run] of runs) { run.controller.abort(); runtime?.cancel(runId); }
   for (const controller of connectionControllers) controller.abort();
   connectionControllers.clear();
   startupFlights.clear();
   for (const [approvalId] of approvals) runtime?.approve(approvalId, false);
   approvals.clear(); runs.clear(); textRunId = undefined;
+  await wakeStopped;
   for (const window of browserWindows.values()) if (!window.isDestroyed()) window.destroy();
   browserWindows.clear();
   await vision?.handle({ type: 'reset' }).catch(() => {});
@@ -176,21 +185,43 @@ function handle(name, fn) {
     if (shuttingDown) throw new Error('O aplicativo está encerrando.');
     try { return await fn(input); }
     catch (error) {
-      if (error instanceof InputError || error instanceof OpenAIServiceError) throw new Error(error.message);
+      if (error instanceof InputError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError) throw new Error(error.message);
       // Native errors may include OS paths, command arguments or credentials.
       throw new Error('A operação não pôde ser concluída. Revise a configuração e o histórico local.');
     }
   });
 }
 function registerIPC() {
-  handle('boot', async () => ({ settings: settings.public(), snapshot: runtime.getSnapshot(settings.get().profileId), capabilities: { desktop: process.platform === 'win32', vision: (await vision.handle({ type: 'status' })).available === true }, productName: PRODUCT }));
+  handle('boot', async () => ({ settings: { ...settings.public(), hasGreetingMusic: musicStore.available() }, snapshot: runtime.getSnapshot(settings.get().profileId), capabilities: { desktop: process.platform === 'win32', vision: (await vision.handle({ type: 'status' })).available === true, startup: startupStatus.available, voiceWake: process.platform === 'win32', jarvisSpeech: true }, startup: startupStatus, productName: PRODUCT }));
   handle('saveSettings', async input => {
-    only(record(input, 5000), ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey']);
+    only(record(input, 5000), ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey', 'startAtLogin', 'standbyEnabled', 'wakeClapEnabled', 'wakeVoiceEnabled', 'greetingMusicEnabled']);
     validateSettings(input);
     for (const field of ['apiKey', 'elevenApiKey']) if (input[field] !== undefined && (typeof input[field] !== 'string' || input[field].length > 512 || /[\r\n\0]/.test(input[field]))) invalid('Chave inválida.');
     await clearSessions(input.profileId && input.profileId !== settings.get().profileId ? 'profile_changed' : 'settings_changed');
     settings.save(input);
+    startupStatus = configureStartup(app, settings.get());
+    updateTray();
     return settings.public();
+  });
+  handle('speak', input => speech.speak(input));
+  handle('cancelGreeting', () => {
+    const profileId = settings.get().profileId, controller = startupFlights.get(profileId);
+    if (controller) { controller.abort(); startupFlights.delete(profileId); connectionControllers.delete(controller); }
+    return { cancelled: Boolean(controller) };
+  });
+  handle('cancelSpeech', input => { only(record(input, 1000), ['runId']); return speech.cancel(input); });
+  handle('wakeStart', async () => {
+    const current = settings.get();
+    if (!current.standbyEnabled) return { available: false, running: false, state: 'disabled' };
+    standbyActive = true; updateTray();
+    if (!current.wakeVoiceEnabled) return { available: true, running: false, state: 'clap_only' };
+    return wakeService.start();
+  });
+  handle('wakeStop', async () => { standbyActive = false; updateTray(); return wakeService.stop(); });
+  handle('chooseGreetingMusic', async () => {
+    const selected = await dialog.showOpenDialog(mainWindow, { title: 'Escolha a trilha da saudação', properties: ['openFile'], filters: [{ name: 'Áudio', extensions: ['mp3', 'wav', 'ogg', 'm4a'] }] });
+    if (selected.canceled || !selected.filePaths[0]) return { hasGreetingMusic: musicStore.available() };
+    return musicStore.importFile(selected.filePaths[0]);
   });
   handle('chooseWorkspace', async () => {
     const result = await dialog.showOpenDialog(mainWindow, { title: 'Escolha a pasta que Jarvis pode organizar', properties: ['openDirectory', 'createDirectory'], buttonLabel: 'Autorizar esta pasta' });
@@ -249,8 +280,11 @@ function registerIPC() {
   handle('realtimeSession', async input => {
     only(record(input, 130_000), ['profileId', 'sdp']);
     const profileId = activeProfile(input), controller = new AbortController(), sessionGeneration = generation;
+    if (!settings.getElevenSecret() || !settings.get().elevenVoiceId) invalid('Configure a voz Jarvis e a chave ElevenLabs antes de iniciar a conversa.');
     connectionControllers.add(controller);
     try {
+      await wakeService.stop();
+      if (controller.signal.aborted || sessionGeneration !== generation || settings.get().profileId !== profileId) invalid('A configuração mudou. Inicie outra sessão.');
       const result = await provider.createRealtimeSession({ sdp: input.sdp, profileId }, { signal: controller.signal });
       if (controller.signal.aborted || sessionGeneration !== generation) invalid('A configuração mudou. Inicie outra sessão.');
       return result;
@@ -288,7 +322,7 @@ function registerIPC() {
 async function cleanup(reason = 'window_closed') {
   if (cleanupPromise) return cleanupPromise;
   shuttingDown = true;
-  cleanupPromise = (async () => { await clearSessions(reason); vision?.close(); await runtime?.close(); })();
+  cleanupPromise = (async () => { await clearSessions(reason); vision?.close(); tray?.destroy(); tray = undefined; await runtime?.close(); })();
   return cleanupPromise;
 }
 
@@ -297,6 +331,10 @@ if (singleInstance) {
   await app.whenReady();
   const userData = app.getPath('userData');
   settings = new SettingsStore(userData, safeStorage);
+  musicStore = new GreetingMusicStore({ dataDir: userData });
+  startupStatus = configureStartup(app, settings.get());
+  wakeService = new WindowsWakeService({ onWake: event => { if (!standbyActive || shuttingDown) return; mainWindow?.show(); mainWindow?.focus(); publish({ type: 'wake.trigger', source: event.source }); }, onState: state => publish({ type: 'wake.status', ...state }) });
+  speech = new SpeechController({ service: new SpeechService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() }), getProfile: () => settings.get().profileId });
   const fallbackWorkspace = path.join(userData, 'workspace');
   await mkdir(fallbackWorkspace, { recursive: true });
   let workspaceRoot = settings.get().workspaceRoot || fallbackWorkspace;
@@ -313,6 +351,10 @@ if (singleInstance) {
   vision = new VisionService({ dataDir: path.join(userData, 'vision'), modelsDir: path.join(userData, 'models'), crypto: safeStorage, ...(app.isPackaged ? { workerPath: path.join(process.resourcesPath, 'vision', 'worker.py') } : {}) });
   protocol.handle('jarvis', async request => {
     const url = new URL(request.url), mime = ASSETS.get(url.pathname);
+    if (url.protocol === 'jarvis:' && url.host === 'app' && url.pathname === '/greeting-music' && request.method === 'GET' && !url.search) {
+      const music = await musicStore.read();
+      return music ? new Response(music.bytes, { headers: { 'Content-Type': music.mime, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } }) : new Response('Not found', { status: 404 });
+    }
     // Node's URL.origin is "null" for custom schemes, even when Chromium registered a standard origin.
     if (url.protocol !== 'jarvis:' || url.host !== 'app' || !mime || request.method !== 'GET' || url.search) return new Response('Not found', { status: 404 });
     try {
@@ -320,8 +362,8 @@ if (singleInstance) {
       return new Response(body, { headers: { 'Content-Type': mime, 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Permissions-Policy': 'camera=(self), microphone=(self)', 'Cache-Control': 'no-store' } });
     } catch { return new Response('Compile a interface antes de iniciar o aplicativo.', { status: 503 }); }
   });
-  mainWindow = new BrowserWindow({ width: 1460, height: 960, minWidth: 960, minHeight: 700, title: PRODUCT, backgroundColor: '#030d10', autoHideMenuBar: true,
-    webPreferences: { preload: PRELOAD, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, navigateOnDragDrop: false, autoplayPolicy: 'no-user-gesture-required' } });
+  mainWindow = new BrowserWindow({ width: 1460, height: 960, minWidth: 960, minHeight: 700, title: PRODUCT, backgroundColor: '#030d10', autoHideMenuBar: true, show: !isStandbyLaunch() || !settings.get().standbyEnabled,
+    webPreferences: { preload: PRELOAD, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, navigateOnDragDrop: false, autoplayPolicy: 'no-user-gesture-required', backgroundThrottling: false } });
   session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => callback(contents === mainWindow?.webContents && permission === 'media' && details.isMainFrame === true && details.requestingUrl === APP_URL));
   session.defaultSession.setPermissionCheckHandler((contents, permission, requestingOrigin, details) => contents === mainWindow?.webContents && permission === 'media' && details.isMainFrame === true && details.requestingUrl === APP_URL && requestingOrigin.replace(/\/$/, '') === APP_ORIGIN);
   session.defaultSession.setDevicePermissionHandler(() => false);
@@ -330,9 +372,19 @@ if (singleInstance) {
   mainWindow.webContents.on('will-navigate', (event, url) => { if (url !== APP_URL) event.preventDefault(); });
   mainWindow.webContents.on('will-attach-webview', event => event.preventDefault());
   mainWindow.webContents.on('render-process-gone', () => { void clearSessions('renderer_closed'); vision.close(); });
-  mainWindow.on('close', event => { if (!shuttingDown) { event.preventDefault(); void cleanup().finally(() => { if (!mainWindow.isDestroyed()) mainWindow.destroy(); app.quit(); }); } });
+  mainWindow.on('close', event => { if (!shuttingDown) { event.preventDefault(); if (settings.get().standbyEnabled && tray) { mainWindow.hide(); return; } void cleanup().finally(() => { if (!mainWindow.isDestroyed()) mainWindow.destroy(); app.quit(); }); } });
   app.on('before-quit', event => { if (!shuttingDown) { event.preventDefault(); void cleanup().finally(() => app.quit()); } });
   app.on('window-all-closed', () => app.quit());
   registerIPC();
+  if (process.platform === 'win32') { try { tray = new Tray(nativeImage.createFromBuffer(Buffer.from(TRAY_ICON, 'base64'))); tray.setToolTip(PRODUCT); tray.on('double-click', () => { mainWindow.show(); mainWindow.focus(); }); updateTray(); } catch { tray = undefined; mainWindow.show(); } }
   await mainWindow.loadURL(APP_URL);
+}
+
+function updateTray() {
+  if (!tray) return;
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Abrir Jarvis', click: () => { mainWindow.show(); mainWindow.focus(); } },
+    { label: standbyActive ? 'Pausar espera' : 'Ativar espera', enabled: settings.get().standbyEnabled, click: () => { const active = standbyActive; if (active) { standbyActive = false; void wakeService.stop(); } publish({ type: active ? 'standby.pause' : 'standby.resume' }); updateTray(); } },
+    { type: 'separator' }, { label: 'Sair', click: () => { void cleanup('app_quit').finally(() => app.quit()); } },
+  ]));
 }

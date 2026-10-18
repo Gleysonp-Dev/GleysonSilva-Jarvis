@@ -1,6 +1,8 @@
 # Saudação de abertura
 
-Quando a opção de saudação estiver ligada, o Jarvis prepara uma fala de abertura com o horário local do computador, o tempo na cidade configurada e a previsão de hoje. A última frase é exatamente: **“Em que posso ajudá-lo agora, senhor?”** Não há chamada a um LLM para escrever essa mensagem.
+Quando a saudação é solicitada, o Jarvis prepara uma fala com o horário local do computador, o tempo na cidade configurada e a previsão de hoje. A última frase é exatamente: **“Em que posso ajudá-lo agora, senhor?”** Não há chamada a um LLM para escrever essa mensagem.
+
+Com abertura automática habilitada e configuração completa, a interface pode preparar a recepção ao iniciar. Na revisão 0.2.0, **espera habilitada muda o início para aguardar “Jarvis” ou duas palmas**, antes da recepção; habilitar espera mantém a saudação ativa. Iniciar no Windows é opção para depois do login, não antes dele. Veja [Espera e login](standby.md).
 
 O serviço usa “Bom dia” das 06h às 11h59, “Boa tarde” das 12h às 17h59 e “Boa noite” nos demais horários. Hora e fuso vêm do computador. As coordenadas e o nome da cidade ficam na configuração privada; o repositório não traz a localização pessoal do autor.
 
@@ -8,15 +10,17 @@ O serviço usa “Bom dia” das 06h às 11h59, “Boa tarde” das 12h às 17h5
 
 O backend exige `startupGreeting: true` antes de consultar tempo ou sintetizar fala. A saudação completa é gerada pela voz ElevenLabs configurada para aquela instalação; não é o MP3 fixo da demonstração. O autor ouviu e aprovou a narração de abertura com tempo/previsão gerada no painel. Para preservar essa escolha, o serviço usa **Eleven Multilingual v2**, estabilidade 0,5, similaridade 0,75, estilo 0, speaker boost ligado e velocidade 1, enviados explicitamente em cada síntese. O adaptador oferece Flash para outros usos, mas a abertura não troca automaticamente o modelo aprovado. Os campos seguem a [configuração oficial de voz](https://elevenlabs.io/docs/api-reference/voices/settings/update).
 
-O tom metálico é fixo e aplicado localmente pelo Web Audio durante a reprodução da saudação e da amostra. Nesta revisão, ele ficou um pouco mais presente, e a reprodução passou a **0,95× com a altura da voz preservada**, apenas 5% mais lenta que a voz original. Não há fala adicional antes da narração nem controle de intensidade. O processamento não altera o clone, o MP3 de origem ou os parâmetros enviados à ElevenLabs: a velocidade de síntese continua em 1.
+O tom metálico é fixo no preset **0,78**, aplicado localmente pelo Web Audio. A reprodução é **0,95× com a altura da voz preservada**, 5% mais lenta que a origem, sem controle de intensidade. Não altera o clone, o MP3 original ou os parâmetros ElevenLabs: a velocidade de síntese continua em 1. A nova conversa usa o mesmo preset; seu aceite real completo ainda está pendente.
 
 A velocidade de reprodução de 0,95× foi ouvida e aprovada pelo autor. A saudação completa é um fluxo distinto da frase de apresentação disponível em **Ajustes → Saudação → Amostra fixa da voz**.
 
-A execução automática completa ainda precisa de ensaio com a chave configurada no aplicativo. Aprovar a narração no painel confirma a escolha da voz; não comprova a consulta meteorológica ou a reprodução automática em uma nova instalação.
+A saudação com clima/atribuição foi exibida no ensaio local, e a narração completa foi ouvida e aprovada. Isso não comprova início automático em nova instalação, ativação por palmas/palavra ou entrada na conta Windows; esses ensaios continuam pendentes.
 
 A integração usa uma chave ElevenLabs própria, preenchida no campo mascarado das configurações, sem enviá-la à conversa. Acesso ao painel pelo navegador não fornece essa chave automaticamente. Sem chave, o serviço retorna o texto e `reason: requires_key`, com `audioBase64: null`; não simula uma resposta falada. Voz ausente ou erro de síntese também preservam o texto e informam a causa de disponibilidade.
 
-O controlador principal aplica início único, limite de repetição, cancelamento ao mudar ou encerrar a sessão e descarte de resultados antigos. Preparar um áudio não deve ativar o microfone. A interface inicia a reprodução conforme a configuração de abertura; se o navegador exigir um gesto, deve oferecer um controle explícito para ouvir. Interromper precisa parar o áudio e sua pulsação.
+O controlador aplica início único, limite de repetição, cancelamento ao mudar/encerrar e descarte de resultados antigos. Cancelar a recepção também aborta a síntese pendente no backend. Preparar o áudio não abre uma conversa de microfone. Se o navegador exigir gesto, **Ouvir saudação** toca o áudio já preparado sem nova consulta/síntese. Interromper precisa parar som e pulsação.
+
+A espera local deve pausar antes da narração e de eventual música, retomando apenas se ainda habilitada. A música depende de arquivo privado fornecido pelo usuário e termina com a saudação ou interrupção. **Nenhuma trilha padrão está incluída; o arquivo ainda não foi fornecido no ensaio registrado.**
 
 ## Tempo e previsão
 
@@ -36,4 +40,4 @@ O endpoint gratuito utilizado nesta implementação é destinado a uso **não co
 
 `StartupGreetingService` está em `packages/greeting/index.mjs`. Recebe `getSettings`, `getKey` da ElevenLabs e, opcionalmente, transporte/relógio/cliente de síntese para testes. `prepare({hour,timezone},{signal})` devolve texto, estado do tempo, nome de apresentação, MP3 em base64 ou `null`, razão de indisponibilidade e atribuição quando aplicável. Chave, ID de voz e coordenadas não aparecem nesse retorno.
 
-Os testes em `tests/greeting.test.mjs` usam cidades e coordenadas sintéticas. Cobrem faixas do dia, frase final, datas/frescor/unidades, endpoint fixo, falhas, cache, chave ausente, síntese, limites e cancelamento. Esses testes não consultam tempo real nem geram cobrança. A abertura automática, reprodução audível e qualidade da fala precisam de ensaio integrado, com a configuração privada do usuário.
+Os testes em `tests/greeting.test.mjs` usam cidades/coordenadas sintéticas e cobrem horário, frase final, frescor/unidades, endpoint, falhas, cache, ausência de chave, síntese, limites e cancelamento. Não consultam clima real nem geram cobrança. A narração aprovada e o ensaio de clima estão registrados separadamente em [Validação](validation.md); login, ativação/retorno e música continuam exigindo ensaio integrado.

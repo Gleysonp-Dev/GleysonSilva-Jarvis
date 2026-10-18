@@ -1,6 +1,21 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-Este plano distingue verificações automáticas sem rede de ensaios com o Windows, dispositivos e uma conta OpenAI. Passar nos testes offline não comprova latência, reconhecimento facial, som audível ou funcionamento de um executável empacotado.
+Este plano cobre a revisão 0.2.0 e distingue verificações automáticas de ensaios com Windows, dispositivos e contas OpenAI/ElevenLabs. Passar nos testes offline não comprova latência, reconhecimento facial, som audível, ativação nativa ou funcionamento do executável.
+
+## Evidências já registradas
+
+| Evidência | Resultado confirmado | O que não comprova |
+| --- | --- | --- |
+| CI ba0680 | 147 testes, verificação, build e artefato portátil aprovados. | Novo CI 0.2.0 e execução física do EXE. |
+| Revisão 0.2.0 local | 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. | Provedores pagos, microfone/palavra/palmas e login real. |
+| Texto OpenAI | Pergunta real respondida corretamente. | Benchmark, custo e latência comparável. |
+| Microfone | Captura com nível e liberação observadas. | Detector de palmas ou palavra. |
+| Câmera | Prévia real 640×480 e parada. | Reconhecimento: OpenCV e pesos ausentes. |
+| Voz Realtime anterior | Resposta ouvida pelo usuário, em marin. | Nova rota de saída ElevenLabs com o clone desejado. |
+| Saudação/áudio | Narração aprovada a 0,95× com altura preservada e efeito metálico fixo 0,78. | Conversa nova, login ou ativação automática. |
+| Ajustes no navegador | Opções nativas de login/palavra desabilitadas; espera exige voz/chave/cidade; opções salvas preservadas. | Funcionamento do registro de login ou reconhecedor Windows. |
+
+O [registro de validação](validation.md) apresenta os limites e o histórico. **Conversa real com o clone, palmas, palavra, login e música privada permanecem pendentes; novo CI ainda não confirmado.** Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
 
 ## Testes automáticos
 
@@ -28,11 +43,16 @@ Não é necessário instalar OpenCV ou baixar modelos para os testes de protocol
 | Contexto de memória | Recuperação pelo perfil backend, limite de 8.000 caracteres e marcação como dado não confiável. | Não é treino de pesos nem defesa perfeita de linguagem natural; a política de ferramentas é a barreira efetiva. |
 | Continuidade de prévias | Um novo pedido recupera `planId` do backend, sem depender de IDs no texto; contexto limitado, isolamento de perfil e cancelamento antes de envio. | Referências não autorizam execução; planos, pasta e arquivos são revalidados pelo executor. |
 | Erros e chave | Falta de chave não abre rede; erros HTTP, transporte e ferramenta não ecoam a credencial de teste. | Credencial usada apenas no teste; não demonstra DPAPI real. |
-| Realtime | FormData/SDP, schema GA, voz, VAD com interrupção, ferramentas e identificador opaco opcional. | Não cria uma chamada paga e não captura áudio. |
+| Realtime | FormData/SDP, saída em texto, VAD, ferramentas e bloqueio de saída de áudio OpenAI. | Não cria uma chamada paga e não captura áudio real. |
+| Fala ElevenLabs | Preset aprovado, IDs de execução/trecho, fila, cancelamento, limites e ausência de fallback de voz. | Rede e áudio substituídos; não comprova o clone ouvido em conversa. |
+| Espera/palmas | Duas transientes, intervalo, adaptação, cooldown, rejeição de envelopes sustentados e limpeza da captura. | Sinais e dispositivos sintéticos; não mede falsos positivos no ambiente real. |
+| Login/palavra Windows | Opções opt-in, caminho do pacote, protocolo do worker, idioma ausente e cancelamento. | APIs/processos substituídos; não altera um login real nem reconhece voz física. |
+| Música | Fonte explícita, reprodução, volume e limpeza após erro/parada. | AudioContext/HTMLAudio substituídos; arquivo musical ainda não fornecido. |
+| Integração App | Hooks/controlador reais: capacidade no boot, uma única permissão pendente durante pausa/retorno, cancelamento abortando preparação e rearmando espera. | Provedores/captura substituídos; não comprova ativação física ou áudio ouvido. |
 | Visão Python | Rejeição de formatos, dimensões antes de decode, ausência opcional de modelos, cinco pontos antes de feature e normalização. | Backend falso; não mede detecção ou identificação reais. |
 | Executor local | Consulte `tests/runtime.test.mjs` para política, caminhos, estado e resultados verificados. | Verifique quais adaptadores do sistema foram substituídos antes de interpretar o resultado. |
 
-O desenvolvimento inicial validou os testes do provider com `fetch` falso e os testes Python com o interpretador empacotado do ambiente de trabalho. Nenhuma chamada paga foi necessária. Contagens finais e evidências da integração devem ser registradas no resultado da execução, sem substituir os limites descritos nesta tabela.
+A suíte automática utiliza transportes/processos/dispositivos substituídos e diretórios temporários; não exige chamadas pagas. Contagens e skips devem ser associados à execução/commit. Os ensaios reais anteriores da tabela inicial são evidências separadas, não produtos do `fetch` falso ou dos testes Python.
 
 ## Ambiente de ensaio
 
@@ -66,7 +86,7 @@ Teste chave inválida, modelo indisponível, limite do provedor e rede desligada
 
 O roteiro completo está em [Voz e câmera](voice-and-camera.md). A captura local do microfone e uma prévia de webcam podem ser verificadas sem enviar dados ao provedor. Registre separadamente: acesso concedido, sinal capturado, som efetivamente ouvido, tracks liberadas e falha de permissão.
 
-Uma conversa de voz real precisa de chave e sessão conectada; teste pergunta, resposta audível, transcrição, interrupção por fala, botão de interrupção e fim do limite de duração. Um gráfico animado não conta como resposta de áudio. Uma câmera capturando não conta como identificação facial. Reconhecimento real requer pesos e dependências locais, cadastro voluntário e ensaio com pessoas conhecidas/desconhecidas.
+Uma conversa de voz real precisa de ambas as chaves e da voz ElevenLabs configurada. Teste pergunta, resposta audível com o clone, transcrição, interrupção por fala/botão e limite de duração. Um gráfico animado não conta como áudio ouvido. Câmera capturando não conta como identificação; reconhecimento requer pesos/dependências e ensaio voluntário.
 
 Teste duas pessoas, rosto não identificado, luz ruim, óculos, afastamento, retorno e foto/vídeo. Identificação deve ficar neutra quando houver ambiguidade; a câmera nunca deve liberar ação sensível. Apague o cadastro e confirme a exclusão depois de reiniciar. Execute captura e voz juntas para medir se o worker prejudica áudio ou animação.
 
@@ -76,6 +96,34 @@ Teste duas pessoas, rosto não identificado, luz ruim, óculos, afastamento, ret
 2. Configure privadamente cidade, voz e chave ElevenLabs. Use **Iniciar Jarvis** para preparar a saudação com cumprimento pelo horário, tempo e previsão. Confirme o texto, a atribuição meteorológica e o áudio correspondente; esse fluxo usa o serviço de abertura, não o MP3 da demonstração.
 3. Se o navegador exigir gesto, use **Ouvir saudação**. Confirme que ele reproduz o áudio preparado sem repetir consulta ou síntese. Interrompa e confirme o fim do som e da pulsação.
 4. Diferencie a preparação de um novo boletim da reprodução de um arquivo gravado. O arquivo preserva as informações do momento da geração e não comprova uma consulta atual ao clima. Não inclua cidade, credenciais ou áudios privados no relatório público.
+
+## Nova conversa OpenAI → texto → ElevenLabs
+
+1. Com ambos os provedores configurados, faça uma pergunta inédita. Confirme texto correspondente e a voz aprovada efetivamente ouvida, com reprodução fixa 0,95×/altura preservada/efeito 0,78.
+2. Confira que a configuração Realtime solicita texto e que nenhuma track remota OpenAI toca. A antiga resposta marin deve ser identificada como teste histórico, nunca como aceite do clone.
+3. Interrompa durante geração do primeiro trecho, síntese, fila, reprodução e aprovação de ferramenta. Nenhum áudio atrasado ou evento `.done` de resposta cancelada deve voltar a narrar.
+4. Simule falta de chave/ID, falha ElevenLabs, limite e rede interrompida. A sessão deve bloquear ou mostrar erro/texto; não tocar voz OpenAI, voz do navegador ou a amostra fixa como substituto.
+5. Troque perfil, encerre e atinja o limite da sessão. Confira cancelamento da síntese, fechamento de áudio/microfone e ausência de fala da geração anterior.
+
+Registrar tempo até o primeiro som, falhas e consumo por provedor. Não substituir esse ensaio pelo teste de saudação ou pelo MP3 público.
+
+## Espera, ativação e música
+
+1. Em configuração limpa, confirme `startAtLogin: false` e `standbyEnabled: false`. Instalar não deve registrar login nem deixar o microfone aberto. Ative somente com escolha explícita e recepção configurada.
+2. Com palmas escolhidas, use duas palmas entre 150–800 ms. Teste uma palma, intervalos inválidos, três palmas, repetição durante cooldown, fala, TV, teclas e ruído. Registre falsos positivos/negativos; não extrapole de sinais sintéticos.
+3. No Windows nativo, teste “Jarvis” com reconhecedor de idioma instalado, e indisponibilidade sem reconhecedor. Não permitir migração silenciosa para Web Speech em nuvem. O teste HTTP deve manter o recurso nativo indisponível.
+4. Durante a saudação e eventual música, confira que a espera está pausada e o próprio áudio não reativa o assistente. Após fim/interrupção, confirme retorno apenas se ainda habilitada. Testar microfone/conversa ativa deve suspender a captura de espera concorrente.
+5. Minimize, mude de janela, bloqueie/desbloqueie e retome suspensão. Verifique sinais e timers no pacote; registrar limitações do navegador separadamente.
+6. Pause/retome na bandeja, feche para bandeja quando configurado e saia de fato. Sair deve liberar captura e worker. Troca de perfil deve invalidar callbacks antigos.
+7. **Aguardar o arquivo musical do usuário.** Não há faixa padrão. Quando fornecido, confirmar início da trilha privada, volume/ducking, fim junto da saudação, cancelamento, erro de arquivo e ausência de reprodução residual. Não publicar trilha ou caminho.
+
+## Início no login e executável Windows
+
+Em um pacote Windows em caminho estável, habilite início ao entrar na conta, confirme registro observado e faça logout/login real. O app deve iniciar em espera quando configurado; não deve narrar antes do gatilho. Não confundir esse recurso com ligar o PC ou funcionar antes de login.
+
+Teste desativação, novo login sem lançamento, mudança/ausência do caminho portátil e falha do registro. No desenvolvimento/navegador, o controle nativo deve ficar indisponível e não alterar o sistema. Verifique pacote limpo, chaves protegidas, câmera/microfone liberados e saída sem processo órfão.
+
+Este ensaio ainda não foi realizado fisicamente; sucesso do empacotamento no CI não o substitui. Veja [Espera local](standby.md).
 
 ## Medição comparável
 
@@ -104,8 +152,11 @@ Modelos e voz:
 Credencial: configurada / ausente (nunca incluir valor)
 Automáticos: comando, quantidade, aprovados, falhas, skips
 Microfone: acesso, captura, liberação
-Saída: reprodução e confirmação audível
+Saída: provedor/voz realmente ouvidos, reprodução e interrupção
 Câmera: captura e liberação
+Espera: palmas/palavra, idioma, ruído, pausa/retorno e segundo plano
+Login Windows: pacote/caminho, entrada real e desativação
+Música: não fornecida / arquivo privado testado, fim e cancelamento
 Identificação real: dependências/pesos, cenários e resultados
 Ações: prévia, confirmação, resultado, cancelamento e restauração
 Latência: quantidade, p50/p95 e método

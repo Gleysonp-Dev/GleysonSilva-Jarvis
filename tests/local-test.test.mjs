@@ -6,8 +6,9 @@ import path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { createLocalTestServer } from '../scripts/local-test.mjs';
+import { GreetingMusicStore } from '../apps/desktop/greeting-music.mjs';
 
-async function fixture(t, { config } = {}) {
+async function fixture(t, { config, fetch: fetchImpl } = {}) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'jarvis-local-test-'));
   const dataDir = path.join(directory, 'private'), assetsDir = path.join(directory, 'assets');
   await fs.mkdir(assetsDir);
@@ -16,7 +17,7 @@ async function fixture(t, { config } = {}) {
   await fs.writeFile(path.join(assetsDir, 'app.js'), 'window.testApp=true;');
   await fs.writeFile(path.join(assetsDir, 'app.css'), ':root{color:white}');
   await fs.writeFile(path.join(assetsDir, 'voice-demo.mp3'), Buffer.from('ID3-test-fixture'));
-  let local = await createLocalTestServer({ port: 0, dataDir, assetsDir });
+  let local = await createLocalTestServer({ port: 0, dataDir, assetsDir, ...(fetchImpl ? { fetch: fetchImpl } : {}) });
   let token;
   async function refreshToken() { const html = await (await fetch(local.url)).text(); token = /name="jarvis-token" content="([a-f0-9]{64})"/.exec(html)?.[1]; assert.ok(token); }
   await refreshToken();
@@ -31,7 +32,7 @@ async function fixture(t, { config } = {}) {
       return fetch(`${local.url}/api/${method}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Jarvis-Token': token, Origin: local.url, ...overrides }, body: JSON.stringify(value) });
     },
     async value(method, value = null) { const response = await this.post(method, value); assert.equal(response.status, 200, await response.clone().text()); return (await response.json()).result; },
-    async restart() { await local.close(); local = await createLocalTestServer({ port: 0, dataDir, assetsDir }); await refreshToken(); },
+    async restart() { await local.close(); local = await createLocalTestServer({ port: 0, dataDir, assetsDir, ...(fetchImpl ? { fetch: fetchImpl } : {}) }); await refreshToken(); },
   };
 }
 
@@ -66,6 +67,10 @@ test('body limits, fixed workspace and unavailable native integrations are enfor
   assert.equal(large.status, 413);
   const boot = await f.value('boot');
   assert.equal(boot.capabilities.desktop, false);
+  assert.equal(boot.capabilities.jarvisSpeech, true);
+  assert.equal(boot.capabilities.startup, false);
+  assert.equal(boot.capabilities.voiceWake, false);
+  assert.equal(boot.settings.hasGreetingMusic, false);
   assert.equal(boot.settings.apps.length, 0);
   assert.equal(await f.value('chooseWorkspace'), path.join(f.dataDir, 'workspace'));
   assert.equal(await f.value('chooseApp'), null);
@@ -73,6 +78,73 @@ test('body limits, fixed workspace and unavailable native integrations are enfor
   assert.equal(result.status, 'failed');
   assert.equal((await f.post('openExternal', 'https://example.com')).status, 400);
   assert.equal((await f.post('saveSettings', { workspaceRoot: 'C:\\private' })).status, 400);
+  for(const method of ['wakeStart','wakeStop','chooseGreetingMusic'])assert.equal((await f.value(method)).reason,'requires_native_windows');
+});
+
+test('new standby settings remain boolean and cannot give the browser native capabilities',async t=>{
+ const f=await fixture(t);
+ const values={startAtLogin:true,standbyEnabled:true,wakeClapEnabled:false,wakeVoiceEnabled:false,greetingMusicEnabled:false};
+ const saved=await f.value('saveSettings',values);
+ for(const [key,value] of Object.entries(values)){assert.equal(saved[key],value);assert.equal((await f.post('saveSettings',{[key]:'true'})).status,400);}
+ const boot=await f.value('boot');assert.equal(boot.capabilities.startup,false);assert.equal(boot.capabilities.voiceWake,false);
+ assert.equal((await f.value('wakeStart')).running,false);
+});
+
+test('speech API uses the approved ElevenLabs voice, protects replay and never returns a key',async t=>{
+ const calls=[],audio=Buffer.from('mock-bounded-mp3-response');
+ const f=await fixture(t,{fetch:async(url,init)=>{calls.push({url,init});return new Response(audio,{headers:{'content-type':'audio/mpeg'}});}});
+ const packet={profileId:'default',runId:'speech-http-run',utteranceId:'sentence-1',text:'A ação foi concluída.'};
+ await f.value('saveSettings',{elevenVoiceId:'TestApprovedVoice',elevenApiKey:'test-only-private-speech-key',voice:'marin'});
+ const result=await f.value('speak',packet);
+ assert.equal(result.audioBase64,audio.toString('base64'));assert.equal(result.mime,'audio/mpeg');assert.equal(result.runId,packet.runId);
+ assert.equal(calls.length,1);assert.match(calls[0].url,/^https:\/\/api\.elevenlabs\.io\/v1\/text-to-speech\/TestApprovedVoice\/stream/);
+ const body=JSON.parse(calls[0].init.body);assert.equal(body.text,packet.text);assert.equal(body.model_id,'eleven_multilingual_v2');
+ assert.equal(JSON.stringify(result).includes('test-only-private-speech-key'),false);
+ assert.deepEqual(await f.value('speak',packet),result);assert.equal(calls.length,1);
+ assert.equal((await f.post('speak',{...packet,text:'changed'})).status,400);
+ assert.equal(await f.value('cancelSpeech',{runId:packet.runId}),true);
+ assert.equal((await f.post('speak',{...packet,utteranceId:'sentence-2'})).status,400);assert.equal(calls.length,1);
+ assert.equal((await f.post('speak',{...packet,profileId:'another'})).status,400);
+ assert.equal((await f.post('cancelSpeech',{runId:packet.runId,profileId:'another'})).status,400);
+});
+
+test('profile changes abort pending speech and discard provider audio without leaking internal failures',async t=>{
+ let began,providerSignal;const started=new Promise(resolve=>{began=resolve;});
+ const f=await fixture(t,{fetch:async(url,init)=>{providerSignal=init.signal;began();return new Promise(()=>{});}});
+ await f.value('saveSettings',{elevenVoiceId:'TestApprovedVoice',elevenApiKey:'test-only-private-speech-key'});
+ const pending=f.post('speak',{profileId:'default',runId:'pending-speech',utteranceId:'sentence-1',text:'Fala pendente.'});
+ const deadline=setTimeout(()=>began(),5000);t.after(()=>clearTimeout(deadline));await started;assert.ok(providerSignal);
+ await f.value('saveSettings',{profileId:'second'});
+ const response=await pending;assert.equal(response.status,400);assert.equal(providerSignal.aborted,true);
+ const error=await response.text();assert.match(error,/interrompida/i);assert.equal(error.includes('test-only-private-speech-key'),false);
+ assert.equal((await f.post('speak',{profileId:'default',runId:'stale-speech',utteranceId:'sentence-1',text:'Perfil antigo.'})).status,400);
+});
+
+test('missing approved voice blocks realtime before any provider request and speech fails safely without fallback',async t=>{
+ const calls=[];const f=await fixture(t,{fetch:async(url)=>{calls.push(url);throw new Error('private-provider-message-must-not-leak');}});
+ await f.value('saveSettings',{apiKey:'test-openai-key',elevenVoiceId:''});
+ const realtime=await f.post('realtimeSession',{profileId:'default',sdp:'v=0\r\n'});assert.equal(realtime.status,400);assert.match(await realtime.text(),/voz Jarvis/);
+ const noVoice=await f.post('speak',{profileId:'default',runId:'missing-voice',utteranceId:'sentence-1',text:'Resposta em texto.'});assert.equal(noVoice.status,400);assert.match(await noVoice.text(),/voz Jarvis/);assert.equal(calls.length,0);
+ await f.value('saveSettings',{elevenApiKey:'test-only-eleven-key',elevenVoiceId:'TestApprovedVoice'});
+ const failure=await f.post('speak',{profileId:'default',runId:'failed-provider',utteranceId:'sentence-1',text:'Resposta em texto.'});assert.equal(failure.status,400);
+ const message=await failure.text();assert.equal(message.includes('private-provider-message'),false);assert.match(message,/resposta continua disponível em texto/);
+ assert.equal(calls.length,1);assert.match(calls[0],/^https:\/\/api\.elevenlabs\.io\//);
+});
+
+test('private greeting music has a fixed protected route, validated MIME and no public source path',async t=>{
+ const f=await fixture(t),headers={'X-Jarvis-Token':f.token};
+ assert.equal((await fetch(f.local.url+'/greeting-music')).status,403);
+ assert.equal((await fetch(f.local.url+'/greeting-music',{headers})).status,404);
+ const bytes=Buffer.alloc(48);bytes.write('RIFF');bytes.writeUInt32LE(40,4);bytes.write('WAVEfmt ',8);bytes.writeUInt32LE(16,16);bytes.writeUInt16LE(1,20);bytes.writeUInt16LE(1,22);bytes.writeUInt32LE(8000,24);bytes.writeUInt32LE(16000,28);bytes.writeUInt16LE(2,32);bytes.writeUInt16LE(16,34);bytes.write('data',36);bytes.writeUInt32LE(4,40);
+ const selected=path.join(f.dataDir,'temporary-selected.wav');await fs.writeFile(selected,bytes);await new GreetingMusicStore({dataDir:f.dataDir}).importFile(selected);await fs.unlink(selected);
+ assert.equal((await f.value('boot')).settings.hasGreetingMusic,true);
+ const served=await fetch(f.local.url+'/greeting-music',{headers});assert.equal(served.status,200);assert.equal(served.headers.get('content-type'),'audio/wav');assert.equal(served.headers.get('cache-control'),'no-store');assert.equal(served.headers.get('cross-origin-resource-policy'),'same-origin');assert.deepEqual(Buffer.from(await served.arrayBuffer()),bytes);
+ assert.equal((await fetch(f.local.url+'/greeting-music',{headers:{'Sec-Fetch-Site':'same-origin'}})).status,200);
+ assert.equal((await fetch(f.local.url+'/greeting-music',{headers:{...headers,Origin:'https://evil.example'}})).status,403);
+ assert.equal((await fetch(f.local.url+'/greeting-music',{headers:{...headers,'Sec-Fetch-Site':'cross-site'}})).status,403);
+ assert.equal((await fetch(f.local.url+'/greeting-music?path=temporary-selected.wav',{headers})).status,404);
+ assert.equal((await fetch(f.local.url+'/greeting-music.json',{headers})).status,404);
+ await fs.writeFile(path.join(f.dataDir,'greeting-music.audio'),Buffer.alloc(48));assert.equal((await fetch(f.local.url+'/greeting-music',{headers})).status,404);
 });
 
 test('settings and keys remain in memory while saved memories remain isolated across profiles and restart', async t => {
@@ -143,6 +215,26 @@ test('private local config loads only validated non-secret greeting settings', a
   assert.equal(boot.settings.hasElevenKey, Boolean(process.env.ELEVENLABS_API_KEY));
   assert.equal(boot.settings.workspaceRoot, path.join(f.dataDir, 'workspace'));
   assert.equal(JSON.stringify(boot).includes('must-not-load'), false);
+});
+
+test('cancelling a pending greeting rejects late audio and releases its flight without resetting rate limits',async t=>{
+ t.mock.timers.enable({apis:['Date'],now:new Date('2026-10-18T15:00:00Z')});
+ let began,releaseLate,providerSignal,calls=0;const started=new Promise(resolve=>{began=resolve;});
+ const f=await fixture(t,{fetch:async(url,init)=>{
+  calls++;if(calls===1){providerSignal=init.signal;began();return new Promise(resolve=>{releaseLate=resolve;});}
+  return new Response(Buffer.from('second-greeting-audio'),{headers:{'content-type':'audio/mpeg'}});
+ }});
+ await f.value('saveSettings',{startupGreeting:true,weatherLocation:null,elevenVoiceId:'TestApprovedVoice',elevenApiKey:'test-only-greeting-key'});
+ assert.deepEqual(await f.value('cancelGreeting'),{cancelled:false});
+ const pending=f.post('startupGreeting',{hour:9,timezone:'America/New_York'});
+ const deadline=setTimeout(()=>began(),5000);t.after(()=>clearTimeout(deadline));await started;assert.ok(providerSignal);
+ assert.deepEqual(await f.value('cancelGreeting'),{cancelled:true});assert.equal(providerSignal.aborted,true);
+ releaseLate(new Response(Buffer.from('must-not-reach-renderer'),{headers:{'content-type':'audio/mpeg'}}));
+ const response=await pending;assert.equal(response.status,400);const cancelled=await response.json();assert.match(cancelled.error,/interrompida/);assert.equal(JSON.stringify(cancelled).includes('audioBase64'),false);
+ assert.deepEqual(await f.value('cancelGreeting'),{cancelled:false});
+ assert.equal((await f.post('startupGreeting',{hour:9})).status,429);assert.equal(calls,1);
+ t.mock.timers.tick(60_001);
+ const next=await f.value('startupGreeting',{hour:9});assert.equal(next.audioBase64,Buffer.from('second-greeting-audio').toString('base64'));assert.equal(calls,2);
 });
 
 test('protected event stream carries a real approval and approved dictation writes only inside demo workspace', async t => {

@@ -4,17 +4,17 @@ O núcleo mantém o ciano aprovado em todos os estados. Ouvindo e respondendo, b
 
 ## Voz do MVP
 
-A sessão usa o microfone do dispositivo e WebRTC. A entrada pode ser interrompida pela pessoa falando durante uma resposta; o VAD está configurado para solicitar interrupção. O botão de interrupção para reprodução e solicita cancelamento local. A aplicação deve encerrar microfone, áudio, conexão e temporizadores ao finalizar a sessão ou fechar a janela.
+A sessão 0.2.0 usa o microfone e WebRTC com OpenAI para entrada de voz e resposta em texto. O texto é enfileirado para a ElevenLabs, que produz a voz configurada. VAD e botão solicitam interrupção da resposta, síntese e reprodução. Encerrar deve liberar microfone, áudio, conexão e temporizadores. A nova conversa completa com o clone ainda precisa de ensaio real.
 
-A saída da conversa ao vivo usa `marin`, uma voz sintetizada fornecida pela OpenAI. Em Ajustes é possível selecionar outra voz padrão suportada e iniciar uma nova sessão para aplicá-la. O clone **GleysonSilva-Jarvis** já foi criado na ElevenLabs, e uma frase foi gerada e baixada pelo painel com Eleven Multilingual v2. A clonagem e a distribuição desse áudio foram autorizadas; a gravação original e o ID de voz permanecem privados. A [documentação ElevenLabs](elevenlabs.md) separa essa geração real do adaptador testado com rede simulada.
+O clone **GleysonSilva-Jarvis** já foi criado e uma frase gerada pelo painel com Eleven Multilingual v2. Clonagem e distribuição dos áudios selecionados foram autorizadas; referência e ID permanecem privados. O caminho atual bloqueia áudio OpenAI e não troca para outra voz quando a ElevenLabs falha. Exige chave OpenAI, chave ElevenLabs e voz configurada; erro deve permanecer visível. A [documentação ElevenLabs](elevenlabs.md) distingue geração real dos testes com transporte substituído.
 
 Em **Ajustes → Saudação**, use **Amostra fixa da voz** para reproduzir o [MP3 incluído](../assets/voice/jarvis-demo.mp3). Esse botão toca uma frase gravada após clique, sem API, microfone ou boletim meteorológico. O analisador do áudio reproduzido conduz a pulsação ciano; **Parar amostra** encerra a reprodução.
 
 **Iniciar Jarvis** prepara a [saudação dinâmica](startup-greeting.md) com cumprimento pelo horário, tempo e previsão para a cidade configurada. **Ouvir saudação** toca o áudio já preparado, sem nova consulta ou síntese. Um áudio gravado mantém o boletim do momento em que foi gerado; reproduzi-lo não atualiza o clima. Para preparar outro boletim, use **Iniciar Jarvis**.
 
-A saudação e a amostra recebem um tom metálico fixo durante a reprodução local, sem controle de intensidade ou fala adicional. A narração é reproduzida a **0,95×, preservando a altura da voz**: apenas 5% mais lenta que a voz original. A síntese ElevenLabs continua com velocidade 1 e com os parâmetros aprovados; o clone e os arquivos de origem permanecem iguais. A pulsação acompanha o sinal efetivamente ouvido com o efeito aplicado.
+A saudação, amostra e nova saída da conversa usam tom metálico fixo **0,78**, sem ajuste. A narração é reproduzida a **0,95×, preservando a altura da voz**: 5% mais lenta que a origem. A síntese continua com velocidade 1 e os parâmetros aprovados; o clone e os arquivos originais permanecem iguais. O núcleo acompanha o sinal local após o efeito. O aceite auditivo da saudação/amostra não comprova a nova conversa.
 
-A amostra é uma frase fixa. Respostas novas na voz ElevenLabs exigem geração pela API ou outro backend de voz integrado. O streaming implementado no adaptador ainda precisa ser ligado ao diálogo e à interrupção para substituir a voz OpenAI da conversa. Não há modelo de voz exportado junto do MP3.
+A amostra é fixa; respostas novas usam novas gerações ElevenLabs. O código 0.2.0 integra fila, correlação por execução/trecho, reprodução e descarte de resultados cancelados. Não há modelo de voz exportado junto do MP3 e não há alternativa automática com voz OpenAI ou do navegador.
 
 Uma conversa por texto transmite palavras progressivamente, mas não liga o microfone nem reproduz áudio. A sessão de voz mostra a conexão e a transcrição. No modo sem bridge, uma prévia visual não demonstra esses recursos.
 
@@ -27,7 +27,7 @@ O harness de teste é iniciado com `npm run test:local` e aberto em `http://127.
 1. Confirme o dispositivo de entrada e a saída selecionados no Windows ou navegador. Reduza o volume antes de testar para evitar realimentação.
 2. Ative o teste local de áudio, quando oferecido pelo controlador. Permita o microfone na caixa do sistema. Fale uma frase e confirme variação do medidor; silêncio deve reduzir a amplitude. Isso demonstra captura, sem comprovar conexão OpenAI.
 3. Reproduza o teste local de saída, quando disponível, e confirme som audível no dispositivo escolhido. Um gráfico variando, sozinho, não comprova que a pessoa ouviu o som.
-4. Com chave configurada, inicie voz, faça uma pergunta curta em português e confirme áudio recebido e transcrição. Registre modelo e dispositivo. Essa etapa requer uma sessão real e pode gerar consumo na conta.
+4. Com ambas as chaves e voz configuradas, inicie conversa, pergunte em português e confirme a voz Jarvis ouvida e a transcrição. Registre modelos/dispositivos sem o ID privado. Pode haver consumo nos dois provedores.
 5. Interrompa uma resposta por voz e pelo botão. Confirme que o áudio anterior para, a transcrição não duplica e nenhum resultado antigo começa uma nova ação.
 6. Encerre a sessão e confirme no indicador do sistema que o microfone foi liberado. Repita com falha de rede, permissão negada e encerramento da janela.
 
@@ -71,4 +71,8 @@ Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância
 
 ## Estado de validação
 
-O protocolo local, os limites de imagem, alinhamento e normalização possuem testes offline com backend falso. Isso verifica contratos e rejeição de entradas, sem medir a rede neural real. Uma captura com webcam, cadastro real e reconhecimento com pesos instalados precisam aparecer como resultados próprios no [registro de testes](test-plan.md); não podem ser inferidos de uma animação ou de testes sem hardware.
+No ensaio real, microfone produziu nível e foi liberado; câmera exibiu prévia 640×480 e parou. Uma resposta OpenAI Realtime foi ouvida com marin, voz diferente da desejada; motivou a rota ElevenLabs atual. **A nova conversa com o clone ainda não foi confirmada integralmente.**
+
+Reconhecimento permanece indisponível por ausência de OpenCV e pesos. Protocolo, limites, alinhamento e normalização possuem testes com backend falso, que não medem a rede neural. Não houve cadastro/identificação real aprovados nem taxa de acerto demonstrada.
+
+A espera por palmas/palavra é opcional e mantém microfone local ativo. Deve pausar antes da própria fala/música e ceder ao teste/conversa; ativação e retorno reais continuam pendentes. Veja [Espera](standby.md), [Validação](validation.md) e [Plano de testes](test-plan.md).
