@@ -1,8 +1,8 @@
-# Validação do MVP — base 0.2.1 e revisão 0.2.2 em preparação
+# Validação do MVP 0.2.2
 
 Registro de 18 de outubro de 2026. Este documento separa implementação, testes com substitutos e observação real. **O CI da base 0.2.0, commit 63cf00153dbab0a52cf3f05a82eb9e7fab3ba385, foi concluído com sucesso. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também foi concluído com sucesso e gerou o artefato atualizado 12148553183.**
 
-**Abertura nativa 0.2.1 aprovada no CI Windows:** o commit `8a074e738c6792091676702be28d9270edcf884b` passou por 218 testes, TypeScript, build, pacote e execução real do aplicativo empacotado. O usuário confirmou a janela aberta no próprio computador por captura de tela. A falha sem janela do 0.2.0 e o bloqueio por ACL no ambiente Codex são resultados anteriores distintos. **A revisão 0.2.2 está em preparação, sem novo CI confirmado.**
+**Abertura nativa 0.2.1 aprovada no CI Windows:** o commit `8a074e738c6792091676702be28d9270edcf884b` passou por 218 testes, TypeScript, build, pacote e execução real do aplicativo empacotado. O usuário confirmou a janela aberta no próprio computador por captura de tela. A falha sem janela do 0.2.0 e o bloqueio por ACL no ambiente Codex são resultados anteriores distintos. **A revisão 0.2.2 está implementada e seu CI foi aprovado com 221 testes e abertura nativa real.**
 
 ## Baseline confirmada
 
@@ -14,6 +14,7 @@ Registro de 18 de outubro de 2026. Este documento separa implementação, testes
 | Runtime nativo | Electron **44.9.0**, Node **24.22** e SQLite carregando corretamente. Essa verificação não comprova carregamento da interface, hardware ou início no login. |
 | CI 0.2.1 — 8a074e7 | **218 testes aprovados, zero skips; TypeScript, build, pacote Windows e abertura nativa real aprovados.** [Execução 39162376494](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494), [job 117778188817](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494/job/117778188817). O teste isolado não valida recursos com dispositivos nem a abertura no PC do usuário. |
 | EXE 0.2.1 no equipamento do usuário | **Abertura visual confirmada por captura de tela enviada pelo usuário.** Não comprova áudio do clone em conversa, captura nativa, login ou persistência protegida das chaves. |
+| CI 0.2.2 — d72c4887 | **221 testes aprovados, zero falhas/skips; TypeScript, build, pacote e abertura nativa real aprovados.** [Execução 39164458465](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465), [job 117784377613](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465/job/117784377613). Às 20:45:25 UTC o teste confirmou ready, window, dom, preload, boot e packaged. Provedores, captura e login ficaram isolados. |
 | Python opcional | Protocolo e pré-processamento testados com Python 3.12 e backend substituído. Não executa a rede facial real. |
 | Servidor local funcional | Interface e serviços usados em loopback no navegador. O ensaio em 47833 usa chaves em memória, sem comprovar persistência protegida do Electron. |
 | Interface e clima | Saudação real com tempo/previsão e atribuição exibida. Regressões React cobrem a atribuição estruturada; recuperação não repete automaticamente a síntese. |
@@ -72,11 +73,15 @@ O artefato **12149680971** tem ZIP de **104.006.107 bytes**, baixado e conferido
 
 Esse hash identifica o ZIP, não o arquivo EXE isolado. A abertura visual no computador do usuário foi confirmada depois por captura de tela; ensaios nativos com provedores/dispositivos, login e DPAPI continuam pendentes. O CI isolou rede, captura e início no login.
 
-## Revisão visual 0.2.2 — em preparação
+## Revisão visual 0.2.2 — implementada e CI aprovado
 
 O autor pediu que saudação e conversa por voz não acrescentem transcrições ao painel Conversa. A apresentação passa a usar áudio, pulsação e estados, mantendo compacta a atribuição meteorológica. Mensagens digitadas e suas respostas continuam visíveis. Reconhecimento de fala, texto intermediário de síntese e histórico necessário aos provedores permanecem internos; não há alegação de eliminação desses dados do processamento.
 
-O pedido está sendo implementado. Ainda não há novo CI ou aceite funcional registrado para a revisão 0.2.2; as 218 aprovações e a abertura acima pertencem à base 0.2.1.
+A revisão passou localmente por 221 testes, sem falhas/skips, TypeScript e build; o CI do commit `d72c4887eab3cdc301b743e78d314a69f4e1c6f3` também aprovou essas verificações, empacotamento e abertura real do aplicativo. As 218 aprovações anteriores pertencem à base 0.2.1.
+
+Um ensaio visual com serviços substituídos apresentou duas saudações simuladas sem mensagens no painel Conversa e com uma única fonte meteorológica compacta. Após uma pergunta digitada, as duas mensagens normais continuaram visíveis. Esse resultado verifica apresentação; não exercita provedores, microfone ou áudio do clone. A captura desse ensaio permanece privada.
+
+O CI gerou o artefato **12149933875**, ZIP de **104.007.384 bytes**, com digest informado `sha256:fd9ee94b83a2f9469e15c6e9db46352c015878963e836f4a29b767ec701618dd`. Esse registro não afirma conclusão do download ou da conferência local do novo ZIP.
 
 A gravação de referência, a cidade, as credenciais, o identificador da voz e a música recebida permanecem privados. O [aviso de distribuição](../assets/voice/README.md) aplica-se ao MP3 de voz selecionado, não à trilha privada, a toda a pasta de dados ou a um modelo exportável de voz.
 
@@ -90,6 +95,6 @@ A origem do áudio também foi distinguida: a amostra de apresentação é fixa;
 
 ## Próximo aceite
 
-A abertura visual do pacote 0.2.1 já foi confirmada pelo CI e pelo usuário. Próximo passo: verificar a apresentação sem transcrições da revisão 0.2.2 e seu CI, depois ensaiar a nova conversa OpenAI → texto → ElevenLabs, captura/liberação de microfone no nativo, palmas, reconhecedor Windows, pausa/retorno, música na recepção ao vivo, início no login e persistência DPAPI. Abertura da janela e aprovação da prévia musical não substituem esses testes.
+A abertura visual do pacote 0.2.1 já foi confirmada pelo usuário; a revisão 0.2.2 passou pelo CI e pelo ensaio visual com serviços substituídos. Próximo passo: ensaiar a nova versão no equipamento de destino, a conversa OpenAI → texto → ElevenLabs, captura/liberação de microfone no nativo, palmas, reconhecedor Windows, pausa/retorno, música na recepção ao vivo, início no login e persistência DPAPI. Abertura da janela e aprovação da prévia musical não substituem esses testes.
 
 Não há p50/p95 de latência nem comparação de superioridade publicados. Use [o plano de testes](test-plan.md) para registrar conta, dispositivo, superfície, falhas e medições sem dados privados.

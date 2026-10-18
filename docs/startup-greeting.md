@@ -2,7 +2,7 @@
 
 Quando a saudação é solicitada, o Jarvis prepara uma fala com o horário local do computador, o tempo na cidade configurada e a previsão de hoje. A última frase é exatamente: **“Em que posso ajudá-lo agora, senhor?”** Não há chamada a um LLM para escrever essa mensagem.
 
-Na revisão 0.2.2 em preparação, a recepção é apresentada por áudio e pulsação, sem copiar o texto da saudação para o painel Conversa. A atribuição do clima permanece compacta, com fonte e licença. O texto continua no contrato interno para síntese e controle; mensagens digitadas pelo usuário e suas respostas permanecem visíveis. Ainda não há novo CI confirmado para essa revisão.
+Na revisão 0.2.2, a recepção é apresentada por áudio e pulsação, sem copiar o texto da saudação para o painel Conversa. A atribuição do clima permanece compacta, com fonte e licença. O texto continua no contrato interno para síntese e controle; mensagens digitadas pelo usuário e suas respostas permanecem visíveis. A apresentação foi verificada com serviços substituídos; o [CI da revisão](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes, compilação, pacote e abertura nativa, sem comprovar a recepção ao vivo.
 
 Com abertura automática habilitada e configuração completa, a interface pode preparar a recepção ao iniciar. Na revisão 0.2.0, **espera habilitada muda o início para aguardar “Jarvis” ou duas palmas**, antes da recepção; habilitar espera mantém a saudação ativa. Iniciar no Windows é opção para depois do login, não antes dele. Veja [Espera e login](standby.md).
 

@@ -16,7 +16,7 @@ A saudação, amostra e nova saída da conversa usam tom metálico fixo **0,78**
 
 A amostra é fixa; respostas novas usam novas gerações ElevenLabs. O código 0.2.0 integra fila, correlação por execução/trecho, reprodução e descarte de resultados cancelados. Não há modelo de voz exportado junto do MP3 e não há alternativa automática com voz OpenAI ou do navegador.
 
-Uma conversa por texto transmite palavras progressivamente, mas não liga o microfone nem reproduz áudio. Na revisão 0.2.2 em preparação, saudação e conversa falada usam áudio, pulsação e estado da conexão, sem acrescentar transcrições ao painel Conversa. Mensagens digitadas e suas respostas continuam visíveis; a fonte meteorológica fica compacta. A compreensão de voz e o histórico necessário aos provedores continuam internos. Ainda não há novo CI confirmado para essa apresentação. No modo sem bridge, uma prévia visual não demonstra os serviços.
+Uma conversa por texto transmite palavras progressivamente, mas não liga o microfone nem reproduz áudio. Na revisão 0.2.2, saudação e conversa falada usam áudio, pulsação e estado da conexão, sem acrescentar transcrições ao painel Conversa. Mensagens digitadas e suas respostas continuam visíveis; a fonte meteorológica fica compacta. A compreensão de voz e o histórico necessário aos provedores continuam internos. A apresentação foi verificada com serviços substituídos e o [CI 0.2.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes e abertura nativa; áudio e hardware reais continuam sendo ensaios separados. No modo sem bridge, uma prévia visual não demonstra os serviços.
 
 ## Verificação do microfone e saída
 

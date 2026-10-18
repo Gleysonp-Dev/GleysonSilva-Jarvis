@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-Este plano cobre a revisão 0.2.2 em preparação e distingue verificações automáticas de ensaios com Windows, dispositivos e contas OpenAI/ElevenLabs. O novo CI dessa revisão ainda não foi confirmado. Passar nos testes offline não comprova latência, reconhecimento facial, som audível ou ativação nativa.
+Este plano cobre a revisão 0.2.2, implementada com CI aprovado, e distingue verificações automáticas de ensaios com Windows, dispositivos e contas OpenAI/ElevenLabs. O [CI d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes, TypeScript, build, pacote e abertura nativa real. Esses resultados não comprovam latência, reconhecimento facial, som audível ou ativação por dispositivos.
 
 ## Evidências já registradas
 
@@ -8,7 +8,8 @@ Este plano cobre a revisão 0.2.2 em preparação e distingue verificações aut
 | --- | --- | --- |
 | CI ba0680 | 147 testes, verificação, build e artefato portátil aprovados. | Novo CI 0.2.0 e execução física do EXE. |
 | Revisão 0.2.0 local | 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. | Provedores pagos, microfone/palavra/palmas e login real. |
-| Abertura 0.2.1 | CI com 218 testes e abertura real de janela/DOM/preload/boot; captura de tela do usuário confirmou a janela no próprio computador. | Nova revisão 0.2.2, conversa com clone, microfone nativo, login e persistência DPAPI. |
+| Abertura 0.2.1 | CI com 218 testes e abertura real de janela/DOM/preload/boot; captura de tela do usuário confirmou a janela no próprio computador. | Conversa com clone, microfone nativo, login e persistência DPAPI. |
+| Revisão 0.2.2 | CI com 221 testes e abertura real do pacote; ensaio visual substituído manteve voz fora do painel e texto digitado visível. | Áudio do clone e dispositivos reais; execução da nova versão pelo usuário. |
 | Texto OpenAI | Pergunta real respondida corretamente. | Benchmark, custo e latência comparável. |
 | Microfone | Captura com nível e liberação observadas. | Detector de palmas ou palavra. |
 | Câmera | Prévia real 640×480 e parada. | Reconhecimento: OpenCV e pesos ausentes. |

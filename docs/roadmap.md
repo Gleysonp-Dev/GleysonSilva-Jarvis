@@ -1,6 +1,6 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
-O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão **0.2.2 está em preparação, sem novo CI confirmado**. A base 0.2.1 teve abertura nativa real aprovada no CI Windows, além de 218 testes, TypeScript, build e pacote. Corrige a falha sem janela do 0.2.0; o usuário confirmou a abertura visual por captura de tela. Não há release assinada ou validação completa em instalação limpa.
+O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão **0.2.2 está implementada, com 221 testes, TypeScript, build, pacote e abertura nativa aprovados no CI Windows**. A base 0.2.1 corrigiu a falha sem janela do 0.2.0; o usuário confirmou sua abertura visual por captura de tela. Não há release assinada ou validação completa em instalação limpa.
 
 A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação completa, efeito metálico fixo 0,78 e reprodução a 0,95× com altura preservada. Superioridade, exclusividade e vantagem de latência dependem de comparação reproduzível; não são resultados demonstrados.
 
@@ -8,7 +8,7 @@ A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação
 
 | Área | Já observado | Próximo aceite |
 | --- | --- | --- |
-| Interface e saudação | Visual e narração aprovados; clima e atribuição exibidos. | Revisão 0.2.2: voz por áudio/pulsação, sem transcrições no painel; texto digitado preservado e fonte do clima compacta. Verificar apresentação e fluidez. |
+| Interface e saudação | Visual e narração aprovados; revisão 0.2.2 sem transcrições no painel, texto digitado preservado e fonte do clima compacta, verificados com serviços substituídos. | Confirmar a nova apresentação durante uma sessão real e avaliar fluidez. |
 | OpenAI texto | Resposta correta com conta real. | Ferramentas, limites, falhas, custo e latência em amostra maior. |
 | Entrada e saída de voz | Microfone real com nível/liberação; resposta OpenAI Realtime anterior ouvida em marin. | Nova rota de conversa com a voz ElevenLabs configurada, sem saída OpenAI alternativa. |
 | Voz Jarvis | Clone criado; amostra e recepção aprovadas a 0,95×/efeito fixo. | Respostas dinâmicas, interrupção e retomada em sessão real. |
@@ -16,11 +16,13 @@ A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação
 | Música | Arquivo privado recebido; prévia atual com saudação ouvida/aprovada, ganho 0,35/0,22. | Testar recepção ao vivo e encerramento. Não há trilha padrão distribuída. |
 | Presença | Webcam real 640×480 e parada confirmadas. | Instalar OpenCV/pesos opcionais e ensaiar identificação voluntária. |
 | Execução | Pasta limitada, proposta, confirmação, registro e restauração condicionada. | Ensaios Windows com aplicativos e arquivos descartáveis. |
-| Distribuição | CI 0.2.1: 218 testes, TypeScript, build, pacote e abertura real de janela/DOM/preload/boot aprovados; abertura visual do usuário confirmada por captura de tela. | CI e pacote 0.2.2, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
+| Distribuição | CI 0.2.2: 221 testes, TypeScript, build, pacote e abertura real de janela/DOM/preload/boot aprovados; abertura visual do 0.2.1 confirmada pelo usuário. | Ensaiar 0.2.2 no destino, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
 
 A revisão 0.2.0 revelou bloqueio por `await app.whenReady()` no topo ESM do Electron 44.9.0, apesar do CI de empacotamento aprovado. A revisão 0.2.1 corrigiu o bootstrap e passou por 218 testes e pelo [teste nativo real no CI 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494): janela, DOM, preload e boot do pacote confirmados. O bloqueio por ACL no ambiente local é um ensaio separado; não ocorreu no CI. A captura de tela do usuário confirmou a abertura visual no próprio computador.
 
 Consulte [Validação](validation.md) para limites das evidências e [Plano de testes](test-plan.md) para os cenários.
+
+O [CI d72c4887 da revisão 0.2.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) manteve o teste nativo e aprovou todos os passos. A ausência de transcrições foi verificada com serviços substituídos; conversa com o clone, microfone nativo, login e DPAPI continuam exigindo ensaio físico.
 
 ## 1. Fechar a validação da conversa
 

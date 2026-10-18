@@ -1,6 +1,6 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar o [código-fonte público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis) e entregar um resultado verificável. O **MVP 0.2.2 está em preparação, sem novo CI confirmado**. A base 0.2.1 teve abertura nativa aprovada no CI Windows e a janela no computador do usuário foi confirmada por captura de tela. Não há release assinada ou validação completa em instalação limpa.
+Roteiro para instalar o [código-fonte público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis) e entregar um resultado verificável. O **MVP 0.2.2 está implementado, com 221 testes e abertura nativa aprovados no CI Windows**. A janela no computador do usuário foi confirmada por captura de tela da base 0.2.1. Não há release assinada ou validação completa em instalação limpa.
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
@@ -33,7 +33,7 @@ Confirme janela, conversa, Ajustes, Memória, Registro e Presença. O núcleo pe
 
 ### Abertura real do pacote e no CI
 
-O pacote validado é **GleysonSilva-Jarvis-0.2.1-Windows.exe**; 0.2.2 ainda está em preparação. Além do empacotamento, o [CI 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. A captura de tela do usuário também confirmou a janela aberta. Em outra instalação, registre o próprio resultado; um PID ou lockfile sozinho não comprova sucesso.
+O pacote atual é **GleysonSilva-Jarvis-0.2.2-Windows.exe**. Além do empacotamento, o [CI d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. A captura de tela do usuário confirmou a janela da versão 0.2.1; registre separadamente o ensaio da nova versão no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
 
 No 0.2.0, `await app.whenReady()` no topo ESM impedia concluir a inicialização no Electron 44.9.0. A revisão 0.2.1 corrigiu esse caminho e passou no CI com Electron real. Electron 44.9.0/Node 24.22 e SQLite foram verificados; a causa não era autostart/hardware/SQLite. O ensaio no ambiente Codex ficou bloqueado por ACL antes do app; isso é distinto da abertura aprovada no CI Windows. Nenhuma sandbox foi desativada para esse aceite. Registre abertura e recursos separadamente.
 
@@ -105,13 +105,14 @@ A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 - CI do commit ba0680: 147 testes, compilação e artefato portátil Windows aprovados.
 - Falha nativa do EXE 0.2.0 confirmada pelo usuário: processo sem janela, por bloqueio da inicialização ESM. Correção 0.2.1 aprovada em abertura real no CI e abertura visual no computador do usuário confirmada por captura de tela. O bloqueio local por ACL foi um ensaio separado.
 - Revisão 0.2.1: **218 testes aprovados, zero falhas/skips**, TypeScript, build, pacote Windows e teste de abertura nativa aprovados no CI 8a074e7. O ZIP do artefato 12149680971 foi baixado e seu SHA-256 conferido; detalhes em [Validação](docs/validation.md).
+- Revisão 0.2.2: **221 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa aprovados no [CI d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465). Ensaio visual com serviços substituídos confirmou ausência de transcrições de voz no painel e preservação do texto digitado; não comprova áudio ou captura reais.
 - Revisão 0.2.0 local: 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. O [CI 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409) também aprovou 214 testes, TypeScript, build e pacote Windows. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também aprovou testes, TypeScript, build e pacote Windows, incluindo o ajuste.
 - Ajustes inspecionados no navegador: início no login/palavra nativa desabilitados corretamente; espera exige voz/chave/cidade e opções salvas foram preservadas.
 - Texto OpenAI correto, microfone com nível/liberação e câmera 640×480/parada foram observados.
 - Um ensaio OpenAI Realtime foi ouvido, porém usou `marin`, diferente da voz desejada. Ele motivou a nova rota OpenAI → texto → ElevenLabs.
 - Saudação, velocidade 0,95× e efeito fixo foram aprovados.
 - Música privada: MP3 de aproximadamente 13 MB importado; prévia atual com a saudação gravada ouvida e aprovada: 17,8577 s, pico 0,7772, RMS 0,08711 e sem saturação. Ganho 0,35 na introdução/0,22 sob a fala; preset de voz preservado, TypeScript e build aprovados.
-- **Ainda pendentes no aplicativo nativo do usuário:** nova conversa real com o clone, captura/liberação de microfone, ativação por palmas/palavra, retorno da espera, login, proteção das chaves por DPAPI e música na recepção ao vivo. A abertura visual e a aprovação auditiva da prévia não comprovam esses fluxos. A revisão visual 0.2.2 ainda exige seus testes e CI.
+- **Ainda pendentes no aplicativo nativo do usuário:** nova conversa real com o clone, captura/liberação de microfone, ativação por palmas/palavra, retorno da espera, login, proteção das chaves por DPAPI e música na recepção ao vivo. A abertura visual 0.2.1, a aprovação auditiva da prévia e o CI 0.2.2 não comprovam esses fluxos.
 
 Não transforme implementação ou teste com substituto em prova de hardware. Registre a execução atual e seus skips, sem copiar resultados antigos como se fossem novos.
 
