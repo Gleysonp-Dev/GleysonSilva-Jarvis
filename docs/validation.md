@@ -1,6 +1,6 @@
 # Validação do MVP — baseline e revisão 0.2.0
 
-Registro de 18 de outubro de 2026. Este documento separa implementação, testes com substitutos e observação real. **O CI da base 0.2.0, commit 63cf00153dbab0a52cf3f05a82eb9e7fab3ba385, foi concluído com sucesso. A revisão posterior de volume ainda aguarda CI próprio e não está no artefato dessa execução.**
+Registro de 18 de outubro de 2026. Este documento separa implementação, testes com substitutos e observação real. **O CI da base 0.2.0, commit 63cf00153dbab0a52cf3f05a82eb9e7fab3ba385, foi concluído com sucesso. O ajuste de volume e0d8ddaa374d9a1872086dc2ef5108a7b2a105b9 está publicado, com CI em execução, e não está no artefato anterior.**
 
 ## Baseline confirmada
 
@@ -27,7 +27,7 @@ Os testes de arquivos exercitam efeitos reais em diretórios temporários descar
 
 ## Revisão 0.2.0: implementado, ainda em validação real
 
-**Verificação local concluída:** 214 testes aprovados, zero falhas e zero skips, com Python configurado; TypeScript estrito, compilação e verificação do processo principal aprovados. Os três testes adicionais de integração do App exercitam hooks/controlador reais e detector local com provedores substituídos: capacidade disponível antes de novo render, no máximo uma permissão de microfone pendente ao pausar/retomar e cancelamento da preparação abortando o serviço de saudação antes de rearmar. Não equivalem a fala/palmas ou login físicos. O CI da base 0.2.0 também foi aprovado; a mudança posterior de volume aguarda nova execução.
+**Verificação local concluída:** 214 testes aprovados, zero falhas e zero skips, com Python configurado; TypeScript estrito, compilação e verificação do processo principal aprovados. Os três testes adicionais de integração do App exercitam hooks/controlador reais e detector local com provedores substituídos: capacidade disponível antes de novo render, no máximo uma permissão de microfone pendente ao pausar/retomar e cancelamento da preparação abortando o serviço de saudação antes de rearmar. Não equivalem a fala/palmas ou login físicos. O CI da base 0.2.0 também foi aprovado; o CI da mudança posterior de volume está em execução.
 
 **Inspeção no navegador:** controles de início no login e palavra nativa ficaram corretamente desabilitados no teste HTTP; a espera exigiu voz, chave e cidade; opções salvas foram preservadas. Isso valida apresentação/configuração, sem comprovar System.Speech ou login real.
 
@@ -36,10 +36,10 @@ Os testes de arquivos exercitam efeitos reais em diretórios temporários descar
 | Conversa com a voz Jarvis | Entrada OpenAI Realtime, saída de texto, síntese ElevenLabs com a voz configurada e áudio local a 0,95×/efeito fixo. Áudio OpenAI desativado e tracks inesperadas bloqueadas. | Pergunta/resposta realmente ouvida com o clone, interrupção, erros, retomada e liberação em sessão completa. O teste anterior com marin não vale como esse aceite. |
 | Ausência de troca de voz | Falta de configuração bloqueia a sessão falada; falha de síntese mantém erro/texto, sem selecionar voz OpenAI ou do navegador. | Ensaio real de falha e confirmação de que nenhuma voz alternativa toca. |
 | Espera por palmas | Detector adaptativo local, intervalo de 150–800 ms e proteção entre ativações, com testes sintéticos e de limpeza. | Microfone real, ruído, fala comum, falsos positivos, segundo plano e retorno após saudação. |
-| Palavra “Jarvis” | Worker Windows System.Speech offline, dependente de reconhecedor de idioma; validação de eventos com processo substituído. | Reconhecimento físico da palavra e indisponibilidade real do idioma. |
+| Palavra “Jarvis” | Worker Windows System.Speech offline compilado e eventos testados com processo substituído. Consulta real, sem abrir o microfone, enumerou um reconhecedor en-US instalado. | Reconhecimento físico da palavra, confiança e retorno da espera. A enumeração do idioma não valida o gatilho pelo microfone. |
 | Início e bandeja | Opções opt-in `startAtLogin` e `standbyEnabled`; registro no login para pacote Windows e controle de espera. | Entrada real na conta, início em espera, bandeja, desativação e saída. Não é funcionamento antes do login. |
 | Pausa da escuta | Coordenação para suspender espera durante narração/música e uso ativo do microfone. | Ausência de autoativação pela própria fala e retorno correto depois do fim/interrupção. |
-| Música privada | MP3 de aproximadamente 13 MB importado privadamente. Prévia atual com saudação gravada: 17,8577 s, pico 0,7772, RMS 0,08711, amostras finitas e sem clipping. App ajustado para 0,35 na introdução e 0,22 sob a fala; TypeScript/build aprovados e preset de voz preservado. Nenhuma trilha padrão é distribuída. | Aceite do usuário e CI deste ajuste pendentes. A prévia não comprova reprodução/fim na recepção ao vivo, login ou ativação. |
+| Música privada | MP3 de aproximadamente 13 MB importado privadamente. **Prévia atual ouvida e aprovada pelo usuário:** 17,8577 s, pico 0,7772, RMS 0,08711, amostras finitas e sem clipping. App ajustado para 0,35 na introdução e 0,22 sob a fala; TypeScript/build aprovados e preset de voz preservado. Nenhuma trilha padrão é distribuída. | CI do ajuste em execução. A aprovação auditiva da prévia não comprova reprodução/fim na recepção ao vivo, login ou ativação. |
 | Pacote 0.2.0 | CI 63cf001 concluído com 214 testes, TypeScript, build e artefato Windows aprovados. O artefato antecede o ajuste de volume. | CI da revisão de volume, execução física, instalação limpa, proteção nativa das chaves e assinatura. |
 
 **Nenhum executável nativo foi executado fisicamente neste equipamento no ensaio registrado.** Um artefato gerado pelo CI não comprova abertura do aplicativo, início no login ou reconhecimento offline. Não há release assinada validada para distribuição.
@@ -56,6 +56,6 @@ A origem do áudio também foi distinguida: a amostra de apresentação é fixa;
 
 ## Próximo aceite
 
-Executar a nova conversa OpenAI → texto → ElevenLabs e conferir a voz efetivamente ouvida. Depois ensaiar palmas, reconhecedor Windows, pausa/retorno, música recebida na recepção ao vivo e início no login no aplicativo empacotado. Obter aceite da prévia atual já entregue e registrar o CI da revisão posterior a 63cf001.
+Executar a nova conversa OpenAI → texto → ElevenLabs e conferir a voz efetivamente ouvida. Depois ensaiar palmas, reconhecedor Windows, pausa/retorno, música recebida na recepção ao vivo e início no login no aplicativo empacotado. Registrar o resultado do CI e0d8ddaa em execução; o aceite auditivo da prévia musical atual já foi obtido.
 
 Não há p50/p95 de latência nem comparação de superioridade publicados. Use [o plano de testes](test-plan.md) para registrar conta, dispositivo, superfície, falhas e medições sem dados privados.

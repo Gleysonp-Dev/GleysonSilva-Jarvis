@@ -78,7 +78,7 @@ Em Ajustes → Início e espera, as opções `startAtLogin` e `standbyEnabled` c
 - **Palavra “Jarvis”:** Windows System.Speech offline, dependente de reconhecedor de idioma compatível instalado. Não usar Web Speech do navegador como substituto.
 - **Durante a recepção:** a espera deve pausar antes da fala/música e retornar depois. Ela também deve ceder o microfone ao teste ou à conversa ativa.
 - **Iniciar ao entrar no Windows:** somente no app Windows empacotado, com executável em caminho estável. É entrada na conta, não boot antes do login. O modo de desenvolvimento não comprova esse recurso.
-- **Música:** somente arquivo fornecido/selecionado pelo usuário, mantido privado, encerrado ao terminar ou interromper a saudação. O arquivo do ensaio já foi importado; primeira prévia ouvida e segunda entregue com maior volume, aguardando aceite. Não há faixa padrão distribuída; não invente nem gere uma.
+- **Música:** somente arquivo fornecido/selecionado pelo usuário, mantido privado, encerrado ao terminar ou interromper a saudação. O arquivo do ensaio foi importado e a prévia atual com a saudação foi ouvida e aprovada. Não há faixa padrão distribuída; não invente nem gere uma.
 
 Teste pausar/retomar, fechar para bandeja quando configurado, sair de fato e desativar login. Registre reconhecedor ausente ou permissão negada. No navegador, palmas podem sofrer limitações de segundo plano; ele não equivale ao ensaio nativo. Detalhes em [docs/standby.md](docs/standby.md).
 
@@ -95,13 +95,13 @@ No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua i
 A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 
 - CI do commit ba0680: 147 testes, compilação e artefato portátil Windows aprovados.
-- Revisão 0.2.0 local: 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. O [CI 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409) também aprovou 214 testes, TypeScript, build e pacote Windows. O ajuste posterior de volume ainda aguarda CI próprio e não está nesse artefato.
+- Revisão 0.2.0 local: 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. O [CI 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409) também aprovou 214 testes, TypeScript, build e pacote Windows. O CI do ajuste de volume e0d8ddaa está em execução; esse ajuste não está no artefato anterior.
 - Ajustes inspecionados no navegador: início no login/palavra nativa desabilitados corretamente; espera exige voz/chave/cidade e opções salvas foram preservadas.
 - Texto OpenAI correto, microfone com nível/liberação e câmera 640×480/parada foram observados.
 - Um ensaio OpenAI Realtime foi ouvido, porém usou `marin`, diferente da voz desejada. Ele motivou a nova rota OpenAI → texto → ElevenLabs.
 - Saudação, velocidade 0,95× e efeito fixo foram aprovados.
-- Música privada: MP3 de aproximadamente 13 MB importado; primeira prévia ouvida. Após pedido de mais volume, segunda prévia entregue com a saudação gravada: 17,86 s, sem saturação. Aceite ainda pendente; TypeScript e build do ajuste aprovados.
-- **Ainda pendentes:** nova conversa real com o clone, ativação nativa, retorno da espera, login, aceite do volume revisado e execução física do EXE. A prévia musical não comprova esses fluxos.
+- Música privada: MP3 de aproximadamente 13 MB importado; prévia atual com a saudação gravada ouvida e aprovada: 17,8577 s, pico 0,7772, RMS 0,08711 e sem saturação. Ganho 0,35 na introdução/0,22 sob a fala; preset de voz preservado, TypeScript e build aprovados.
+- **Ainda pendentes:** nova conversa real com o clone, ativação nativa, retorno da espera, login, música na recepção ao vivo e execução física do EXE. A aprovação auditiva da prévia não comprova esses fluxos.
 
 Não transforme implementação ou teste com substituto em prova de hardware. Registre a execução atual e seus skips, sem copiar resultados antigos como se fossem novos.
 
