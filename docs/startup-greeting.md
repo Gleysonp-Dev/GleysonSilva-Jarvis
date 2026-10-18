@@ -2,6 +2,8 @@
 
 Quando a saudação é solicitada, o Jarvis prepara uma fala com o horário local do computador, o tempo na cidade configurada e a previsão de hoje. A última frase é exatamente: **“Em que posso ajudá-lo agora, senhor?”** Não há chamada a um LLM para escrever essa mensagem.
 
+Na revisão 0.2.2 em preparação, a recepção é apresentada por áudio e pulsação, sem copiar o texto da saudação para o painel Conversa. A atribuição do clima permanece compacta, com fonte e licença. O texto continua no contrato interno para síntese e controle; mensagens digitadas pelo usuário e suas respostas permanecem visíveis. Ainda não há novo CI confirmado para essa revisão.
+
 Com abertura automática habilitada e configuração completa, a interface pode preparar a recepção ao iniciar. Na revisão 0.2.0, **espera habilitada muda o início para aguardar “Jarvis” ou duas palmas**, antes da recepção; habilitar espera mantém a saudação ativa. Iniciar no Windows é opção para depois do login, não antes dele. Veja [Espera e login](standby.md).
 
 O serviço usa “Bom dia” das 06h às 11h59, “Boa tarde” das 12h às 17h59 e “Boa noite” nos demais horários. Hora e fuso vêm do computador. As coordenadas e o nome da cidade ficam na configuração privada; o repositório não traz a localização pessoal do autor.
@@ -20,7 +22,7 @@ A integração usa uma chave ElevenLabs própria, preenchida no campo mascarado 
 
 O controlador aplica início único, limite de repetição, cancelamento ao mudar/encerrar e descarte de resultados antigos. Cancelar a recepção também aborta a síntese pendente no backend. Preparar o áudio não abre uma conversa de microfone. Se o navegador exigir gesto, **Ouvir saudação** toca o áudio já preparado sem nova consulta/síntese. Interromper precisa parar som e pulsação.
 
-A espera local deve pausar antes da narração e de eventual música, retomando apenas se ainda habilitada. A música depende de arquivo privado fornecido pelo usuário e termina com a saudação ou interrupção. **Nenhuma trilha padrão está incluída; o arquivo ainda não foi fornecido no ensaio registrado.**
+A espera local deve pausar antes da narração e de eventual música, retomando apenas se ainda habilitada. A música depende de arquivo privado fornecido pelo usuário e termina com a saudação ou interrupção. O arquivo do ensaio foi recebido e sua prévia aprovada; a recepção integrada ainda exige teste. **Nenhuma trilha padrão está incluída.**
 
 ## Tempo e previsão
 

@@ -2,9 +2,11 @@
 
 Assistente pessoal para Windows com interface holográfica ciano, conversa por voz e ações locais que você pode revisar antes de autorizar.
 
-**Estado: MVP 0.2.1 com abertura nativa aprovada no CI Windows.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A correção do EXE 0.2.0 foi testada com Electron real e pacote 0.2.1: janela, interface e bridge carregaram. A abertura no computador do usuário ainda precisa ser confirmada. Não há release assinada ou validação completa em instalação limpa.
+**Estado: MVP 0.2.2 em preparação, sem novo CI confirmado.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A base 0.2.1 passou pelo teste nativo no CI Windows e sua abertura no computador do usuário foi confirmada por captura de tela. Isso confirma a interface aberta, sem comprovar conversa com o clone, microfone nativo, login ou proteção das chaves. Não há release assinada ou validação completa em instalação limpa.
 
 O núcleo mantém a mesma cor ao ouvir, responder e executar. Brilho e expansão acompanham o sinal de áudio; ferramentas usam uma cadência própria. O painel mantém controles e estados funcionais, sem slogans. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
+
+Na revisão 0.2.2, saudação e conversa por voz usam áudio e pulsação, sem acrescentar falas ou transcrições ao painel **Conversa**. As mensagens digitadas e suas respostas continuam visíveis. A fonte do clima permanece compacta, sem reproduzir o boletim em texto. Essa mudança é de apresentação: a compreensão de voz e o histórico necessário aos provedores continuam funcionando internamente.
 
 ## O que está implementado
 
@@ -12,7 +14,7 @@ O núcleo mantém a mesma cor ao ouvir, responder e executar. Brilho e expansão
 | --- | --- |
 | Texto com OpenAI | Responses com streaming, histórico limitado e ferramentas. |
 | Conversa com a voz Jarvis | Microfone via OpenAI Realtime; respostas em texto são sintetizadas pela ElevenLabs com a voz configurada. A saída de áudio OpenAI é desativada. O novo fluxo completo ainda precisa de teste real. |
-| Saudação e clima | **Iniciar Jarvis** prepara cumprimento pelo relógio do PC, tempo atual, previsão de hoje e “Em que posso ajudá-lo agora, senhor?”. Exibe atribuição Open-Meteo. |
+| Saudação e clima | **Iniciar Jarvis** prepara cumprimento pelo relógio do PC, tempo atual, previsão de hoje e “Em que posso ajudá-lo agora, senhor?”. Narração por áudio/pulsação e atribuição Open-Meteo compacta, sem transcrição no painel. |
 | Voz aprovada | Clone ElevenLabs já criado com autorização. Reprodução local a 0,95×, altura preservada e tom metálico fixo no preset 0,78; sem controles de ajuste. |
 | Espera local opcional | Duas palmas pelo Web Audio; palavra “Jarvis” pelo reconhecedor offline System.Speech no Windows, quando disponível. Pausa a espera durante fala e uso ativo do microfone. |
 | Início no Windows | Opção desativada por padrão; disponível no aplicativo Windows empacotado. Inicia ao entrar na conta do Windows, em espera quando configurado; não opera antes do login. |
@@ -40,15 +42,15 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-O pacote corrigido é **GleysonSilva-Jarvis-0.2.1-Windows.exe**. O CI confirmou abertura real da janela e carregamento da interface; o usuário ainda deve conferir isso no próprio computador. A presença de um processo ou o sucesso do empacotamento, isoladamente, não bastam.
+O pacote validado é **GleysonSilva-Jarvis-0.2.1-Windows.exe**. O CI confirmou janela e carregamento da interface; o usuário também confirmou a abertura visual por captura de tela. O pacote 0.2.2 ainda está em preparação. A presença de um processo ou o sucesso do empacotamento, isoladamente, não bastam.
 
 ### Configuração e primeira conversa
 
 1. Abra **Ajustes** e informe a chave OpenAI no campo mascarado. Não cole credenciais na conversa.
 2. Os padrões são `gpt-5.4-mini` para texto e `gpt-realtime` para entrada de voz e geração de texto. O acesso depende da conta.
 3. Salve e faça uma pergunta por texto. Digitar não liga o microfone nem aciona fala automaticamente.
-4. Em **Saudação e tempo**, configure privadamente a chave ElevenLabs e o identificador da voz já criada. A conversa falada exige os dois provedores; falta de voz ou falha de síntese produz erro/texto, sem trocar para uma voz OpenAI ou do navegador.
-5. Use **Testar microfone** para conferir captura local. Depois inicie a conversa por voz e confirme transcrição, resposta realmente ouvida e interrupção. Encerre e confira a liberação do dispositivo.
+4. Em **Saudação e tempo**, configure privadamente a chave ElevenLabs e o identificador da voz já criada. A conversa falada exige os dois provedores; falta de voz ou falha de síntese informa indisponibilidade, sem trocar para uma voz OpenAI ou do navegador.
+5. Use **Testar microfone** para conferir captura local. Depois inicie a conversa por voz e confirme resposta adequada realmente ouvida, pulsação e interrupção, sem transcrição no painel. Encerre e confira a liberação do dispositivo.
 
 O limite padrão da sessão é dez minutos, ajustável entre um e trinta. A conversa pode consumir OpenAI e ElevenLabs. A troca do caminho de voz foi implementada após um ensaio ouvir a voz OpenAI `marin`; esse resultado anterior não comprova a nova conversa com o clone.
 
@@ -115,7 +117,7 @@ A revisão **0.2.1 passou por 218 testes**, zero falhas/skips, TypeScript, build
 
 No ensaio real foram confirmados texto OpenAI correto, microfone com nível e liberação, prévia de câmera 640×480 e parada, saudação aprovada e áudio OpenAI Realtime ouvido. Este último usou `marin`, voz diferente da desejada, motivando a troca para ElevenLabs.
 
-**Ainda não confirmados no computador do usuário:** abertura do EXE 0.2.1, nova conversa completa com o clone, ativação por palmas/palavra, retorno da espera e início no login. O teste de abertura do CI não exercitou esses recursos. Não há latência comparável medida nem acurácia facial demonstrada. Veja [Validação](docs/validation.md), [Plano de testes](docs/test-plan.md) e [Roadmap](docs/roadmap.md).
+**Ainda não confirmados no aplicativo nativo do usuário:** nova conversa completa com o clone, captura/liberação do microfone, ativação por palmas/palavra, retorno da espera, início no login e persistência protegida das chaves. A captura de tela da janela e o teste de abertura do CI não exercitaram esses recursos. A apresentação sem transcrições da revisão 0.2.2 ainda exige verificação e novo CI. Não há latência comparável medida nem acurácia facial demonstrada. Veja [Validação](docs/validation.md), [Plano de testes](docs/test-plan.md) e [Roadmap](docs/roadmap.md).
 
 ## Estrutura
 

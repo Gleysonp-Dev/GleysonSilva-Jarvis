@@ -146,7 +146,7 @@ export class RealtimeVoice {
     if (type === 'response.output_text.delta' && response && !response.completed && typeof event.delta === 'string' && event.delta.length > 0) {
       const id = `voice-assistant-${event.item_id || eventResponseId}`;
       const text = (this.transcripts.get(id) || '') + event.delta;
-      if (text.length > 12000 || response.textLength + event.delta.length > 6000) { this.disableSpeech(response, 'A resposta atingiu o limite de narração. Leia o restante no histórico.'); return; }
+      if (text.length > 12000 || response.textLength + event.delta.length > 6000) { this.disableSpeech(response, 'A resposta atingiu o limite de narração. Faça uma pergunta mais curta.'); return; }
       this.transcripts.set(id, text); this.cb.transcript('assistant', text, id, false);
       response.textLength += event.delta.length;
       if (response.textLength === text.length && /^(?:```|\{|\[)/.test(text.trimStart())) response.disabled = true;
@@ -183,7 +183,7 @@ export class RealtimeVoice {
   private flushSpeech(response: ResponseState, flush: boolean) {
     const result = takeSpeechSegments(response.pending, flush); response.pending = result.rest;
     for (const text of result.segments) {
-      if (response.segments >= 24 || this.speechQueue.length >= 24) { this.disableSpeech(response, 'O limite de narração foi atingido. A resposta continua em texto.'); return; }
+      if (response.segments >= 24 || this.speechQueue.length >= 24) { this.disableSpeech(response, 'O limite de narração foi atingido. Faça uma pergunta mais curta.'); return; }
       const job: SpeechJob = { text, runId: response.runId, responseId: response.id, utteranceId: `utterance-${crypto.randomUUID()}`, generation: this.speechGeneration, controller: new AbortController() };
       response.segments++; this.speechJobs.add(job); this.speechQueue.push(job);
     }
@@ -202,7 +202,7 @@ export class RealtimeVoice {
       } catch {
         if (!this.stopped && !job.controller.signal.aborted) {
           const response = this.responses.get(job.responseId);
-          if (response) this.disableSpeech(response, 'Não foi possível preparar a voz Jarvis. A resposta continua disponível em texto.');
+          if (response) this.disableSpeech(response, 'Não foi possível preparar a voz Jarvis. Confira a conexão e a configuração ElevenLabs.');
         }
         return null;
       } finally {
@@ -226,7 +226,7 @@ export class RealtimeVoice {
         const audio = await this.prepareSpeech(job);
         if (audio && !this.stopped && !job.controller.signal.aborted && job.generation === this.speechGeneration) {
           try { const playing = this.playSpeech(audio, job); this.prefetch(); await playing; }
-          catch { const response = this.responses.get(job.responseId); if (response) this.disableSpeech(response, 'Não foi possível reproduzir a voz Jarvis. A resposta continua disponível em texto.'); }
+          catch { const response = this.responses.get(job.responseId); if (response) this.disableSpeech(response, 'Não foi possível reproduzir a voz Jarvis. Confira a saída de áudio ou inicie outra sessão.'); }
         }
         this.speechJobs.delete(job); this.idleState();
       }

@@ -18,9 +18,9 @@ export function normalizeWeatherSource(source: unknown): NormalizedWeatherSource
   return { name, url: officialLink(value.url, 'open-meteo.com'), license: shortText(value.license, 80), licenseUrl: officialLink(value.licenseUrl, 'creativecommons.org'), text: shortText(value.text) };
 }
 
-export function WeatherSource({ source, onOpen }: { source: unknown; onOpen?: (url: string) => void }) {
+export function WeatherSource({ source, onOpen, compact = false }: { source: unknown; onOpen?: (url: string) => void; compact?: boolean }) {
   const value = normalizeWeatherSource(source);
   if (!value) return null;
   const link = (label: string, url?: string) => url ? <a href={url} target="_blank" rel="noopener noreferrer" onClick={event => { if (onOpen) { event.preventDefault(); onOpen(url); } }}>{label}</a> : <span>{label}</span>;
-  return <small className="message-source">Fonte do tempo: {link(value.name, value.url)}{value.license && <> · {link(value.license, value.licenseUrl)}</>}{value.text && <span className="source-description">{value.text}</span>}</small>;
+  return <small className={`message-source${compact ? ' compact' : ''}`} title={compact ? value.text : undefined}>{compact ? 'Tempo: ' : 'Fonte do tempo: '}{link(value.name, value.url)}{value.license && <> · {link(value.license, value.licenseUrl)}</>}{!compact && value.text && <span className="source-description">{value.text}</span>}</small>;
 }

@@ -46,3 +46,12 @@ test('source and license links accept only their expected HTTPS hosts', () => {
   assert.equal(markup.includes('href='), false);
   assert.equal(markup.includes('secret'), false);
 });
+
+test('compact weather credit preserves source and license without a duplicate visible description', () => {
+  const markup = renderToStaticMarkup(React.createElement(WeatherSource, { source: WEATHER_ATTRIBUTION, compact: true }));
+  assert.match(markup, /Tempo: /); assert.match(markup, /Open-Meteo/); assert.match(markup, /CC BY 4\.0/);
+  assert.match(markup, /href="https:\/\/open-meteo\.com\/"/);
+  assert.match(markup, /href="https:\/\/creativecommons\.org\/licenses\/by\/4\.0\/"/);
+  assert.equal(markup.includes('source-description'), false);
+  assert.match(markup, /title="Dados Open-Meteo/);
+});

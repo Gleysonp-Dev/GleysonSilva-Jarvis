@@ -1,8 +1,8 @@
-# Validação do MVP — baseline 0.2.0 e correção 0.2.1
+# Validação do MVP — base 0.2.1 e revisão 0.2.2 em preparação
 
 Registro de 18 de outubro de 2026. Este documento separa implementação, testes com substitutos e observação real. **O CI da base 0.2.0, commit 63cf00153dbab0a52cf3f05a82eb9e7fab3ba385, foi concluído com sucesso. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também foi concluído com sucesso e gerou o artefato atualizado 12148553183.**
 
-**Abertura nativa 0.2.1 aprovada no CI Windows:** o commit `8a074e738c6792091676702be28d9270edcf884b` passou por 218 testes, TypeScript, build, pacote e execução real do aplicativo empacotado. O usuário ainda não confirmou a abertura do 0.2.1 no próprio computador. A falha sem janela do 0.2.0 e o bloqueio por ACL no ambiente Codex são resultados anteriores distintos.
+**Abertura nativa 0.2.1 aprovada no CI Windows:** o commit `8a074e738c6792091676702be28d9270edcf884b` passou por 218 testes, TypeScript, build, pacote e execução real do aplicativo empacotado. O usuário confirmou a janela aberta no próprio computador por captura de tela. A falha sem janela do 0.2.0 e o bloqueio por ACL no ambiente Codex são resultados anteriores distintos. **A revisão 0.2.2 está em preparação, sem novo CI confirmado.**
 
 ## Baseline confirmada
 
@@ -13,6 +13,7 @@ Registro de 18 de outubro de 2026. Este documento separa implementação, testes
 | EXE 0.2.0 no equipamento do usuário | **Falhou na abertura:** processo ativo sem janela. Diagnóstico localizado no bootstrap ESM do Electron, antes da interface. |
 | Runtime nativo | Electron **44.9.0**, Node **24.22** e SQLite carregando corretamente. Essa verificação não comprova carregamento da interface, hardware ou início no login. |
 | CI 0.2.1 — 8a074e7 | **218 testes aprovados, zero skips; TypeScript, build, pacote Windows e abertura nativa real aprovados.** [Execução 39162376494](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494), [job 117778188817](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494/job/117778188817). O teste isolado não valida recursos com dispositivos nem a abertura no PC do usuário. |
+| EXE 0.2.1 no equipamento do usuário | **Abertura visual confirmada por captura de tela enviada pelo usuário.** Não comprova áudio do clone em conversa, captura nativa, login ou persistência protegida das chaves. |
 | Python opcional | Protocolo e pré-processamento testados com Python 3.12 e backend substituído. Não executa a rede facial real. |
 | Servidor local funcional | Interface e serviços usados em loopback no navegador. O ensaio em 47833 usa chaves em memória, sem comprovar persistência protegida do Electron. |
 | Interface e clima | Saudação real com tempo/previsão e atribuição exibida. Regressões React cobrem a atribuição estruturada; recuperação não repete automaticamente a síntese. |
@@ -45,9 +46,9 @@ Os testes de arquivos exercitam efeitos reais em diretórios temporários descar
 | Início e bandeja | Opções opt-in `startAtLogin` e `standbyEnabled`; registro no login para pacote Windows e controle de espera. | Entrada real na conta, início em espera, bandeja, desativação e saída. Não é funcionamento antes do login. |
 | Pausa da escuta | Coordenação para suspender espera durante narração/música e uso ativo do microfone. | Ausência de autoativação pela própria fala e retorno correto depois do fim/interrupção. |
 | Música privada | MP3 de aproximadamente 13 MB importado privadamente. **Prévia atual ouvida e aprovada pelo usuário:** 17,8577 s, pico 0,7772, RMS 0,08711, amostras finitas e sem clipping. App ajustado para 0,35 na introdução e 0,22 sob a fala; TypeScript/build aprovados e preset de voz preservado. Nenhuma trilha padrão é distribuída. | CI do ajuste aprovado. A aprovação auditiva da prévia não comprova reprodução/fim na recepção ao vivo, login ou ativação. |
-| Pacote 0.2.0 | CI e0d8ddaa concluído com testes, TypeScript, build e artefato Windows aprovados, incluindo o volume aprovado. [Execução](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917); artefato 12148553183. **A execução pelo usuário falhou sem janela.** | Correção 0.2.1 e teste real de abertura; instalação limpa, proteção nativa das chaves e assinatura. |
+| Pacote 0.2.0 | CI e0d8ddaa concluído com testes, TypeScript, build e artefato Windows aprovados, incluindo o volume aprovado. [Execução](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917); artefato 12148553183. **A execução pelo usuário falhou sem janela; o 0.2.1 corrigido abriu depois.** | Instalação limpa, proteção nativa das chaves e assinatura. |
 
-**O executável 0.2.0 foi executado pelo usuário e falhou antes da janela.** O pacote **GleysonSilva-Jarvis-0.2.1-Windows.exe** teve janela e interface carregadas no CI com Electron real; a abertura no computador do usuário ainda não foi confirmada. O teste isolado não comprova início no login, reconhecimento ou conversa ao vivo. Não há release assinada validada em instalação limpa.
+**O executável 0.2.0 foi executado pelo usuário e falhou antes da janela.** O pacote **GleysonSilva-Jarvis-0.2.1-Windows.exe** teve janela e interface carregadas no CI com Electron real; a captura de tela do usuário confirmou a abertura visual no computador de destino. Essas evidências não comprovam início no login, reconhecimento ou conversa ao vivo. Não há release assinada validada em instalação limpa.
 
 ## Correção da inicialização 0.2.1 — abertura aprovada no CI
 
@@ -69,7 +70,13 @@ O artefato **12149680971** tem ZIP de **104.006.107 bytes**, baixado e conferido
 0f826138640fcd6b6b5061389c26efd0d2c775f0bcc912ec85d393ab1c290824
 ```
 
-Esse hash identifica o ZIP, não o arquivo EXE isolado. A abertura no computador do usuário e os ensaios com provedores/dispositivos continuam pendentes; o CI isolou rede, captura e início no login.
+Esse hash identifica o ZIP, não o arquivo EXE isolado. A abertura visual no computador do usuário foi confirmada depois por captura de tela; ensaios nativos com provedores/dispositivos, login e DPAPI continuam pendentes. O CI isolou rede, captura e início no login.
+
+## Revisão visual 0.2.2 — em preparação
+
+O autor pediu que saudação e conversa por voz não acrescentem transcrições ao painel Conversa. A apresentação passa a usar áudio, pulsação e estados, mantendo compacta a atribuição meteorológica. Mensagens digitadas e suas respostas continuam visíveis. Reconhecimento de fala, texto intermediário de síntese e histórico necessário aos provedores permanecem internos; não há alegação de eliminação desses dados do processamento.
+
+O pedido está sendo implementado. Ainda não há novo CI ou aceite funcional registrado para a revisão 0.2.2; as 218 aprovações e a abertura acima pertencem à base 0.2.1.
 
 A gravação de referência, a cidade, as credenciais, o identificador da voz e a música recebida permanecem privados. O [aviso de distribuição](../assets/voice/README.md) aplica-se ao MP3 de voz selecionado, não à trilha privada, a toda a pasta de dados ou a um modelo exportável de voz.
 
@@ -83,6 +90,6 @@ A origem do áudio também foi distinguida: a amostra de apresentação é fixa;
 
 ## Próximo aceite
 
-O CI já confirmou abertura real do pacote 0.2.1. Próximo passo: o usuário abrir o executável corrigido no próprio computador e confirmar a interface. Depois ensaiar a nova conversa OpenAI → texto → ElevenLabs, palmas, reconhecedor Windows, pausa/retorno, música na recepção ao vivo e início no login. CI de abertura e aprovação da prévia musical não substituem esses testes.
+A abertura visual do pacote 0.2.1 já foi confirmada pelo CI e pelo usuário. Próximo passo: verificar a apresentação sem transcrições da revisão 0.2.2 e seu CI, depois ensaiar a nova conversa OpenAI → texto → ElevenLabs, captura/liberação de microfone no nativo, palmas, reconhecedor Windows, pausa/retorno, música na recepção ao vivo, início no login e persistência DPAPI. Abertura da janela e aprovação da prévia musical não substituem esses testes.
 
 Não há p50/p95 de latência nem comparação de superioridade publicados. Use [o plano de testes](test-plan.md) para registrar conta, dispositivo, superfície, falhas e medições sem dados privados.

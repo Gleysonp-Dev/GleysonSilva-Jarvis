@@ -16,7 +16,7 @@ A saudação, amostra e nova saída da conversa usam tom metálico fixo **0,78**
 
 A amostra é fixa; respostas novas usam novas gerações ElevenLabs. O código 0.2.0 integra fila, correlação por execução/trecho, reprodução e descarte de resultados cancelados. Não há modelo de voz exportado junto do MP3 e não há alternativa automática com voz OpenAI ou do navegador.
 
-Uma conversa por texto transmite palavras progressivamente, mas não liga o microfone nem reproduz áudio. A sessão de voz mostra a conexão e a transcrição. No modo sem bridge, uma prévia visual não demonstra esses recursos.
+Uma conversa por texto transmite palavras progressivamente, mas não liga o microfone nem reproduz áudio. Na revisão 0.2.2 em preparação, saudação e conversa falada usam áudio, pulsação e estado da conexão, sem acrescentar transcrições ao painel Conversa. Mensagens digitadas e suas respostas continuam visíveis; a fonte meteorológica fica compacta. A compreensão de voz e o histórico necessário aos provedores continuam internos. Ainda não há novo CI confirmado para essa apresentação. No modo sem bridge, uma prévia visual não demonstra os serviços.
 
 ## Verificação do microfone e saída
 
@@ -27,8 +27,8 @@ O harness de teste é iniciado com `npm run test:local` e aberto em `http://127.
 1. Confirme o dispositivo de entrada e a saída selecionados no Windows ou navegador. Reduza o volume antes de testar para evitar realimentação.
 2. Ative o teste local de áudio, quando oferecido pelo controlador. Permita o microfone na caixa do sistema. Fale uma frase e confirme variação do medidor; silêncio deve reduzir a amplitude. Isso demonstra captura, sem comprovar conexão OpenAI.
 3. Reproduza o teste local de saída, quando disponível, e confirme som audível no dispositivo escolhido. Um gráfico variando, sozinho, não comprova que a pessoa ouviu o som.
-4. Com ambas as chaves e voz configuradas, inicie conversa, pergunte em português e confirme a voz Jarvis ouvida e a transcrição. Registre modelos/dispositivos sem o ID privado. Pode haver consumo nos dois provedores.
-5. Interrompa uma resposta por voz e pelo botão. Confirme que o áudio anterior para, a transcrição não duplica e nenhum resultado antigo começa uma nova ação.
+4. Com ambas as chaves e voz configuradas, inicie conversa, pergunte em português e confirme resposta adequada, voz Jarvis ouvida e pulsação, sem transcrição no painel. Registre modelos/dispositivos sem o ID privado. Pode haver consumo nos dois provedores.
+5. Interrompa uma resposta por voz e pelo botão. Confirme que o áudio anterior para, nenhuma fala/transcrição é acrescentada ao painel e nenhum resultado antigo começa uma nova ação. Confira separadamente que uma mensagem digitada continua visível.
 6. Encerre a sessão e confirme no indicador do sistema que o microfone foi liberado. Repita com falha de rede, permissão negada e encerramento da janela.
 
 Se a solicitação de dispositivo não aparecer, confira as permissões de câmera/microfone do Windows e da origem local. Navegadores exigem origem considerada segura para `getUserMedia`; `localhost` é o caminho previsto para o harness. O comportamento em uma máquina deve ser registrado, não inferido a partir de testes de parser.
@@ -72,6 +72,8 @@ Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância
 ## Estado de validação
 
 No ensaio real, microfone produziu nível e foi liberado; câmera exibiu prévia 640×480 e parou. Uma resposta OpenAI Realtime foi ouvida com marin, voz diferente da desejada; motivou a rota ElevenLabs atual. **A nova conversa com o clone ainda não foi confirmada integralmente.**
+
+A captura de tela do usuário confirmou a janela do EXE 0.2.1 aberta. Ela não confirma microfone/áudio no aplicativo nativo, início no login ou persistência protegida das chaves; esses ensaios permanecem separados.
 
 Reconhecimento permanece indisponível por ausência de OpenCV e pesos. Protocolo, limites, alinhamento e normalização possuem testes com backend falso, que não medem a rede neural. Não houve cadastro/identificação real aprovados nem taxa de acerto demonstrada.
 

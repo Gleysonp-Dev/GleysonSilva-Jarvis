@@ -1,6 +1,6 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
-O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão **0.2.1 teve abertura nativa real aprovada no CI Windows**, além de 218 testes, TypeScript, build e pacote. Corrige a falha sem janela do 0.2.0. O usuário ainda precisa abrir o novo executável no próprio computador. Não há release assinada ou validação completa em instalação limpa.
+O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão **0.2.2 está em preparação, sem novo CI confirmado**. A base 0.2.1 teve abertura nativa real aprovada no CI Windows, além de 218 testes, TypeScript, build e pacote. Corrige a falha sem janela do 0.2.0; o usuário confirmou a abertura visual por captura de tela. Não há release assinada ou validação completa em instalação limpa.
 
 A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação completa, efeito metálico fixo 0,78 e reprodução a 0,95× com altura preservada. Superioridade, exclusividade e vantagem de latência dependem de comparação reproduzível; não são resultados demonstrados.
 
@@ -8,7 +8,7 @@ A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação
 
 | Área | Já observado | Próximo aceite |
 | --- | --- | --- |
-| Interface e saudação | Visual e narração aprovados; clima e atribuição exibidos. | Fluidez em telas diferentes e com voz/câmera juntas. |
+| Interface e saudação | Visual e narração aprovados; clima e atribuição exibidos. | Revisão 0.2.2: voz por áudio/pulsação, sem transcrições no painel; texto digitado preservado e fonte do clima compacta. Verificar apresentação e fluidez. |
 | OpenAI texto | Resposta correta com conta real. | Ferramentas, limites, falhas, custo e latência em amostra maior. |
 | Entrada e saída de voz | Microfone real com nível/liberação; resposta OpenAI Realtime anterior ouvida em marin. | Nova rota de conversa com a voz ElevenLabs configurada, sem saída OpenAI alternativa. |
 | Voz Jarvis | Clone criado; amostra e recepção aprovadas a 0,95×/efeito fixo. | Respostas dinâmicas, interrupção e retomada em sessão real. |
@@ -16,20 +16,21 @@ A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação
 | Música | Arquivo privado recebido; prévia atual com saudação ouvida/aprovada, ganho 0,35/0,22. | Testar recepção ao vivo e encerramento. Não há trilha padrão distribuída. |
 | Presença | Webcam real 640×480 e parada confirmadas. | Instalar OpenCV/pesos opcionais e ensaiar identificação voluntária. |
 | Execução | Pasta limitada, proposta, confirmação, registro e restauração condicionada. | Ensaios Windows com aplicativos e arquivos descartáveis. |
-| Distribuição | CI 0.2.1: 218 testes, TypeScript, build, pacote e abertura real de janela/DOM/preload/boot aprovados; artefato baixado e ZIP conferido. | Abertura no computador do usuário, instalação limpa, recursos nativos, proteção das chaves e assinatura. |
+| Distribuição | CI 0.2.1: 218 testes, TypeScript, build, pacote e abertura real de janela/DOM/preload/boot aprovados; abertura visual do usuário confirmada por captura de tela. | CI e pacote 0.2.2, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
 
-A revisão 0.2.0 revelou bloqueio por `await app.whenReady()` no topo ESM do Electron 44.9.0, apesar do CI de empacotamento aprovado. A revisão 0.2.1 corrigiu o bootstrap e passou por 218 testes e pelo [teste nativo real no CI 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494): janela, DOM, preload e boot do pacote confirmados. O bloqueio por ACL no ambiente local é um ensaio separado; não ocorreu no CI. A confirmação no PC do usuário continua pendente.
+A revisão 0.2.0 revelou bloqueio por `await app.whenReady()` no topo ESM do Electron 44.9.0, apesar do CI de empacotamento aprovado. A revisão 0.2.1 corrigiu o bootstrap e passou por 218 testes e pelo [teste nativo real no CI 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494): janela, DOM, preload e boot do pacote confirmados. O bloqueio por ACL no ambiente local é um ensaio separado; não ocorreu no CI. A captura de tela do usuário confirmou a abertura visual no próprio computador.
 
 Consulte [Validação](validation.md) para limites das evidências e [Plano de testes](test-plan.md) para os cenários.
 
 ## 1. Fechar a validação da conversa
 
-Antes dos ensaios de conversa, o usuário deve confirmar abertura da interface no **GleysonSilva-Jarvis-0.2.1-Windows.exe**. O CI já inclui o teste com Electron real e pacote, perfil temporário e identificação exclusiva, sem rede/captura/início no login; carregamento e encerramento foram aprovados. Manter essa regressão: gerar artefato ou observar um processo, isoladamente, não cobre a falha.
+A interface do **GleysonSilva-Jarvis-0.2.1-Windows.exe** já abriu no computador do usuário. O CI inclui teste com Electron real e pacote, perfil temporário e identificação exclusiva, sem rede/captura/início no login; carregamento e encerramento foram aprovados. Manter essa regressão no 0.2.2: gerar artefato ou observar um processo, isoladamente, não cobre a falha.
 
-- Confirmar pergunta, transcrição, texto e narração pelo clone aprovado.
+- Confirmar resposta adequada e narração pelo clone aprovado, com áudio/pulsação e sem transcrições visíveis de voz ou saudação. Preservar mensagens digitadas e suas respostas.
 - Manter OpenAI Realtime com saída em texto; impedir áudio inesperado de uma voz OpenAI.
+- Preservar o reconhecimento e histórico internos necessários, sem confundi-los com a exibição no painel.
 - Testar interrupção durante geração, fila, reprodução e ferramenta pendente.
-- Tratar falha da ElevenLabs com erro/texto, sem troca silenciosa de voz.
+- Tratar falha da ElevenLabs com estado de erro visível, sem transcrição da resposta ou troca silenciosa de voz.
 - Confirmar liberação do microfone, áudio e conexões no fim, troca de perfil e erro.
 - Medir primeiro texto, primeiro som e fim após interrupção com conta/dispositivo identificados.
 

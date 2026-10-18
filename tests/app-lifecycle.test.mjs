@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { transform } from 'esbuild';
 import { StartupGreetingService } from '../packages/greeting/index.mjs';
+import { WEATHER_ATTRIBUTION } from '../packages/greeting/index.mjs';
 import { loadRendererModule } from './renderer-module-loader.mjs';
 
 const require = createRequire(import.meta.url), realReact = require('react');
@@ -51,10 +52,10 @@ function button(tree, pattern) {
   assert(found, `Expected a button matching ${pattern}`); return found;
 }
 
-function environment(t, { getUserMedia, settings = {}, capabilities = {}, greeting } = {}) {
+function environment(t, { getUserMedia, settings = {}, capabilities = {}, greeting, mockVoice = false } = {}) {
   const original = new Map(), timeouts = new Map(), intervals = new Map(), audios = [], contexts = [];
   let sequence = 0, nativeStarts = 0, cancelledGreetings = 0;
-  const listeners = new Set(), domListeners = new Map();
+  const listeners = new Set(), domListeners = new Map(), voiceSessions = [], textRequests = [];
   const current = { profileId: 'principal', textModel: 'gpt-5.4-mini', realtimeModel: 'gpt-realtime', voice: 'marin', maxSessionMinutes: 10,
     workspaceRoot: '', apps: [], hasKey: false, hasElevenKey: true, elevenVoiceId: 'mock-approved-voice', startupGreeting: true,
     weatherLocation: { name: 'Cidade de teste', latitude: 10, longitude: 20 }, standbyEnabled: true, wakeClapEnabled: true,
@@ -67,7 +68,14 @@ function environment(t, { getUserMedia, settings = {}, capabilities = {}, greeti
     async wakeStop() { return { running: false, state: 'stopped' }; },
     async startupGreeting(input) { return greeting?.start(input); },
     async cancelGreeting() { cancelledGreetings++; greeting?.cancel(); return { cancelled: true }; },
+    async text(input) { textRequests.push(input); return { text: 'Resposta digitada preservada.' }; },
   };
+  class Voice {
+    constructor(_bridge, callbacks) { this.callbacks = callbacks; this.interruptions = 0; voiceSessions.push(this); }
+    async start() { this.callbacks.connection(true); this.callbacks.state('listen'); }
+    interrupt() { this.interruptions++; }
+    stop() { this.callbacks.connection(false); this.callbacks.ended(); }
+  }
   class Context {
     state = 'running'; sampleRate = 48000; currentTime = 0; destination = {};
     constructor() { contexts.push(this); }
@@ -100,12 +108,13 @@ function environment(t, { getUserMedia, settings = {}, capabilities = {}, greeti
     if (name === './styles.css') return {};
     if (name === './hud') return { createHud: () => () => {} };
     if (name === './weather-source') return loadRendererModule('weather-source.tsx');
+    if (name === './realtime' && mockVoice) return { RealtimeVoice: Voice };
     if (name.startsWith('./')) return loadRendererModule(name.slice(2));
     return require(name);
   };
   new Function('require', 'module', 'exports', code)(localRequire, compiled, compiled.exports);
   const render = () => hooks.render(compiled.exports.App);
-  return { render, audios, contexts, get nativeStarts() { return nativeStarts; }, get cancelledGreetings() { return cancelledGreetings; },
+  return { render, audios, contexts, voiceSessions, textRequests, get nativeStarts() { return nativeStarts; }, get cancelledGreetings() { return cancelledGreetings; },
     emit(event) { for (const callback of listeners) callback(event); },
     runDelay(ms) { for (const [id, timer] of [...timeouts]) if (timer.ms === ms && timeouts.delete(id)) timer.callback(); },
   };
@@ -153,4 +162,53 @@ test('cancelling a preparing greeting aborts real service synthesis, drops late 
   provider.resolve({ audio: Buffer.from('late-fake-mp3'), contentType: 'audio/mpeg' }); await flush();
   assert.equal(app.audios.length, 0); assert.equal(syntheses, 1);
   app.runDelay(4000); await flush(); assert.equal(requests, 2); assert(button(app.render(), /^Pausar espera$/));
+});
+
+test('repeated greetings stay out of the conversation while one compact weather credit and useful errors remain', async t => {
+  const app = environment(t, { settings: { standbyEnabled: false, startupGreeting: false },
+    greeting: { async start() { return { text: 'Bom dia. Saudação falada com previsão.', audioBase64: null, weatherStatus: 'ok', attribution: WEATHER_ATTRIBUTION }; }, cancel() {} } });
+  app.render(); await flush();
+  for (let attempt = 0; attempt < 2; attempt++) { button(app.render(), /^Iniciar Jarvis/).props.onClick(); await flush(); }
+  const tree = app.render();
+  assert.equal(elements(tree).filter(element => element.type === 'article').length, 0);
+  assert.equal(label(tree).includes('Saudação falada com previsão'), false);
+  const footer = elements(tree).find(element => element.type === 'footer');
+  const credits = elements(footer).filter(element => element.props?.source);
+  assert.equal(credits.length, 1); assert.equal(credits[0].props.compact, true);
+  assert.deepEqual(credits[0].props.source, WEATHER_ATTRIBUTION);
+  assert.match(label(tree), /Não foi possível gerar o áudio da saudação/);
+  app.emit({ type: 'error', message: 'Falha de rede de teste.' });
+  assert.match(label(app.render()), /Falha de rede de teste/);
+});
+
+test('voice transcripts do not render or autoscroll; typed messages, voice controls and internal context are preserved', async t => {
+  const app = environment(t, { mockVoice: true, settings: { hasKey: true, standbyEnabled: false, startupGreeting: false } });
+  app.render(); await flush();
+  let tree = app.render(), scrolls = 0;
+  const history = elements(tree).find(element => element.props?.className === 'messages');
+  elements(history).find(element => element.type === 'div' && element.props.ref).props.ref.current = { scrollIntoView() { scrolls++; } };
+  await button(tree, /^Iniciar conversa por voz/).props.onClick(); await flush(); app.render();
+  const session = app.voiceSessions[0]; assert(session);
+  const initialScrolls = scrolls;
+  session.callbacks.transcript('user', 'Pergunta falada oculta.', 'voice-user-test', true);
+  session.callbacks.transcript('assistant', 'Resposta falada', 'voice-assistant-test', false);
+  app.render();
+  session.callbacks.transcript('assistant', 'Resposta falada oculta.', 'voice-assistant-test', true);
+  tree = app.render();
+  assert.equal(elements(tree).filter(element => element.type === 'article').length, 0);
+  assert.equal(label(tree).includes('falada oculta'), false); assert.equal(scrolls, initialScrolls);
+  button(tree, /^Interromper$/).props.onClick(); assert.equal(session.interruptions, 1);
+  session.callbacks.error('Falha de síntese de teste.');
+  assert.match(label(app.render()), /Falha de síntese de teste/);
+  await button(app.render(), /^Encerrar voz/).props.onClick(); await flush(); tree = app.render();
+  elements(tree).find(element => element.type === 'textarea' && element.props.id === 'message-input').props.onChange({ target: { value: 'Pergunta digitada preservada?' } });
+  tree = app.render(); elements(tree).find(element => element.props?.className === 'composer').props.onSubmit({ preventDefault() {} });
+  await flush(); tree = app.render();
+  const messages = elements(tree).filter(element => element.type === 'article');
+  assert.equal(messages.length, 2);
+  assert.match(label(messages), /Pergunta digitada preservada\?/); assert.match(label(messages), /Resposta digitada preservada/);
+  assert.equal(label(tree).includes('falada oculta'), false);
+  assert(app.textRequests[0].history.some(message => message.content === 'Pergunta falada oculta.'));
+  assert(app.textRequests[0].history.some(message => message.content === 'Resposta falada oculta.'));
+  assert(scrolls > initialScrolls);
 });
