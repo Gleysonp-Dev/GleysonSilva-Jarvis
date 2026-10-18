@@ -8,6 +8,8 @@ O serviço usa “Bom dia” das 06h às 11h59, “Boa tarde” das 12h às 17h5
 
 O backend exige `startupGreeting: true` antes de consultar tempo ou sintetizar fala. A saudação completa é gerada pela voz ElevenLabs configurada para aquela instalação; não é o MP3 fixo da demonstração. O autor ouviu e aprovou a narração de abertura com tempo/previsão gerada no painel. Para preservar essa escolha, o serviço usa **Eleven Multilingual v2**, estabilidade 0,5, similaridade 0,75, estilo 0, speaker boost ligado e velocidade 1, enviados explicitamente em cada síntese. O adaptador oferece Flash para outros usos, mas a abertura não troca automaticamente o modelo aprovado. Os campos seguem a [configuração oficial de voz](https://elevenlabs.io/docs/api-reference/voices/settings/update).
 
+O tom metálico é fixo e aplicado localmente pelo Web Audio durante a reprodução da saudação e da amostra. Não há controle de intensidade. O efeito não altera o clone, o MP3 de origem nem os parâmetros enviados à ElevenLabs.
+
 A execução automática completa ainda precisa de ensaio com a chave configurada no aplicativo. Aprovar a narração no painel confirma a escolha da voz; não comprova a consulta meteorológica ou a reprodução automática em uma nova instalação.
 
 A integração usa uma chave ElevenLabs própria, preenchida no campo mascarado das configurações, sem enviá-la à conversa. Acesso ao painel pelo navegador não fornece essa chave automaticamente. Sem chave, o serviço retorna o texto e `reason: requires_key`, com `audioBase64: null`; não simula uma resposta falada. Voz ausente ou erro de síntese também preservam o texto e informam a causa de disponibilidade.

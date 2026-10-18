@@ -280,7 +280,7 @@ function registerIPC() {
   });
   handle('openExternal', async value => {
     const url = new URL(webURL(value));
-    if (url.protocol !== 'https:' || !['github.com', 'developers.openai.com', 'platform.openai.com', 'docs.opencv.org', 'www.electronjs.org'].includes(url.hostname)) invalid('Este link externo não está na lista de documentação permitida.');
+    if (url.protocol !== 'https:' || !['github.com', 'developers.openai.com', 'platform.openai.com', 'docs.opencv.org', 'www.electronjs.org', 'open-meteo.com', 'creativecommons.org'].includes(url.hostname)) invalid('Este link externo não está na lista de documentação permitida.');
     await shell.openExternal(url.href); return true;
   });
 }

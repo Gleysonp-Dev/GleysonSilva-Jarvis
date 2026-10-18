@@ -4,28 +4,31 @@ Registro de 18 de outubro de 2026. Este relatório distingue implementação, te
 
 | Verificação | Resultado |
 | --- | --- |
-| Testes Node do runtime, provedores, ajustes, visão e servidor local | 135 aprovados; zero falhas e zero ignorados. |
+| Testes Node do runtime, provedores, ajustes, visão, renderer, áudio e servidor local | 147 aprovados; zero falhas e zero ignorados. |
 | Python opcional nos testes | Executado com Python 3.12; protocolo e pré-processamento com backend de teste. |
 | TypeScript | Aprovado com verificação estrita, sem emissão. |
 | Compilação da interface | Aprovada; interface React e Canvas gerada. |
 | Servidor funcional local | Iniciado em loopback; interface exibida com identificação de pasta de ensaio. |
-| Interface no navegador | Inspeção visual realizada; houve falhas de resposta da automação do navegador durante cliques. Validação interativa completa ainda pendente. |
+| Interface no navegador | Saudação real com tempo atual, previsão e atribuição exibida após correção de renderização. A atribuição é um objeto estruturado, coberto por quatro regressões de renderização React. |
 | Electron nativo | Não iniciado nesta sessão: dependências do Electron não estavam disponíveis e o ambiente rejeitou a ampliação de permissão para instalação. |
 | OpenAI com conta real | Não testada: chave ainda não configurada no aplicativo. Não há latência real medida. |
 | Voz clonada ElevenLabs | Criação real de GleysonSilva-Jarvis confirmada no painel do navegador; conta observada como Creator. Etapa adicional de microfone, indicada como opcional, não utilizada. |
 | Áudio real ElevenLabs | Frase de 131 caracteres gerada pelo painel com Eleven Multilingual v2 e baixada como MP3 44,1 kHz/128 kbps de 137.309 bytes. Não foi uma chamada real da CLI. |
-| Amostra no aplicativo | Arquivo incluído em assets/voice e controle explícito “Ouvir amostra Jarvis”, sem API ou captura. Pulsação ligada ao analisador local. O autor ouviu e aprovou a amostra. |
-| Narração de abertura | Gerada no painel com Eleven Multilingual v2 e parâmetros registrados; ouvida e aprovada pelo autor. A chave dedicada foi configurada no aplicativo; o teste integrado esbarrou em bloqueio de rede do ambiente (EACCES para os dois provedores), retornou o aviso de tempo indisponível e não anunciou reprodução inexistente. |
+| Amostra no aplicativo | Arquivo incluído em assets/voice e controle explícito “Amostra fixa da voz”, sem API ou captura. Pulsação ligada ao sinal processado. O autor ouviu e aprovou a voz de origem; a nova versão metálica foi preparada para audição. |
+| Tom metálico fixo | Grafo real Web Audio renderizado com OfflineAudioContext sobre o MP3 aprovado. Bypass interno idêntico à entrada; sinal processado distinto e finito; pico 0,753, sem saturação; silêncio de entrada permaneceu silêncio. O efeito fixo é local, sem ajuste na interface. A preferência auditiva do novo efeito ainda depende da escuta do autor. |
+| Narração de abertura | A voz e a narração foram aprovadas pelo autor. O processo restrito de desenvolvimento não acessa os provedores (EACCES). O servidor iniciado pelo usuário no Windows preparou texto com tempo/previsão válidos e retornou áudio; a interface ofereceu “Ouvir saudação” quando o navegador exigiu gesto. Reprodução e percepção auditiva precisam ser confirmadas separadamente. |
 | Adaptador ElevenLabs | CLI e streaming testados com respostas simuladas. Respostas dinâmicas do Jarvis ainda usam OpenAI marin. |
 | Microfone e câmera físicos | Controles de teste implementados; captura e reprodução reais ainda não confirmadas nesta sessão. |
 | Reconhecimento facial com pesos reais | Não medido. Testes usam representações sintéticas; não demonstram acurácia nem prova de vida. |
-| Pacote Windows e instalação limpa | Aguardam execução da integração contínua e ensaio em Windows. Nenhum executável assinado foi lançado. |
+| Pacote Windows e instalação limpa | O CI do commit f42472f aprovou os 135 testes então existentes e gerou o artefato portátil Windows. Instalação limpa e execução nativa ainda não ensaiadas; nenhum executável assinado foi lançado. As mudanças posteriores precisam de seu próprio CI. |
 
 Os testes de arquivos exercitam efeitos reais em pastas temporárias descartáveis: confirmação, movimento sem sobrescrita, mudança de plano, links, cancelamento e restauração. Os testes de provedores substituem o transporte de rede: validam contratos e erros. A geração real ElevenLabs descrita na tabela foi realizada separadamente no painel web, não por esses testes.
 
 A gravação WAV de referência, as credenciais e o ID de voz permanecem privados. O autor autorizou clonagem e distribuição pública do áudio gerado; o MP3 selecionado possui [aviso de origem e distribuição](../assets/voice/README.md). O arquivo permite reproduzir a frase fixa sem API, mas não contém um modelo capaz de gerar novas falas.
 
-O primeiro CI revelou um problema com caminhos abreviados Windows 8.3. A correção foi reproduzida com alias real, mantendo a rejeição de junções. O ensaio seguinte aprovou 134 de 135 testes; a única falha era uma expectativa textual do caminho no teste, corrigida para comparar o caminho canônico. O novo CI deve ser conferido antes de anunciar pacote disponível.
+O primeiro CI revelou um problema com caminhos abreviados Windows 8.3. A correção foi reproduzida com alias real, mantendo a rejeição de junções. Após corrigir a comparação textual do teste para usar o caminho canônico, o [CI do commit f42472f](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39152788680) aprovou verificação e empacotamento. O artefato é uma prévia sem assinatura, não uma release validada em instalação limpa.
+
+Um ensaio real revelou tela vazia ao receber a atribuição meteorológica estruturada: o renderer tentava inseri-la diretamente como texto. O contrato foi corrigido, a fonte/licença agora são exibidas por um componente próprio e uma proteção de recuperação evita uma tela totalmente vazia em futuras falhas de renderização. Recuperar a interface não repete automaticamente a síntese.
 
 Próximo aceite: executar fora do ambiente restrito de desenvolvimento, medir uma conversa real, confirmar liberação de dispositivos ao encerrar e validar o aplicativo nativo com os adaptadores Windows. Depois de instalar as dependências, `INICIAR-TESTE.cmd` abre o ensaio no navegador em loopback, porta 47833. Use [o roteiro completo](test-plan.md) para registrar resultados sem dados pessoais ou credenciais.
 

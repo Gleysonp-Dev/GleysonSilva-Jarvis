@@ -51,3 +51,4 @@ test('weather settings reject malformed locations and do not modify stored crede
  assert.throws(()=>store.save({apiKey:'openai-would-change',elevenApiKey:'bad\nkey'}));
  assert.throws(()=>store.save({startupGreeting:'yes'}));
 });
+

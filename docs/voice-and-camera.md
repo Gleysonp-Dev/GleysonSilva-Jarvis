@@ -10,6 +10,8 @@ A saída da conversa ao vivo usa `marin`, uma voz sintetizada fornecida pela Ope
 
 Use **Ouvir amostra Jarvis** para reproduzir o [MP3 incluído](../assets/voice/jarvis-demo.mp3). Esse botão inicia um arquivo local após clique, sem API ou microfone; o analisador do áudio reproduzido conduz a pulsação ciano. **Parar amostra** encerra a reprodução. O autor ouviu e aprovou a amostra e a narração de abertura com tempo/previsão. A [saudação dinâmica](startup-greeting.md) mantém explicitamente o modelo e os parâmetros aprovados; a execução automática com a chave do aplicativo possui validação separada.
 
+A saudação e a amostra recebem um tom metálico fixo durante a reprodução local, sem controle de intensidade. O processamento não modifica o clone, a síntese ElevenLabs ou os arquivos de origem. A pulsação acompanha o sinal efetivamente ouvido com o efeito aplicado.
+
 A amostra é uma frase fixa. Respostas novas na voz ElevenLabs exigem geração pela API ou outro backend de voz integrado. O streaming implementado no adaptador ainda precisa ser ligado ao diálogo e à interrupção para substituir a voz OpenAI da conversa. Não há modelo de voz exportado junto do MP3.
 
 Uma conversa por texto transmite palavras progressivamente, mas não liga o microfone nem reproduz áudio. A sessão de voz mostra a conexão e a transcrição. No modo sem bridge, uma prévia visual não demonstra esses recursos.
