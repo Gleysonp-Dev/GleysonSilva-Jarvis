@@ -1,5 +1,7 @@
 # Projeto GleysonSilva-Jarvis
 
+![GleysonSilva-Jarvis — núcleo circular ciano e identidade própria](assets/branding/social-preview.png)
+
 **Revisão 0.2.3 com CI aprovado:** X passa a encerrar o aplicativo e cortar áudio/captura; minimizar mantém a espera. Detectores mais conservadores buscam reduzir saudações acionadas indevidamente. A confirmação física permanece pendente; a apresentação sem transcrições da 0.2.2 foi preservada.
 
 Assistente pessoal para Windows com interface holográfica ciano, conversa por voz e ações locais que você pode revisar antes de autorizar.
