@@ -1,6 +1,6 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar o [código-fonte público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis) e entregar um resultado verificável. A revisão atual é **MVP 0.2.0 em desenvolvimento**, sem release assinada ou executável comprovado em instalação limpa.
+Roteiro para instalar o [código-fonte público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis) e entregar um resultado verificável. A revisão **MVP 0.2.1 tem a correção de abertura preparada**, sem release assinada ou executável comprovado em instalação limpa. O EXE 0.2.0 permaneceu sem janela apesar do CI aprovado. O novo teste nativo local foi bloqueado por permissões do ambiente antes do aplicativo; o CI Windows 0.2.1 ainda está pendente.
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
@@ -30,6 +30,12 @@ npm start
 ```
 
 Confirme janela, conversa, Ajustes, Memória, Registro e Presença. O núcleo permanece ciano; sem captura ou sessão real, os indicadores não devem alegar conexão.
+
+### Abertura real do pacote e no CI
+
+O nome previsto é **GleysonSilva-Jarvis-0.2.1-Windows.exe**. Gerar o pacote com `npm run package:win` não basta: execute o aplicativo real e confirme janela criada, interface carregada e encerramento. Para o teste isolado de abertura no CI, use perfil temporário, identificação exclusiva da execução, rede desativada e captura/início no login desligados. Exija evidência de carregamento e saída do processo; somente um PID ou lockfile não comprova sucesso.
+
+A correção 0.2.1 está preparada. No 0.2.0, `await app.whenReady()` no topo ESM impedia concluir a inicialização no Electron 44.9.0. Electron 44.9.0/Node 24.22 e SQLite foram verificados; a causa não era autostart/hardware/SQLite. O ensaio nativo 0.2.1 no ambiente Codex foi bloqueado por ACL do diretório do Electron antes do código do app; não comprova abertura. Não desative a sandbox para contornar esse bloqueio. O novo CI em Windows normal ainda está pendente; registre abertura e recursos separadamente.
 
 ### Navegador local
 
@@ -95,13 +101,15 @@ No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua i
 A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 
 - CI do commit ba0680: 147 testes, compilação e artefato portátil Windows aprovados.
+- Falha nativa do EXE 0.2.0 confirmada pelo usuário: processo sem janela, por bloqueio da inicialização ESM. Correção 0.2.1 preparada; abertura local bloqueada por permissão do ambiente antes do app, CI Windows pendente.
+- Revisão 0.2.1 local: **218 testes aprovados, zero falhas/skips**, com Python configurado; TypeScript, build e verificação do processo principal aprovados. O teste nativo bloqueado não é resultado de janela aberta.
 - Revisão 0.2.0 local: 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. O [CI 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409) também aprovou 214 testes, TypeScript, build e pacote Windows. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também aprovou testes, TypeScript, build e pacote Windows, incluindo o ajuste.
 - Ajustes inspecionados no navegador: início no login/palavra nativa desabilitados corretamente; espera exige voz/chave/cidade e opções salvas foram preservadas.
 - Texto OpenAI correto, microfone com nível/liberação e câmera 640×480/parada foram observados.
 - Um ensaio OpenAI Realtime foi ouvido, porém usou `marin`, diferente da voz desejada. Ele motivou a nova rota OpenAI → texto → ElevenLabs.
 - Saudação, velocidade 0,95× e efeito fixo foram aprovados.
 - Música privada: MP3 de aproximadamente 13 MB importado; prévia atual com a saudação gravada ouvida e aprovada: 17,8577 s, pico 0,7772, RMS 0,08711 e sem saturação. Ganho 0,35 na introdução/0,22 sob a fala; preset de voz preservado, TypeScript e build aprovados.
-- **Ainda pendentes:** nova conversa real com o clone, ativação nativa, retorno da espera, login, música na recepção ao vivo e execução física do EXE. A aprovação auditiva da prévia não comprova esses fluxos.
+- **Ainda pendentes:** abertura corrigida do pacote 0.2.1, nova conversa real com o clone, ativação nativa, retorno da espera, login e música na recepção ao vivo. A aprovação auditiva da prévia não comprova esses fluxos.
 
 Não transforme implementação ou teste com substituto em prova de hardware. Registre a execução atual e seus skips, sem copiar resultados antigos como se fossem novos.
 

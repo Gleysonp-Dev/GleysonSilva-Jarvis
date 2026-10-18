@@ -22,6 +22,8 @@ jobs:
         env:
           JARVIS_PYTHON: python
       - run: npm run package:win
+      - name: Open packaged Electron main, preload and renderer
+        run: node scripts/native-smoke.mjs --packaged
       - name: Calculate SHA256
         shell: pwsh
         run: |

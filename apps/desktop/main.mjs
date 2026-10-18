@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { readFile, mkdir, lstat, realpath, access } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { lstatSync, readdirSync, realpathSync } from 'node:fs';
 import { createRuntime } from '../../packages/runtime/index.mjs';
 import { OpenAIService, OpenAIServiceError } from '../../packages/openai/index.mjs';
 import { SettingsStore, validateSettings } from './settings.mjs';
@@ -47,6 +48,21 @@ function timeout(promise, ms, message) {
 app.setName(PRODUCT);
 app.enableSandbox();
 protocol.registerSchemesAsPrivileged([{ scheme: 'jarvis', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
+let smoke;
+if (process.argv.includes('--jarvis-smoke')) {
+  try {
+    const directory = process.env.JARVIS_SMOKE_DATA_DIR, token = process.env.JARVIS_SMOKE_TOKEN;
+    if (typeof directory !== 'string' || !path.isAbsolute(directory) || !path.basename(directory).startsWith('jarvis-native-smoke-') || !/^[a-f0-9]{64}$/.test(token ?? '')) throw new Error('invalid_smoke_configuration');
+    const stat = lstatSync(directory);
+    if (!stat.isDirectory() || stat.isSymbolicLink() || readdirSync(directory).length) throw new Error('invalid_smoke_directory');
+    const canonical = realpathSync.native(directory);
+    app.setPath('userData', canonical); app.setPath('sessionData', canonical);
+    delete process.env.OPENAI_API_KEY; delete process.env.ELEVENLABS_API_KEY;
+    smoke = { token };
+  } catch {
+    console.error('[Jarvis] JARVIS_SMOKE_CONFIGURATION_INVALID'); app.exit(1);
+  }
+}
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
@@ -326,13 +342,13 @@ async function cleanup(reason = 'window_closed') {
   return cleanupPromise;
 }
 
-if (singleInstance) {
+async function startApplication() {
   app.on('second-instance', () => { if (mainWindow && !mainWindow.isDestroyed()) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.show(); mainWindow.focus(); } });
   await app.whenReady();
   const userData = app.getPath('userData');
   settings = new SettingsStore(userData, safeStorage);
   musicStore = new GreetingMusicStore({ dataDir: userData });
-  startupStatus = configureStartup(app, settings.get());
+  if (!smoke) startupStatus = configureStartup(app, settings.get());
   wakeService = new WindowsWakeService({ onWake: event => { if (!standbyActive || shuttingDown) return; mainWindow?.show(); mainWindow?.focus(); publish({ type: 'wake.trigger', source: event.source }); }, onState: state => publish({ type: 'wake.status', ...state }) });
   speech = new SpeechController({ service: new SpeechService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() }), getProfile: () => settings.get().profileId });
   const fallbackWorkspace = path.join(userData, 'workspace');
@@ -362,10 +378,10 @@ if (singleInstance) {
       return new Response(body, { headers: { 'Content-Type': mime, 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Permissions-Policy': 'camera=(self), microphone=(self)', 'Cache-Control': 'no-store' } });
     } catch { return new Response('Compile a interface antes de iniciar o aplicativo.', { status: 503 }); }
   });
-  mainWindow = new BrowserWindow({ width: 1460, height: 960, minWidth: 960, minHeight: 700, title: PRODUCT, backgroundColor: '#030d10', autoHideMenuBar: true, show: !isStandbyLaunch() || !settings.get().standbyEnabled,
+  mainWindow = new BrowserWindow({ width: 1460, height: 960, minWidth: 960, minHeight: 700, title: PRODUCT, backgroundColor: '#030d10', autoHideMenuBar: true, show: !smoke && (!isStandbyLaunch() || !settings.get().standbyEnabled),
     webPreferences: { preload: PRELOAD, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, navigateOnDragDrop: false, autoplayPolicy: 'no-user-gesture-required', backgroundThrottling: false } });
-  session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => callback(contents === mainWindow?.webContents && permission === 'media' && details.isMainFrame === true && details.requestingUrl === APP_URL));
-  session.defaultSession.setPermissionCheckHandler((contents, permission, requestingOrigin, details) => contents === mainWindow?.webContents && permission === 'media' && details.isMainFrame === true && details.requestingUrl === APP_URL && requestingOrigin.replace(/\/$/, '') === APP_ORIGIN);
+  session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => callback(!smoke && contents === mainWindow?.webContents && permission === 'media' && details.isMainFrame === true && details.requestingUrl === APP_URL));
+  session.defaultSession.setPermissionCheckHandler((contents, permission, requestingOrigin, details) => !smoke && contents === mainWindow?.webContents && permission === 'media' && details.isMainFrame === true && details.requestingUrl === APP_URL && requestingOrigin.replace(/\/$/, '') === APP_ORIGIN);
   session.defaultSession.setDevicePermissionHandler(() => false);
   session.defaultSession.on('will-download', event => event.preventDefault());
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -376,9 +392,35 @@ if (singleInstance) {
   app.on('before-quit', event => { if (!shuttingDown) { event.preventDefault(); void cleanup().finally(() => app.quit()); } });
   app.on('window-all-closed', () => app.quit());
   registerIPC();
-  if (process.platform === 'win32') { try { tray = new Tray(nativeImage.createFromBuffer(Buffer.from(TRAY_ICON, 'base64'))); tray.setToolTip(PRODUCT); tray.on('double-click', () => { mainWindow.show(); mainWindow.focus(); }); updateTray(); } catch { tray = undefined; mainWindow.show(); } }
+  if (process.platform === 'win32' && !smoke) { try { tray = new Tray(nativeImage.createFromBuffer(Buffer.from(TRAY_ICON, 'base64'))); tray.setToolTip(PRODUCT); tray.on('double-click', () => { mainWindow.show(); mainWindow.focus(); }); updateTray(); } catch { tray = undefined; mainWindow.show(); } }
   await mainWindow.loadURL(APP_URL);
+  if (smoke) {
+    const result = await timeout(mainWindow.webContents.executeJavaScript(`(async () => {
+      const deadline = Date.now() + 15000;
+      while (!document.querySelector('#root .app-shell') && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 25));
+      const dom = !!document.querySelector('#root .app-shell');
+      const preload = typeof window.jarvis?.boot === 'function';
+      const data = preload ? await window.jarvis.boot() : null;
+      return { dom, preload, boot: !!(data && typeof data.settings?.profileId === 'string' && Array.isArray(data.snapshot?.memories) && Array.isArray(data.snapshot?.tasks) && typeof data.capabilities?.desktop === 'boolean') };
+    })()`, false), 20000, 'JARVIS_SMOKE_TIMEOUT');
+    if (!result?.dom || !result?.preload || !result?.boot) throw new Error('JARVIS_SMOKE_NOT_READY');
+    process.stdout.write(`JARVIS_NATIVE_SMOKE=${JSON.stringify({ token: smoke.token, ready: app.isReady(), window: !mainWindow.isDestroyed(), ...result, packaged: app.isPackaged })}\n`);
+    await cleanup('smoke_test'); app.exit(0);
+  }
 }
+
+async function handleStartupFailure() {
+  const message = 'Não foi possível iniciar o Jarvis. O aplicativo será encerrado. Tente abrir novamente; se o problema persistir, informe o código JARVIS_STARTUP_FAILED.';
+  console.error('[Jarvis] JARVIS_STARTUP_FAILED');
+  if (smoke) process.stdout.write(`JARVIS_NATIVE_SMOKE=${JSON.stringify({ token: smoke.token, ready: false, error: 'JARVIS_STARTUP_FAILED' })}\n`);
+  else try { dialog.showErrorBox(PRODUCT, message); } catch { /* The fixed diagnostic above is also available to the launcher. */ }
+  try { await cleanup('startup_failed'); } catch { /* Exit still releases native resources when initialization was incomplete. */ }
+  app.exit(1);
+}
+
+// Electron waits for ESM entry evaluation before emitting ready. Waiting at module
+// scope would therefore prevent the very event that startApplication needs.
+if (singleInstance) void startApplication().catch(handleStartupFailure);
 
 function updateTray() {
   if (!tray) return;
