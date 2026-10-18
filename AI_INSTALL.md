@@ -1,6 +1,6 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar o [código-fonte público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis) e entregar um resultado verificável. O **MVP 0.2.2 está implementado, com 221 testes e abertura nativa aprovados no CI Windows**. A janela no computador do usuário foi confirmada por captura de tela da base 0.2.1. Não há release assinada ou validação completa em instalação limpa.
+Roteiro para instalar o [código-fonte público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis) e entregar um resultado verificável. O **MVP 0.2.3 teve 229 testes, TypeScript, build, pacote e abertura nativa aprovados no CI Windows**. A janela no computador do usuário foi confirmada por captura de tela da base 0.2.1. Fechamento corrigido, filtros e recursos físicos da nova versão ainda exigem ensaio. Não há release assinada ou validação completa em instalação limpa.
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
@@ -33,7 +33,7 @@ Confirme janela, conversa, Ajustes, Memória, Registro e Presença. O núcleo pe
 
 ### Abertura real do pacote e no CI
 
-O pacote atual é **GleysonSilva-Jarvis-0.2.2-Windows.exe**. Além do empacotamento, o [CI d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. A captura de tela do usuário confirmou a janela da versão 0.2.1; registre separadamente o ensaio da nova versão no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
+O pacote atual é **GleysonSilva-Jarvis-0.2.3-Windows.exe**. Além do empacotamento, o [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. A captura de tela do usuário confirmou a janela da versão 0.2.1; registre separadamente o ensaio da nova versão no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
 
 No 0.2.0, `await app.whenReady()` no topo ESM impedia concluir a inicialização no Electron 44.9.0. A revisão 0.2.1 corrigiu esse caminho e passou no CI com Electron real. Electron 44.9.0/Node 24.22 e SQLite foram verificados; a causa não era autostart/hardware/SQLite. O ensaio no ambiente Codex ficou bloqueado por ACL antes do app; isso é distinto da abertura aprovada no CI Windows. Nenhuma sandbox foi desativada para esse aceite. Registre abertura e recursos separadamente.
 
@@ -65,6 +65,8 @@ Na apresentação 0.2.2, saudação e conversa falada não acrescentam transcri�
 
 A voz do autor já foi criada com autorização; **não faça outra clonagem durante a instalação**. Outra instalação precisa de voz disponível na própria conta. O ID e a referência não são públicos. Preserve a síntese aprovada e a reprodução fixa a **0,95× com altura preservada e efeito metálico 0,78**, sem ajustes.
 
+A [amostra pública em assets/voice/jarvis-demo.mp3](assets/voice/jarvis-demo.mp3) é uma frase fixa autorizada, incluída com a documentação no GitHub. Ela não contém o modelo da voz, ID ou credenciais para gerar falas novas. A música recebida fica privada, fora do repositório e do pacote; não a copie para a instalação de terceiros ou para a publicação.
+
 ## 4. Executar testes funcionais autorizados
 
 1. **Microfone:** Testar microfone, falar, observar nível, cancelar/parar e conferir liberação. Sem API. Se a permissão ficar pendente, o controle deve permitir cancelar; não gere vários prompts.
@@ -90,6 +92,8 @@ Em Ajustes → Início e espera, as opções `startAtLogin` e `standbyEnabled` c
 
 Teste pausar/retomar, minimizar para continuar em espera, fechar pelo X para encerrar áudio/captura/aplicativo e desativar login. X e Sair não devem manter a voz tocando nem permitir nova ativação em segundo plano. Registre reconhecedor ausente ou permissão negada. No navegador, palmas podem sofrer limitações de segundo plano; ele não equivale ao ensaio nativo. Detalhes em [docs/standby.md](docs/standby.md).
 
+Os filtros 0.2.3 são mais conservadores, mas continuam heurísticos. Escores do reconhecedor Windows são relativos; não são probabilidade de intenção. O relato de recepção repetida não identifica qual detector disparou. Teste cada gatilho separadamente, fala/TV/impactos e retorno após a própria narração, sem declarar ausência de falsos positivos a partir dos testes sintéticos.
+
 ## 6. Visão opcional
 
 Texto, voz e prévia não precisam de Python. Para reconhecimento, use Python 3.12 recomendado em ambiente virtual e siga [services/vision/README.md](services/vision/README.md).
@@ -106,6 +110,7 @@ A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 - Falha nativa do EXE 0.2.0 confirmada pelo usuário: processo sem janela, por bloqueio da inicialização ESM. Correção 0.2.1 aprovada em abertura real no CI e abertura visual no computador do usuário confirmada por captura de tela. O bloqueio local por ACL foi um ensaio separado.
 - Revisão 0.2.1: **218 testes aprovados, zero falhas/skips**, TypeScript, build, pacote Windows e teste de abertura nativa aprovados no CI 8a074e7. O ZIP do artefato 12149680971 foi baixado e seu SHA-256 conferido; detalhes em [Validação](docs/validation.md).
 - Revisão 0.2.2: **221 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa aprovados no [CI d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465). Ensaio visual com serviços substituídos confirmou ausência de transcrições de voz no painel e preservação do texto digitado; não comprova áudio ou captura reais.
+- Revisão 0.2.3: **229 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa aprovados no [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134). X/Sair/before-quit compartilham encerramento; áudio e janela param antes da espera pelos serviços. Fechamento durante áudio e filtros corrigidos ainda exigem ensaio físico.
 - Revisão 0.2.0 local: 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. O [CI 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409) também aprovou 214 testes, TypeScript, build e pacote Windows. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também aprovou testes, TypeScript, build e pacote Windows, incluindo o ajuste.
 - Ajustes inspecionados no navegador: início no login/palavra nativa desabilitados corretamente; espera exige voz/chave/cidade e opções salvas foram preservadas.
 - Texto OpenAI correto, microfone com nível/liberação e câmera 640×480/parada foram observados.

@@ -1,6 +1,6 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
-O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão **0.2.2 está implementada, com 221 testes, TypeScript, build, pacote e abertura nativa aprovados no CI Windows**. A base 0.2.1 corrigiu a falha sem janela do 0.2.0; o usuário confirmou sua abertura visual por captura de tela. Não há release assinada ou validação completa em instalação limpa.
+O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão **0.2.3 teve 229 testes, TypeScript, build, pacote e abertura nativa aprovados no CI Windows**. A base 0.2.2 preserva o painel sem transcrições; a base 0.2.1 corrigiu a falha sem janela do 0.2.0 e o usuário confirmou sua abertura visual por captura de tela. Fechamento durante áudio e filtros da nova revisão ainda exigem ensaio físico. Não há release assinada ou validação completa em instalação limpa.
 
 A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação completa, efeito metálico fixo 0,78 e reprodução a 0,95× com altura preservada. Superioridade, exclusividade e vantagem de latência dependem de comparação reproduzível; não são resultados demonstrados.
 
@@ -13,16 +13,19 @@ A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação
 | Entrada e saída de voz | Microfone real com nível/liberação; resposta OpenAI Realtime anterior ouvida em marin. | Nova rota de conversa com a voz ElevenLabs configurada, sem saída OpenAI alternativa. |
 | Voz Jarvis | Clone criado; amostra e recepção aprovadas a 0,95×/efeito fixo. | Respostas dinâmicas, interrupção e retomada em sessão real. |
 | Espera 0.2.0 | Código de palmas locais, palavra System.Speech, login opt-in e pausa da escuta. | Dispositivo real, idioma, falsos positivos, segundo plano, retorno e login no pacote Windows. |
+| Fechamento e filtros 0.2.3 | X alterado para silenciar e destruir a janela imediatamente, com encerramento compartilhado; filtros mais conservadores testados com substitutos e CI aprovado. | Ensaio físico do fechamento durante áudio, minimizar/retorno, gatilhos e ruído. Não se sabe qual detector causou a repetição relatada. |
 | Música | Arquivo privado recebido; prévia atual com saudação ouvida/aprovada, ganho 0,35/0,22. | Testar recepção ao vivo e encerramento. Não há trilha padrão distribuída. |
 | Presença | Webcam real 640×480 e parada confirmadas. | Instalar OpenCV/pesos opcionais e ensaiar identificação voluntária. |
 | Execução | Pasta limitada, proposta, confirmação, registro e restauração condicionada. | Ensaios Windows com aplicativos e arquivos descartáveis. |
-| Distribuição | CI 0.2.2: 221 testes, TypeScript, build, pacote e abertura real de janela/DOM/preload/boot aprovados; abertura visual do 0.2.1 confirmada pelo usuário. | Ensaiar 0.2.2 no destino, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
+| Distribuição | CI 0.2.3: 229 testes, TypeScript, build, pacote e abertura real de janela/DOM/preload/boot aprovados; abertura visual do 0.2.1 confirmada pelo usuário. | Ensaiar 0.2.3 no destino, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
 
 A revisão 0.2.0 revelou bloqueio por `await app.whenReady()` no topo ESM do Electron 44.9.0, apesar do CI de empacotamento aprovado. A revisão 0.2.1 corrigiu o bootstrap e passou por 218 testes e pelo [teste nativo real no CI 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494): janela, DOM, preload e boot do pacote confirmados. O bloqueio por ACL no ambiente local é um ensaio separado; não ocorreu no CI. A captura de tela do usuário confirmou a abertura visual no próprio computador.
 
 Consulte [Validação](validation.md) para limites das evidências e [Plano de testes](test-plan.md) para os cenários.
 
 O [CI d72c4887 da revisão 0.2.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) manteve o teste nativo e aprovou todos os passos. A ausência de transcrições foi verificada com serviços substituídos; conversa com o clone, microfone nativo, login e DPAPI continuam exigindo ensaio físico.
+
+A revisão 0.2.3 preserva a apresentação sem transcrições. Seu [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134) aprovou todos os passos, incluindo abertura nativa real. Os novos limites de confiança nativa são relativos e heurísticos, sem garantia de eliminar ativações indevidas; o próximo aceite usa áudio e dispositivos reais.
 
 ## 1. Fechar a validação da conversa
 
@@ -43,7 +46,7 @@ A interface do **GleysonSilva-Jarvis-0.2.1-Windows.exe** já abriu no computador
 - Habilitar espera e início no login somente por escolha explícita.
 - Testar palmas com ruído/fala e reconhecedor offline “Jarvis” no idioma instalado.
 - Suspender escuta durante sua fala/música e ceder o microfone à conversa ativa.
-- Verificar pausa/retorno, bandeja, saída e retomada após suspensão.
+- Verificar pausa/retorno, bandeja e retomada após suspensão. Minimizar mantém a espera; X e Sair devem parar áudio/captura imediatamente e encerrar o aplicativo, sem nova ativação.
 - No pacote Windows em caminho estável, testar entrada real na conta e desativação do registro.
 - Usar a música privada já recebida e aprovada em prévia; conferir fim/cancelamento na recepção ao vivo.
 

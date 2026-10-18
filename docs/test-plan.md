@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-Este plano cobre a revisão 0.2.2, implementada com CI aprovado, e distingue verificações automáticas de ensaios com Windows, dispositivos e contas OpenAI/ElevenLabs. O [CI d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes, TypeScript, build, pacote e abertura nativa real. Esses resultados não comprovam latência, reconhecimento facial, som audível ou ativação por dispositivos.
+Este plano cobre a revisão 0.2.3, com **229 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados no [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134)**. O [CI da base 0.2.2 d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes e preservou a apresentação sem transcrições. Esses resultados não comprovam latência, reconhecimento facial, som audível, fechamento durante áudio ou ativação por dispositivos.
 
 ## Evidências já registradas
 
@@ -10,6 +10,7 @@ Este plano cobre a revisão 0.2.2, implementada com CI aprovado, e distingue ver
 | Revisão 0.2.0 local | 214 testes aprovados, zero falhas/skips, com Python configurado; TypeScript estrito, build e verificação do processo principal aprovados. | Provedores pagos, microfone/palavra/palmas e login real. |
 | Abertura 0.2.1 | CI com 218 testes e abertura real de janela/DOM/preload/boot; captura de tela do usuário confirmou a janela no próprio computador. | Conversa com clone, microfone nativo, login e persistência DPAPI. |
 | Revisão 0.2.2 | CI com 221 testes e abertura real do pacote; ensaio visual substituído manteve voz fora do painel e texto digitado visível. | Áudio do clone e dispositivos reais; execução da nova versão pelo usuário. |
+| Revisão 0.2.3 | 229 testes, TypeScript, build, pacote e abertura nativa real aprovados no CI; handlers de fechamento e filtros testados com Electron/OS/sinais substituídos. | Encerramento durante áudio e novos filtros no equipamento do usuário. |
 | Texto OpenAI | Pergunta real respondida corretamente. | Benchmark, custo e latência comparável. |
 | Microfone | Captura com nível e liberação observadas. | Detector de palmas ou palavra. |
 | Câmera | Prévia real 640×480 e parada. | Reconhecimento: OpenCV e pesos ausentes. |
@@ -114,6 +115,7 @@ Registrar tempo até o primeiro som, falhas e consumo por provedor. Não substit
 1. Em configuração limpa, confirme `startAtLogin: false` e `standbyEnabled: false`. Instalar não deve registrar login nem deixar o microfone aberto. Ative somente com escolha explícita e recepção configurada.
 2. Com palmas escolhidas, use duas palmas entre 150–800 ms. Teste uma palma, intervalos inválidos, três palmas, repetição durante cooldown, fala, TV, teclas e ruído. Registre falsos positivos/negativos; não extrapole de sinais sintéticos.
 3. No Windows nativo, teste “Jarvis” com reconhecedor de idioma instalado, e indisponibilidade sem reconhecedor. Não permitir migração silenciosa para Web Speech em nuvem. O teste HTTP deve manter o recurso nativo indisponível.
+   Teste cada gatilho separadamente e depois ambos. Os filtros 0.2.3 conferem duração, frase/palavra, acomodação inicial e intervalos; a confiança nativa é um escore relativo, sem equivaler à intenção. Registre a origem observada do gatilho, sem atribuir o relato anterior a um detector não identificado.
 4. Durante a saudação e eventual música, confira que a espera está pausada e o próprio áudio não reativa o assistente. Após fim/interrupção, confirme retorno apenas se ainda habilitada. Testar microfone/conversa ativa deve suspender a captura de espera concorrente.
 5. Minimize, mude de janela, bloqueie/desbloqueie e retome suspensão. Verifique sinais e timers no pacote; registrar limitações do navegador separadamente.
 6. Pause/retome na bandeja e minimize para continuar em espera. Durante saudação com música ou conversa, feche pelo X: áudio, captura, worker e aplicativo devem encerrar, sem reabrir por gatilho. Repita por Sair na bandeja. Troca de perfil deve invalidar callbacks antigos.

@@ -1,10 +1,10 @@
 # Projeto GleysonSilva-Jarvis
 
-**Revisão 0.2.3 em validação:** X passa a encerrar o aplicativo e cortar áudio/captura; minimizar mantém a espera. Detectores mais conservadores buscam reduzir saudações acionadas indevidamente. A confirmação física permanece pendente. Os resultados da base 0.2.2 estão registrados abaixo.
+**Revisão 0.2.3 com CI aprovado:** X passa a encerrar o aplicativo e cortar áudio/captura; minimizar mantém a espera. Detectores mais conservadores buscam reduzir saudações acionadas indevidamente. A confirmação física permanece pendente; a apresentação sem transcrições da 0.2.2 foi preservada.
 
 Assistente pessoal para Windows com interface holográfica ciano, conversa por voz e ações locais que você pode revisar antes de autorizar.
 
-**Estado: MVP 0.2.2 implementado, com CI Windows aprovado.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão passou por 221 testes e abertura nativa real do pacote no CI. A abertura no computador do usuário foi confirmada por captura de tela da base 0.2.1. Isso confirma a interface aberta, sem comprovar conversa com o clone, microfone nativo, login ou proteção das chaves. Não há release assinada ou validação completa em instalação limpa.
+**Estado: MVP 0.2.3 implementado, com CI Windows aprovado.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão atual passou por 229 testes, TypeScript, build, pacote e abertura nativa real no CI. A abertura no computador do usuário foi confirmada por captura de tela da base 0.2.1. Isso confirma a interface aberta, sem comprovar conversa com o clone, microfone nativo, login ou proteção das chaves. Não há release assinada ou validação completa em instalação limpa.
 
 O núcleo mantém a mesma cor ao ouvir, responder e executar. Brilho e expansão acompanham o sinal de áudio; ferramentas usam uma cadência própria. O painel mantém controles e estados funcionais, sem slogans. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
 
@@ -44,7 +44,7 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-O pacote **GleysonSilva-Jarvis-0.2.2-Windows.exe** foi gerado e teve abertura real aprovada no CI. O usuário confirmou a abertura visual da versão 0.2.1 por captura de tela; o ensaio da nova versão no computador de destino continua separado. A presença de um processo ou o sucesso do empacotamento, isoladamente, não bastam.
+O pacote **GleysonSilva-Jarvis-0.2.3-Windows.exe** foi gerado e teve abertura real aprovada no CI. O usuário confirmou a abertura visual da versão 0.2.1 por captura de tela; o ensaio da nova versão no computador de destino continua separado. A presença de um processo ou o sucesso do empacotamento, isoladamente, não bastam.
 
 ### Configuração e primeira conversa
 
@@ -62,9 +62,13 @@ Configure a cidade privadamente e use **Iniciar Jarvis** para preparar uma sauda
 
 Em **Ajustes → Início e espera**, escolha conscientemente manter o microfone em espera, usar duas palmas e/ou a palavra “Jarvis”. O detector de palmas processa o sinal no computador. A palavra exige um reconhecedor de idioma compatível instalado no Windows e não usa Web Speech do navegador. A espera não abre uma conversa com a OpenAI; o gatilho inicia a recepção com clima.
 
+Na revisão 0.2.3, os filtros de palmas e palavra ficaram mais conservadores. O reconhecimento nativo verifica frase, palavra, duração, acomodação inicial e intervalo entre ativações; seus escores são relativos, sem equivaler à probabilidade de intenção. O evento de repetição relatado não possui registro que identifique qual detector o disparou. É necessário ensaiar fala, TV e impactos reais; não há garantia de ausência de falsos positivos.
+
 **Iniciar ao entrar no Windows** é uma opção separada para a versão empacotada. Instalar o código não ativa captura em segundo plano nem registra início automático. O navegador de teste não altera o login do Windows e não oferece a palavra de ativação nativa.
 
 A música depende de um arquivo fornecido pelo usuário e mantido privado. A prévia atual com a saudação foi ouvida e aprovada, com ganho de 0,35 na introdução e 0,22 sob a fala. O ensaio na recepção ao vivo ainda está pendente. Não existe trilha padrão nesta entrega. Consulte [Espera e início no Windows](docs/standby.md) para requisitos, pausa, encerramento e limitações.
+
+O GitHub contém a documentação e a [amostra de voz autorizada](assets/voice/jarvis-demo.mp3), que reproduz uma frase fixa. A música recebida permanece privada e não é distribuída no repositório nem no pacote. Chaves, ID da voz e gravação de referência também não acompanham a amostra; novas falas exigem configuração privada da ElevenLabs.
 
 ### Primeira ação
 
@@ -118,6 +122,8 @@ A revisão 0.2.0 passou localmente por **214 testes**, zero falhas/skips, com Py
 A revisão **0.2.1 passou por 218 testes**, zero falhas/skips, TypeScript, build, empacotamento e **teste nativo real no [CI Windows 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494)**. O teste confirmou aplicação pronta, janela, DOM, preload, boot e pacote em cerca de dois segundos. O bloqueio por permissões do ambiente local foi um resultado separado e não ocorreu nesse CI.
 
 A revisão **0.2.2 passou por 221 testes**, zero falhas/skips, TypeScript, build, pacote e **abertura nativa real no [CI d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465)**. O ensaio visual com serviços substituídos confirmou saudações sem mensagens no painel, uma fonte meteorológica compacta e preservação das mensagens digitadas. Isso não é um teste de provedor ou hardware.
+
+A revisão **0.2.3 passou por 229 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real no [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134). As regressões de fechamento exercitam o principal real com Electron/OS substituídos; filtros de ativação usam sinais/eventos sintéticos. X encerra e corta o áudio antes de esperar a limpeza; minimizar preserva a espera. A abertura isolada no CI não comprova o teste físico desse fechamento ou dos novos filtros, que permanece pendente.
 
 No ensaio real foram confirmados texto OpenAI correto, microfone com nível e liberação, prévia de câmera 640×480 e parada, saudação aprovada e áudio OpenAI Realtime ouvido. Este último usou `marin`, voz diferente da desejada, motivando a troca para ElevenLabs.
 

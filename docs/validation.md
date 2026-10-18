@@ -1,10 +1,16 @@
-# Validação do MVP 0.2.2
+# Validação do MVP 0.2.3
 
-## Correção 0.2.3 em validação
+## Correção 0.2.3 — CI aprovado, ensaio físico pendente
 
 O usuário relatou repetição da saudação com o aplicativo aberto e voz continuando após fechar a janela. O processo principal permaneceu ativo e os ajustes de espera/palmas/palavra estavam habilitados. O handler de X ocultava a janela quando a espera estava ligada, sem parar o áudio: essa causa foi localizada no código. A revisão 0.2.3 muda X para encerramento real e torna os detectores mais conservadores. Não há gravação ou registro do evento que identifique qual detector disparou; o novo comportamento ainda requer ensaio físico. Minimizar continua sendo a opção para manter a espera. A remoção das transcrições da revisão 0.2.2 permanece preservada.
 
 Verificação local 0.2.3: 229 testes aprovados, zero falhas e skips, TypeScript estrito e build aprovados. As regressões de fechamento executam os handlers reais do principal com Electron/OS substituídos, incluindo interrupção imediata com worker pendente, cancelamento dos provedores e fechamento concorrente por X/Sair/before-quit. Os filtros acústicos usam sinais/eventos sintéticos; o validador C# foi executado sem abrir o microfone. Essas evidências ainda não equivalem ao ensaio físico no pacote corrigido.
+
+O [CI 0.2.3 do commit 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134) concluiu todos os passos com sucesso: **229 testes, 229 aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O [job 117789021817](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134/job/117789021817) registrou às **21:05:23 UTC** ready, window, dom, preload, boot e packaged verdadeiros. Rede, captura e início no login ficaram isolados. Isso não comprova fechamento durante fala nem ativação física dos filtros.
+
+Os filtros nativos consideram confiança de frase e palavra, duração, acomodação inicial e intervalo entre ativações; são limites heurísticos e escores relativos. Não demonstram eliminação dos falsos positivos nem identificam a origem do evento relatado.
+
+O artefato **12151195524** foi baixado e conferido: ZIP de **104.007.627 bytes**, SHA-256 `6d0fae8269ba83a01e5dbaff383a5a741c2dea3c59bb44c160d2b23c4f93413a`, igual ao digest do CI. A extração aceitou somente o EXE esperado e seu checksum. O executável tem **103.997.753 bytes** e SHA-256 `07b01da2ed2cf30cf1752025b38054fe2550dfb334493bc35d8fd465df7cb45d`, conferido contra o arquivo `.sha256`. Nenhum teste físico de áudio é inferido dessa conferência.
 
 Registro de 18 de outubro de 2026. Este documento separa implementação, testes com substitutos e observação real. **O CI da base 0.2.0, commit 63cf00153dbab0a52cf3f05a82eb9e7fab3ba385, foi concluído com sucesso. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também foi concluído com sucesso e gerou o artefato atualizado 12148553183.**
 
@@ -89,7 +95,7 @@ Um ensaio visual com serviços substituídos apresentou duas saudações simulad
 
 O CI gerou o artefato **12149933875**, ZIP de **104.007.384 bytes**, com digest informado `sha256:fd9ee94b83a2f9469e15c6e9db46352c015878963e836f4a29b767ec701618dd`. Esse registro não afirma conclusão do download ou da conferência local do novo ZIP.
 
-A gravação de referência, a cidade, as credenciais, o identificador da voz e a música recebida permanecem privados. O [aviso de distribuição](../assets/voice/README.md) aplica-se ao MP3 de voz selecionado, não à trilha privada, a toda a pasta de dados ou a um modelo exportável de voz.
+A gravação de referência, a cidade, as credenciais, o identificador da voz e a música recebida permanecem privados. O GitHub contém a documentação e o [MP3 de apresentação autorizado](../assets/voice/jarvis-demo.mp3). O [aviso de distribuição](../assets/voice/README.md) aplica-se a esse MP3, não à trilha privada, a toda a pasta de dados ou a um modelo exportável de voz. A música não é distribuída no repositório nem no pacote.
 
 ## Histórico relevante
 
@@ -101,6 +107,6 @@ A origem do áudio também foi distinguida: a amostra de apresentação é fixa;
 
 ## Próximo aceite
 
-A abertura visual do pacote 0.2.1 já foi confirmada pelo usuário; a revisão 0.2.2 passou pelo CI e pelo ensaio visual com serviços substituídos. Próximo passo: ensaiar a nova versão no equipamento de destino, a conversa OpenAI → texto → ElevenLabs, captura/liberação de microfone no nativo, palmas, reconhecedor Windows, pausa/retorno, música na recepção ao vivo, início no login e persistência DPAPI. Abertura da janela e aprovação da prévia musical não substituem esses testes.
+A abertura visual do pacote 0.2.1 já foi confirmada pelo usuário; a revisão 0.2.2 passou pelo ensaio visual com serviços substituídos e a 0.2.3 passou pelo CI e abertura nativa isolada. Próximo passo: ensaiar X durante fala/música/conversa, ausência de nova ativação após encerrar e minimizar mantendo a espera. Depois conferir a conversa OpenAI → texto → ElevenLabs, captura/liberação de microfone no nativo, gatilhos isolados e combinados, pausa/retorno, música na recepção ao vivo, início no login e persistência DPAPI. Abertura da janela e aprovação da prévia musical não substituem esses testes.
 
 Não há p50/p95 de latência nem comparação de superioridade publicados. Use [o plano de testes](test-plan.md) para registrar conta, dispositivo, superfície, falhas e medições sem dados privados.

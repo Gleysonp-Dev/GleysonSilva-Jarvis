@@ -2,6 +2,8 @@
 
 Recursos introduzidos no código 0.2.0. **Ainda precisam de ensaio real de ativação, pausa/retorno, login e aplicativo empacotado.** Testes automáticos exercitam detecção sintética e contratos com dispositivos/processos substituídos.
 
+A revisão 0.2.3 teve **229 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa aprovados no [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134)**. Ela mantém a apresentação sem transcrições da 0.2.2, corrige X para encerrar e torna os filtros mais conservadores. O relato de repetição não identifica qual gatilho disparou; não há alegação de eliminação de falsos positivos. Fechamento durante áudio e ativação física continuam pendentes.
+
 ## Ativação voluntária
 
 `startAtLogin` e `standbyEnabled` começam em `false`. Em Ajustes → Início e espera, a pessoa escolhe iniciar ao entrar no Windows e/ou manter o microfone em espera. Os gatilhos de palmas e palavra podem ser escolhidos separadamente. É necessário configurar voz ElevenLabs, chave e cidade para a recepção.
@@ -39,6 +41,8 @@ Na revisão 0.2.3, **X encerra o aplicativo**, mesmo com espera habilitada. Voz,
 ## Música da recepção
 
 Há suporte a uma fonte escolhida pelo usuário, em configuração privada. **O arquivo musical já foi fornecido e importado privadamente, como MP3 de aproximadamente 13 MB. Nenhuma trilha padrão é distribuída.**
+
+O [MP3 público de voz](../assets/voice/jarvis-demo.mp3) é uma amostra fixa autorizada e não contém essa música. A música recebida permanece fora do GitHub e do pacote; ID da voz, credenciais e gravação de referência também ficam privados.
 
 A prévia atual com a saudação gravada foi ouvida e aprovada pelo usuário: 17,8577 s, pico 0,7772, RMS 0,08711 e sem saturação. Mantém ganho de 0,35 na introdução e 0,22 durante a fala, preservando o preset da voz. TypeScript e build aprovados; [CI do ajuste e0d8ddaa aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), incluindo o pacote Windows. A aprovação da prévia não comprova login, ativação ou reprodução/fim da música na recepção ao vivo.
 
