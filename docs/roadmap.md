@@ -1,6 +1,6 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
-O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão **0.2.1 tem a correção de abertura preparada**, com 218 testes locais aprovados. O EXE 0.2.0 falhou sem janela apesar do CI aprovado. O teste nativo local 0.2.1 foi bloqueado por permissões do ambiente antes do app; o novo CI Windows está pendente. Não há release assinada ou aplicativo comprovado em instalação limpa.
+O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão **0.2.1 teve abertura nativa real aprovada no CI Windows**, além de 218 testes, TypeScript, build e pacote. Corrige a falha sem janela do 0.2.0. O usuário ainda precisa abrir o novo executável no próprio computador. Não há release assinada ou validação completa em instalação limpa.
 
 A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação completa, efeito metálico fixo 0,78 e reprodução a 0,95× com altura preservada. Superioridade, exclusividade e vantagem de latência dependem de comparação reproduzível; não são resultados demonstrados.
 
@@ -16,15 +16,15 @@ A referência aprovada é o dashboard limpo, núcleo ciano constante, saudação
 | Música | Arquivo privado recebido; prévia atual com saudação ouvida/aprovada, ganho 0,35/0,22. | Testar recepção ao vivo e encerramento. Não há trilha padrão distribuída. |
 | Presença | Webcam real 640×480 e parada confirmadas. | Instalar OpenCV/pesos opcionais e ensaiar identificação voluntária. |
 | Execução | Pasta limitada, proposta, confirmação, registro e restauração condicionada. | Ensaios Windows com aplicativos e arquivos descartáveis. |
-| Distribuição | CI 0.2.0: 214 testes, TypeScript, build e pacote aprovados; EXE executado pelo usuário falhou sem janela. | Abertura real corrigida no 0.2.1, CI com teste de inicialização, instalação limpa, proteção nativa e assinatura. |
+| Distribuição | CI 0.2.1: 218 testes, TypeScript, build, pacote e abertura real de janela/DOM/preload/boot aprovados; artefato baixado e ZIP conferido. | Abertura no computador do usuário, instalação limpa, recursos nativos, proteção das chaves e assinatura. |
 
-A revisão 0.2.0 passou por 214 testes e empacotamento, mas a execução revelou bloqueio por `await app.whenReady()` no topo ESM do Electron 44.9.0. Electron 44.9.0/Node 24.22 e SQLite foram verificados; a causa era a inicialização, não autostart/hardware. A correção 0.2.1 passou por **218 testes locais, zero falhas/skips**, TypeScript, build e verificação do principal. Seu ensaio nativo local ficou bloqueado por ACL do ambiente antes do código do app; a janela corrigida não foi comprovada. O novo CI Windows está pendente.
+A revisão 0.2.0 revelou bloqueio por `await app.whenReady()` no topo ESM do Electron 44.9.0, apesar do CI de empacotamento aprovado. A revisão 0.2.1 corrigiu o bootstrap e passou por 218 testes e pelo [teste nativo real no CI 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494): janela, DOM, preload e boot do pacote confirmados. O bloqueio por ACL no ambiente local é um ensaio separado; não ocorreu no CI. A confirmação no PC do usuário continua pendente.
 
 Consulte [Validação](validation.md) para limites das evidências e [Plano de testes](test-plan.md) para os cenários.
 
 ## 1. Fechar a validação da conversa
 
-Antes dos ensaios de conversa, confirmar abertura da janela e carregamento da interface no **GleysonSilva-Jarvis-0.2.1-Windows.exe**. Incluir no CI um teste com Electron real, perfil temporário, identificação exclusiva, sem rede/captura/início no login, comprovando carregamento e encerramento. Gerar artefato ou observar um processo não cobre a falha identificada.
+Antes dos ensaios de conversa, o usuário deve confirmar abertura da interface no **GleysonSilva-Jarvis-0.2.1-Windows.exe**. O CI já inclui o teste com Electron real e pacote, perfil temporário e identificação exclusiva, sem rede/captura/início no login; carregamento e encerramento foram aprovados. Manter essa regressão: gerar artefato ou observar um processo, isoladamente, não cobre a falha.
 
 - Confirmar pergunta, transcrição, texto e narração pelo clone aprovado.
 - Manter OpenAI Realtime com saída em texto; impedir áudio inesperado de uma voz OpenAI.

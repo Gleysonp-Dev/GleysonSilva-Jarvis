@@ -2,7 +2,7 @@
 
 Assistente pessoal para Windows com interface holográfica ciano, conversa por voz e ações locais que você pode revisar antes de autorizar.
 
-**Estado: MVP 0.2.1 com correção de abertura preparada, ainda sem confirmação nativa.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). O EXE 0.2.0 falhou sem janela; a causa foi corrigida na inicialização. O teste nativo local do 0.2.1 foi bloqueado por permissões do ambiente antes de carregar o aplicativo; o novo CI Windows ainda está pendente. Não há release assinada ou executável validado em instalação limpa.
+**Estado: MVP 0.2.1 com abertura nativa aprovada no CI Windows.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A correção do EXE 0.2.0 foi testada com Electron real e pacote 0.2.1: janela, interface e bridge carregaram. A abertura no computador do usuário ainda precisa ser confirmada. Não há release assinada ou validação completa em instalação limpa.
 
 O núcleo mantém a mesma cor ao ouvir, responder e executar. Brilho e expansão acompanham o sinal de áudio; ferramentas usam uma cadência própria. O painel mantém controles e estados funcionais, sem slogans. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
 
@@ -40,7 +40,7 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-O nome previsto do pacote corrigido é **GleysonSilva-Jarvis-0.2.1-Windows.exe**. Antes de tratá-lo como funcional, é necessário confirmar abertura da janela e carregamento da interface com o Electron real. A presença de um processo ou o sucesso do empacotamento não bastam.
+O pacote corrigido é **GleysonSilva-Jarvis-0.2.1-Windows.exe**. O CI confirmou abertura real da janela e carregamento da interface; o usuário ainda deve conferir isso no próprio computador. A presença de um processo ou o sucesso do empacotamento, isoladamente, não bastam.
 
 ### Configuração e primeira conversa
 
@@ -111,11 +111,11 @@ O [CI da base 0.2.0, commit 63cf001](https://github.com/Gleysonp-Dev/GleysonSilv
 
 A revisão 0.2.0 passou localmente por **214 testes**, zero falhas/skips, com Python configurado, TypeScript estrito e build aprovados. A interface de ajustes foi inspecionada no navegador: opções nativas indisponíveis ficaram desabilitadas e a configuração da espera foi preservada. Testes com substitutos e inspeção de controles não comprovam ativação física.
 
-A revisão **0.2.1 passou localmente por 218 testes**, zero falhas/skips, com Python configurado, TypeScript, build e verificação do processo principal aprovados. O novo CI com teste de abertura no Windows normal ainda está pendente. O bloqueio nativo do ambiente local não conta como janela aberta.
+A revisão **0.2.1 passou por 218 testes**, zero falhas/skips, TypeScript, build, empacotamento e **teste nativo real no [CI Windows 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494)**. O teste confirmou aplicação pronta, janela, DOM, preload, boot e pacote em cerca de dois segundos. O bloqueio por permissões do ambiente local foi um resultado separado e não ocorreu nesse CI.
 
 No ensaio real foram confirmados texto OpenAI correto, microfone com nível e liberação, prévia de câmera 640×480 e parada, saudação aprovada e áudio OpenAI Realtime ouvido. Este último usou `marin`, voz diferente da desejada, motivando a troca para ElevenLabs.
 
-**Ainda não confirmados em uso real:** abertura corrigida do EXE 0.2.1, nova conversa completa com o clone, ativação por palmas/palavra, retorno da espera e início no login. Não há latência comparável medida nem acurácia facial demonstrada. Veja [Validação](docs/validation.md), [Plano de testes](docs/test-plan.md) e [Roadmap](docs/roadmap.md).
+**Ainda não confirmados no computador do usuário:** abertura do EXE 0.2.1, nova conversa completa com o clone, ativação por palmas/palavra, retorno da espera e início no login. O teste de abertura do CI não exercitou esses recursos. Não há latência comparável medida nem acurácia facial demonstrada. Veja [Validação](docs/validation.md), [Plano de testes](docs/test-plan.md) e [Roadmap](docs/roadmap.md).
 
 ## Estrutura
 
