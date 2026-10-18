@@ -1,0 +1,40 @@
+{
+  "name": "gleysonsilva-jarvis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Assistente pessoal Windows com voz OpenAI, HUD ciano e execução verificável.",
+  "type": "module",
+  "main": "apps/desktop/main.mjs",
+  "license": "Apache-2.0",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "test": "node --test tests/*.test.mjs",
+    "check": "tsc --noEmit",
+    "preview": "node scripts/preview.mjs",
+    "test:local": "npm run build && node scripts/local-test.mjs",
+    "voice": "node scripts/voice.mjs",
+    "package:win": "npm run build && electron-builder --win portable --publish never",
+    "verify": "npm run test && npm run check && npm run build"
+  },
+  "dependencies": { "react": "19.2.4", "react-dom": "19.2.4" },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "electron": "44.9.0",
+    "electron-builder": "26.0.12",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3"
+  },
+  "build": {
+    "appId": "dev.jarvis.personal",
+    "productName": "GleysonSilva-Jarvis",
+    "asar": true,
+    "directories": { "output": "release" },
+    "files": ["apps/desktop/*.mjs", "apps/desktop/preload.cjs", "apps/desktop/platform/**", "packages/**", "dist/**", "package.json"],
+    "extraResources": [{ "from": "services/vision", "to": "vision", "filter": ["*.py", "requirements.txt", "README.md"] }],
+    "win": { "target": "portable", "signAndEditExecutable": false },
+    "portable": { "artifactName": "GleysonSilva-Jarvis-${version}-Windows.exe" }
+  }
+}
