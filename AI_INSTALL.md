@@ -1,6 +1,6 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar a revisão **0.3.0 pelo [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main)** e entregar um resultado verificável. Ela acrescenta núcleo orbital azul original e Contexto sob demanda com clima e atividade local. As verificações finais e o novo pacote ainda estão em andamento. **Os 229 testes, pacote e abertura nativa aprovados no CI Windows são da base 0.2.3**, não uma aprovação automática da 0.3.0. Não há release assinada ou validação completa em instalação limpa.
+Roteiro para instalar a revisão **0.3.0 pelo [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main)** ou pacote portátil e entregar um resultado verificável. Ela acrescenta núcleo orbital azul original e Contexto sob demanda com clima e atividade local. O [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Não há release assinada ou validação completa em instalação limpa.
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
@@ -31,11 +31,11 @@ npm start
 
 Confirme janela, conversa, Contexto, Ajustes, Memória, Registro e Presença. O núcleo orbital azul deve manter centro vazio e cor constante, sem texto central ou anéis segmentados. Sem captura ou sessão real, os indicadores não devem alegar conexão. Movimento reduzido deve congelar a geometria; o nível real do áudio continua sendo a origem do pulso no modo normal.
 
-### Pacote Windows e evidência histórica
+### Pacote Windows 0.3.0
 
-O executável **GleysonSilva-Jarvis-0.2.3-Windows.exe** é a base anterior e não contém núcleo orbital/Contexto da 0.3.0. Até registrar geração, integridade e abertura real do novo pacote, valide a revisão nova pelo código-fonte. Não crie um link de download presumido nem apresente a 0.2.3 como novo instalador.
+Baixe o [artefato Windows da execução 39513420678](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.3.0-Windows.exe**. O pacote não exige Node. Confira o `.sha256` incluído; o SHA-256 do EXE é `01bd3300aacdffe787945475a1373224321c8d462d328e12f7ef35c452b72421`. O artefato tem retenção até 18 de janeiro de 2027; não é um link permanente de release. Se indisponível, use o código-fonte e registre o build local.
 
-Como evidência histórica, o [CI 5733b37 da 0.2.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. A captura de tela do usuário confirmou a janela da versão 0.2.1; registre separadamente o ensaio da 0.3.0 no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
+O [CI da 0.3.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/job/118939722750) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`, às 23:14:59 UTC de 20 de outubro de 2026. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. Registre separadamente o ensaio da 0.3.0 no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
 
 No 0.2.0, `await app.whenReady()` no topo ESM impedia concluir a inicialização no Electron 44.9.0. A revisão 0.2.1 corrigiu esse caminho e passou no CI com Electron real. Electron 44.9.0/Node 24.22 e SQLite foram verificados; a causa não era autostart/hardware/SQLite. O ensaio no ambiente Codex ficou bloqueado por ACL antes do app; isso é distinto da abertura aprovada no CI Windows. Nenhuma sandbox foi desativada para esse aceite. Registre abertura e recursos separadamente.
 

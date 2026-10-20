@@ -10,7 +10,13 @@ Em 20 de outubro de 2026, a revisão acrescenta o núcleo orbital azul original 
 - TypeScript estrito e compilação aprovados com as dependências locais. O compilador foi invocado diretamente porque o atalho npm não estava disponível neste ambiente.
 - Inspeção no navegador com bridge e dados explicitamente simulados: núcleo visível em espera, zero consultas no carregamento, Contexto somente por clique, fonte meteorológica indisponível sem valores inventados, atividade preservada e cancelamento ao fechar a consulta pendente. As capturas não validam clima real, áudio ou hardware.
 
-O pacote e a abertura nativa da 0.3.0 estão pendentes de registro do CI. O teste da voz no equipamento do usuário continua sendo um aceite separado; o preset aprovado não foi alterado por esta revisão.
+O [CI Windows 0.3.0 do commit b032bd37534131b1c08704dd8b96a27621c79fa4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678) aprovou **264 testes, 264 aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. As 11 operações negadas no sandbox local passaram nesse Windows normal. O [job 118939722750](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/job/118939722750) confirmou às **23:14:59 UTC de 20 de outubro de 2026** ready, window, dom, preload, boot e packaged verdadeiros. Rede, captura e início no login ficaram isolados.
+
+O artefato **12307285731** foi baixado e conferido: ZIP de **104.011.800 bytes**, SHA-256 `5bfd6ed76348112c599603d0b3014a2e082a68af542c4b0e9e1be7a79c77f9ac`, igual ao digest do CI. A extração aceitou somente o EXE esperado e seu checksum. O executável **GleysonSilva-Jarvis-0.3.0-Windows.exe** tem **104.002.629 bytes** e SHA-256 `01bd3300aacdffe787945475a1373224321c8d462d328e12f7ef35c452b72421`, conferido contra o `.sha256` incluído. A retenção do artefato vai até 18 de janeiro de 2027.
+
+Um ensaio separado consultou a fonte real para uma cidade pública de demonstração, com configuração em memória e saudação desligada. A resolução de rede falhou (`ENOTFOUND`); duas leituras resultaram em `unavailable`, sem clima, horários fabricados ou cache preenchido. Houve zero chamadas de síntese e zero leituras de chave. Esse resultado comprova tratamento de indisponibilidade nesse ensaio, não dados meteorológicos reais disponíveis.
+
+O teste da voz e o aceite visual no equipamento do usuário continuam separados; o preset aprovado não foi alterado por esta revisão. Não há release assinada ou ensaio completo em instalação limpa.
 
 ## Correção 0.2.3 — CI aprovado, ensaio físico pendente
 

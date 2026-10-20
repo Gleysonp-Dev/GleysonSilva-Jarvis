@@ -4,11 +4,11 @@
 
 Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais que você pode revisar antes de autorizar.
 
-**Revisão 0.3.0 em validação:** novo núcleo de filamentos luminosos e painel **Contexto**, aberto somente pelo botão. O painel reúne clima da Open-Meteo e execuções locais do perfil com fonte e horário; não acrescenta transcrições, narração ou cartões à tela principal.
+**Revisão 0.3.0 com CI Windows aprovado:** novo núcleo de filamentos luminosos e painel **Contexto**, aberto somente pelo botão. O painel reúne clima da Open-Meteo e execuções locais do perfil com fonte e horário; não acrescenta transcrições, narração ou cartões à tela principal.
 
 O núcleo é uma implementação original em Canvas, inspirada na estética orbital das demonstrações públicas de Lucas Victor. Não contém código ou assets do produto dele. O centro fica vazio, sem faixa de texto nem anéis mecânicos. A mesma cor azul acompanha todos os estados; brilho e expansão respondem ao microfone e ao áudio reproduzido. O desenho respeita movimento reduzido e limita atualização e resolução para controlar o custo de renderização.
 
-**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. As verificações finais e o pacote Windows da 0.3.0 ainda precisam ser registrados. Os **229 testes e a abertura nativa aprovados no CI pertencem à base 0.2.3**, não comprovam os novos recursos. Não há release assinada nem validação completa em instalação limpa ou no hardware do usuário.
+**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. O [CI da 0.3.0, commit b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678), aprovou **264 testes, zero falhas/skips**, TypeScript, compilação, pacote e abertura nativa real. Não há release assinada nem validação completa em instalação limpa ou no hardware do usuário.
 
 Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou transcrições no painel **Conversa**. Mensagens digitadas e suas respostas permanecem visíveis. A voz aprovada mantém reprodução a **0,95×**, altura preservada e efeito metálico fixo **0,78**. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
 
@@ -50,7 +50,7 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-Para testar a 0.3.0 neste estágio, use o código-fonte da branch `main`. O executável **GleysonSilva-Jarvis-0.2.3-Windows.exe** é uma entrega anterior e não contém o novo núcleo nem Contexto. O pacote 0.3.0 e sua abertura real ainda precisam ser verificados antes de indicá-lo como download. A presença de um processo ou o sucesso do empacotamento, isoladamente, não bastam.
+Também está disponível o [pacote Windows 0.3.0 do CI](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731). Entre no GitHub, baixe o ZIP, extraia e abra **GleysonSilva-Jarvis-0.3.0-Windows.exe**. O pacote portátil não exige Node; o código-fonte continua sendo a alternativa pública para instalação assistida. O artefato de CI tem prazo de retenção e não é uma release assinada. Seu teste nativo confirmou janela, DOM, preload e boot com rede/captura/login isolados. Confira a integridade e os limites em [Validação](docs/validation.md).
 
 ### Configuração e primeira conversa
 
@@ -128,7 +128,7 @@ Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [Elev
 npm run verify
 ```
 
-**0.3.0:** verificações finais em andamento. Os resultados históricos abaixo permanecem vinculados às revisões correspondentes; não são evidência de hardware, provedores ou pacote da 0.3.0.
+**0.3.0:** [CI b032bd3 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678): **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. Inspeção visual usou dados simulados identificados; a consulta meteorológica ao vivo ficou indisponível por falha de resolução de rede. Isso não confirma clima, voz ou dispositivos no equipamento de destino. Os resultados históricos abaixo permanecem vinculados às revisões correspondentes.
 
 O [CI da base 0.2.0, commit 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409), aprovou **214 testes**, TypeScript, build e empacotamento Windows. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também concluiu testes, TypeScript, build e empacotamento com sucesso; seu artefato inclui o ajuste. A baseline ba0680 havia aprovado 147 testes.
 
