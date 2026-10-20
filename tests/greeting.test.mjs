@@ -195,3 +195,68 @@ test('invalid PC hour or timezone stops before weather network', async () => {
   await assert.rejects(context.service.prepare({ hour: 8, timezone: 'http://localhost/secret' }), { code: 'invalid_input' });
   assert.equal(context.requests.length, 0);
 });
+
+test('explicit weather remains available when greeting is disabled and never loads a voice key or synthesizes', async () => {
+  let requests = 0;
+  const service = new StartupGreetingService({ getSettings: () => ({ startupGreeting: false, weatherLocation: place, elevenVoiceId: voiceId }),
+    getKey: () => { assert.fail('readWeather must not load credentials'); },
+    elevenlabs: { synthesizeSpeech: () => { assert.fail('readWeather must not synthesize'); } },
+    now: () => new Date(NOW), fetch: async () => { requests++; return Response.json(forecast()); } });
+  const result = await service.readWeather({ timezone: 'UTC' });
+  assert.equal(result.status, 'ok'); assert.equal(result.weather.condition, 'céu parcialmente nublado');
+  assert.equal(result.weather.observedAt, NOW.getTime()); assert.equal(result.weather.date, DATE);
+  assert.equal(result.weather.currentTemperature, 25.5); assert.equal(result.locationLabel, place.name);
+  assert.equal(result.fetchedAt, NOW.getTime()); assert.deepEqual(result.cache, { hit: false, expiresAt: NOW.getTime() + 600_000 });
+  assert.equal(result.attribution.name, 'Open-Meteo'); assert.equal(requests, 1);
+  for (const field of ['text', 'audioBase64', 'latitude', 'longitude', 'elevenVoiceId', 'key']) assert.equal(field in result, false);
+  assert.equal(JSON.stringify(result).includes(voiceId), false);
+});
+
+test('explicit weather and approved greeting share the same fresh cache without allowing callers to mutate it', async () => {
+  const context = setup({ key: KEY });
+  const first = await context.service.readWeather({ timezone: 'UTC' });
+  first.weather.currentTemperature = -90; first.attribution.name = 'untrusted';
+  const greeting = await context.service.prepare({ hour: 8, timezone: 'UTC' });
+  const second = await context.service.readWeather({ timezone: 'UTC' });
+  assert.equal(context.requests.length, 1); assert.equal(context.speechCalls.length, 1);
+  assert.ok(greeting.text.includes('25,5 graus Celsius')); assert.ok(greeting.text.endsWith(GREETING_QUESTION));
+  assert.equal(second.weather.currentTemperature, 25.5); assert.equal(second.attribution.name, 'Open-Meteo');
+  assert.equal(second.cache.hit, true); assert.equal(second.fetchedAt, NOW.getTime());
+});
+
+test('explicit weather has honest missing-location and network-timeout states with no fabricated timestamps', async () => {
+  const missing = setup({ settings: { startupGreeting: false, weatherLocation: null } });
+  const absent = await missing.service.readWeather({ timezone: 'UTC' });
+  assert.equal(absent.status, 'not_configured'); assert.equal(missing.requests.length, 0);
+  const failed = await setup({ fetchImpl: async () => new Promise(() => {}), weatherTimeoutMs: 10 }).service.readWeather({ timezone: 'UTC' });
+  assert.equal(failed.status, 'unavailable');
+  for (const result of [absent, failed]) {
+    assert.equal(result.weather, null); assert.equal(result.attribution, null); assert.equal(result.fetchedAt, null);
+    assert.deepEqual(result.cache, { hit: false, expiresAt: null });
+  }
+});
+
+test('weather input cannot supply another profile, coordinates, keys or endpoints', async () => {
+  const context = setup();
+  for (const input of [null, [], { timezone: 'UTC', profileId: 'other' }, { latitude: 9 }, { url: 'http://localhost/' }, { timezone: 'invalid-zone' }]) {
+    await assert.rejects(context.service.readWeather(input), { code: 'invalid_input' });
+  }
+  assert.equal(context.requests.length, 0); assert.equal(context.speechCalls.length, 0);
+});
+
+test('cancelled explicit weather cannot populate cache when an uncooperative fetch resolves late', async () => {
+  let finish, entered, count = 0;
+  const started = new Promise(resolve => { entered = resolve; });
+  const context = setup({ fetchImpl: async () => {
+    count++;
+    if (count === 1) { entered(); return new Promise(resolve => { finish = resolve; }); }
+    return Response.json(forecast());
+  } });
+  const controller = new AbortController();
+  const pending = context.service.readWeather({ timezone: 'UTC' }, { signal: controller.signal });
+  await started; controller.abort(); await assert.rejects(pending, { code: 'cancelled' });
+  finish(Response.json(forecast()));
+  await new Promise(resolve => setImmediate(resolve));
+  const result = await context.service.readWeather({ timezone: 'UTC' });
+  assert.equal(result.status, 'ok'); assert.equal(result.cache.hit, false); assert.equal(count, 2);
+});

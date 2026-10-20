@@ -2,20 +2,24 @@
 
 ![GleysonSilva-Jarvis — núcleo circular ciano e identidade própria](assets/branding/social-preview.png)
 
-**Revisão 0.2.3 com CI aprovado:** X passa a encerrar o aplicativo e cortar áudio/captura; minimizar mantém a espera. Detectores mais conservadores buscam reduzir saudações acionadas indevidamente. A confirmação física permanece pendente; a apresentação sem transcrições da 0.2.2 foi preservada.
+Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais que você pode revisar antes de autorizar.
 
-Assistente pessoal para Windows com interface holográfica ciano, conversa por voz e ações locais que você pode revisar antes de autorizar.
+**Revisão 0.3.0 em validação:** novo núcleo de filamentos luminosos e painel **Contexto**, aberto somente pelo botão. O painel reúne clima da Open-Meteo e execuções locais do perfil com fonte e horário; não acrescenta transcrições, narração ou cartões à tela principal.
 
-**Estado: MVP 0.2.3 implementado, com CI Windows aprovado.** Código no [repositório público Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão atual passou por 229 testes, TypeScript, build, pacote e abertura nativa real no CI. A abertura no computador do usuário foi confirmada por captura de tela da base 0.2.1. Isso confirma a interface aberta, sem comprovar conversa com o clone, microfone nativo, login ou proteção das chaves. Não há release assinada ou validação completa em instalação limpa.
+O núcleo é uma implementação original em Canvas, inspirada na estética orbital das demonstrações públicas de Lucas Victor. Não contém código ou assets do produto dele. O centro fica vazio, sem faixa de texto nem anéis mecânicos. A mesma cor azul acompanha todos os estados; brilho e expansão respondem ao microfone e ao áudio reproduzido. O desenho respeita movimento reduzido e limita atualização e resolução para controlar o custo de renderização.
 
-O núcleo mantém a mesma cor ao ouvir, responder e executar. Brilho e expansão acompanham o sinal de áudio; ferramentas usam uma cadência própria. O painel mantém controles e estados funcionais, sem slogans. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
+**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. As verificações finais e o pacote Windows da 0.3.0 ainda precisam ser registrados. Os **229 testes e a abertura nativa aprovados no CI pertencem à base 0.2.3**, não comprovam os novos recursos. Não há release assinada nem validação completa em instalação limpa ou no hardware do usuário.
 
-Na revisão 0.2.2, saudação e conversa por voz usam áudio e pulsação, sem acrescentar falas ou transcrições ao painel **Conversa**. As mensagens digitadas e suas respostas continuam visíveis. A fonte do clima permanece compacta, sem reproduzir o boletim em texto. Essa mudança é de apresentação: a compreensão de voz e o histórico necessário aos provedores continuam funcionando internamente.
+Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou transcrições no painel **Conversa**. Mensagens digitadas e suas respostas permanecem visíveis. A voz aprovada mantém reprodução a **0,95×**, altura preservada e efeito metálico fixo **0,78**. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
 
 ## O que está implementado
 
 | Recurso | Comportamento do código atual |
 | --- | --- |
+| Núcleo orbital | Filamentos azuis originais, centro vazio e pulso reativo; sem texto central, grade ou telemetria decorativa. |
+| Contexto sob demanda | Botão **Contexto** abre clima e atividade local. Abrir/atualizar não liga o microfone, não gera fala e não chama um modelo de linguagem. |
+| Clima com origem | Tempo atual e previsão de hoje, horários da observação/consulta, atribuição e indicação de cache. Funciona com cidade configurada, mesmo sem saudação automática ou chave ElevenLabs. |
+| Atividade do perfil | Contagem por estado sobre um snapshot de até 100 execuções recentes e lista de até oito; é registro local, sem eventos de agenda. |
 | Texto com OpenAI | Responses com streaming, histórico limitado e ferramentas. |
 | Conversa com a voz Jarvis | Microfone via OpenAI Realtime; respostas em texto são sintetizadas pela ElevenLabs com a voz configurada. A saída de áudio OpenAI é desativada. O novo fluxo completo ainda precisa de teste real. |
 | Saudação e clima | **Iniciar Jarvis** prepara cumprimento pelo relógio do PC, tempo atual, previsão de hoje e “Em que posso ajudá-lo agora, senhor?”. Narração por áudio/pulsação e atribuição Open-Meteo compacta, sem transcrição no painel. |
@@ -31,7 +35,7 @@ Na revisão 0.2.2, saudação e conversa por voz usam áudio e pulsação, sem a
 | Aplicativos | Adaptadores limitados para Calculadora, Bloco de Notas, VS Code e navegador, com executáveis cadastrados. |
 | Persistência | SQLite para memórias, tarefas, procedimentos e efeitos; reiniciar não repete automaticamente ações interrompidas. |
 
-Controle visual universal de aplicativos, terminal irrestrito, casa conectada, editor completo de automações e atualização automática continuam fora do escopo atual. Não há benchmark que demonstre exclusividade, superioridade geral ou resposta instantânea.
+Google Calendar, agenda, e-mail e notícias ainda não estão integrados. A primeira etapa do briefing é o painel de fontes sob demanda; um resumo falado com essas integrações pertence à próxima fase. Controle visual universal de aplicativos, terminal irrestrito, casa conectada, editor completo de automações e atualização automática também continuam fora do escopo. Não há benchmark que demonstre exclusividade, superioridade geral ou resposta instantânea.
 
 ## Começar pelo código-fonte
 
@@ -46,7 +50,7 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-O pacote **GleysonSilva-Jarvis-0.2.3-Windows.exe** foi gerado e teve abertura real aprovada no CI. O usuário confirmou a abertura visual da versão 0.2.1 por captura de tela; o ensaio da nova versão no computador de destino continua separado. A presença de um processo ou o sucesso do empacotamento, isoladamente, não bastam.
+Para testar a 0.3.0 neste estágio, use o código-fonte da branch `main`. O executável **GleysonSilva-Jarvis-0.2.3-Windows.exe** é uma entrega anterior e não contém o novo núcleo nem Contexto. O pacote 0.3.0 e sua abertura real ainda precisam ser verificados antes de indicá-lo como download. A presença de um processo ou o sucesso do empacotamento, isoladamente, não bastam.
 
 ### Configuração e primeira conversa
 
@@ -57,6 +61,14 @@ O pacote **GleysonSilva-Jarvis-0.2.3-Windows.exe** foi gerado e teve abertura re
 5. Use **Testar microfone** para conferir captura local. Depois inicie a conversa por voz e confirme resposta adequada realmente ouvida, pulsação e interrupção, sem transcrição no painel. Encerre e confira a liberação do dispositivo.
 
 O limite padrão da sessão é dez minutos, ajustável entre um e trinta. A conversa pode consumir OpenAI e ElevenLabs. A troca do caminho de voz foi implementada após um ensaio ouvir a voz OpenAI `marin`; esse resultado anterior não comprova a nova conversa com o clone.
+
+### Consultar Contexto
+
+Clique em **Contexto** na barra lateral. Configure a cidade em Ajustes para consultar o tempo; essa leitura não exige chaves OpenAI/ElevenLabs nem a saudação automática habilitada. A consulta informa temperatura, condição, mínima/máxima e chance de chuva quando a fonte fornece um valor válido. Os horários distinguem a observação meteorológica e a obtenção da resposta. O botão **Atualizar** faz outra leitura, respeitando o cache.
+
+O cache dura até dez minutos e só é reutilizado para as mesmas coordenadas, fuso e data local, com observação de até três horas de idade. Resposta inválida ou fonte indisponível produz um estado explícito, sem previsão inventada. A atividade vem do banco local do perfil: as contagens abrangem até 100 execuções recentes e a lista mostra até oito. Não representa compromissos, tarefas do Google ou todos os eventos da conta.
+
+Fechar o painel, mudar o perfil ou encerrar a janela cancela a leitura e descarta respostas atrasadas. Consulte [Contexto: fontes, privacidade e limites](docs/context.md).
 
 ### Recepção, espera e música
 
@@ -104,6 +116,7 @@ O cadastro é voluntário. A pessoa confirma o perfil sugerido; reconhecimento n
 - Texto, histórico necessário, preferências do perfil e resultados de ferramentas podem ser enviados à OpenAI. Uma conversa de voz aberta transmite áudio do microfone à OpenAI; o texto a narrar vai à ElevenLabs.
 - Teste local de microfone, palmas, palavra nativa e visão são processamento local. A espera mantém acesso ao microfone enquanto ativada; pode ser pausada.
 - A consulta de clima envia as coordenadas configuradas à Open-Meteo. A fonte e a licença acompanham o resultado.
+- Contexto lê apenas clima e metadados de execuções do perfil. Não envia essa leitura à OpenAI/ElevenLabs, não acessa contas Google e não narra automaticamente o resultado.
 - Não publique chaves, banco, cidade privada, identificador da voz, rostos, gravação de referência, música privada ou arquivos de ensaio. Um MP3 autorizado não inclui um modelo exportável da voz.
 - A pasta selecionada limita o executor. O modelo não recebe terminal livre nem pode inventar autoridade para ferramentas.
 
@@ -114,6 +127,8 @@ Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [Elev
 ```text
 npm run verify
 ```
+
+**0.3.0:** verificações finais em andamento. Os resultados históricos abaixo permanecem vinculados às revisões correspondentes; não são evidência de hardware, provedores ou pacote da 0.3.0.
 
 O [CI da base 0.2.0, commit 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409), aprovou **214 testes**, TypeScript, build e empacotamento Windows. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também concluiu testes, TypeScript, build e empacotamento com sucesso; seu artefato inclui o ajuste. A baseline ba0680 havia aprovado 147 testes.
 
@@ -141,6 +156,7 @@ packages/runtime/      política, SQLite, ferramentas e execução
 packages/openai/       Responses, Realtime e erros
 packages/speech/       síntese da conversa, correlação e cancelamento
 packages/greeting/     cumprimento, clima e narração de abertura
+packages/context/      leitura sob demanda do clima e das execuções locais
 packages/elevenlabs/    transporte, clonagem autorizada e TTS
 services/vision/       worker facial Python opcional
 tests/                 testes automáticos com rede/hardware substituídos

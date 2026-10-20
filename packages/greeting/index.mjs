@@ -37,6 +37,10 @@ function timezoneName(value) {
   try { return new Intl.DateTimeFormat('en-US', { timeZone: candidate }).resolvedOptions().timeZone; }
   catch { throw new StartupGreetingError('invalid_input'); }
 }
+export function validateWeatherRequest(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(key => key !== 'timezone')) throw new StartupGreetingError('invalid_input');
+  return { timezone: timezoneName(input.timezone) };
+}
 function dateInZone(now, timezone) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
   const get = type => parts.find(part => part.type === type)?.value;
@@ -106,7 +110,7 @@ export class StartupGreetingService {
     const date = dateInZone(now, timezone);
     const key = JSON.stringify([location.latitude, location.longitude, timezone, date]);
     if (this.#cache?.key === key && now.getTime() >= this.#cache.fetchedAt && now.getTime() - this.#cache.fetchedAt < CACHE_TTL
-      && fresh(this.#cache.weather.observedAt, now.getTime())) return this.#cache.weather;
+      && fresh(this.#cache.weather.observedAt, now.getTime())) return { weather: { ...this.#cache.weather }, fetchedAt: this.#cache.fetchedAt, cache: { hit: true, expiresAt: this.#cache.fetchedAt + CACHE_TTL } };
     const scope = deadline(signal, this.#weatherTimeoutMs);
     try {
       const url = new URL(WEATHER_ENDPOINT);
@@ -122,10 +126,30 @@ export class StartupGreetingService {
       const receivedAt = this.#now();
       if (!(receivedAt instanceof Date) || !Number.isFinite(receivedAt.getTime()) || dateInZone(receivedAt, timezone) !== date) return null;
       const weather = weatherData(json, { now: receivedAt, timezone, date });
+      active(signal);
       if (weather) this.#cache = { key, fetchedAt: receivedAt.getTime(), weather };
-      return weather;
+      return weather ? { weather: { ...weather }, fetchedAt: receivedAt.getTime(), cache: { hit: false, expiresAt: receivedAt.getTime() + CACHE_TTL } } : null;
     } catch { active(signal); return null; }
     finally { scope.dispose(); }
+  }
+
+  async #readWeather(settings, timezone, now, signal) {
+    const location = validLocation(settings.weatherLocation);
+    const result = location ? await this.#weather(location, timezone, now, signal) : null;
+    active(signal);
+    return { status: result ? 'ok' : location ? 'unavailable' : 'not_configured', timezone, locationLabel: location?.name ?? '',
+      weather: result ? { ...result.weather, condition: CONDITIONS.get(result.weather.weatherCode) } : null,
+      attribution: result ? { ...WEATHER_ATTRIBUTION } : null, fetchedAt: result?.fetchedAt ?? null,
+      cache: result?.cache ?? { hit: false, expiresAt: null } };
+  }
+
+  /** Explicit read only: independent of startup policy and never loads credentials or synthesizes audio. */
+  async readWeather(input = {}, { signal } = {}) {
+    active(signal);
+    const { timezone } = validateWeatherRequest(input);
+    const now = this.#now();
+    if (!(now instanceof Date) || !Number.isFinite(now.getTime())) throw new StartupGreetingError('invalid_input');
+    return this.#readWeather(this.#getSettings() ?? {}, timezone, now, signal);
   }
 
   async prepare({ hour, timezone } = {}, { signal } = {}) {
@@ -136,11 +160,11 @@ export class StartupGreetingService {
     const zone = timezoneName(timezone);
     const now = this.#now();
     if (!(now instanceof Date) || !Number.isFinite(now.getTime())) throw new StartupGreetingError('invalid_input');
-    const location = validLocation(settings.weatherLocation);
-    const weather = location ? await this.#weather(location, zone, now, signal) : null;
+    const weatherResult = await this.#readWeather(settings, zone, now, signal);
+    const weather = weatherResult.weather;
     active(signal);
-    const text = buildGreeting({ hour, locationLabel: location?.name ?? '', weather });
-    const result = { text, weatherStatus: weather ? 'ok' : location ? 'unavailable' : 'not_configured', locationLabel: location?.name ?? '',
+    const text = buildGreeting({ hour, locationLabel: weatherResult.locationLabel, weather });
+    const result = { text, weatherStatus: weatherResult.status, locationLabel: weatherResult.locationLabel,
       audioBase64: null, mime: 'audio/mpeg', ...(weather ? { attribution: { ...WEATHER_ATTRIBUTION } } : {}) };
     let key;
     try { key = await abortable(Promise.resolve(this.#getKey()), signal); } catch { active(signal); return { ...result, reason: 'requires_key' }; }

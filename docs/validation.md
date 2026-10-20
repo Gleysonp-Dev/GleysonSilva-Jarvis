@@ -1,4 +1,16 @@
-# Validação do MVP 0.2.3
+# Validação do MVP
+
+## Revisão 0.3.0 — núcleo orbital e Contexto sob demanda
+
+Em 20 de outubro de 2026, a revisão acrescenta o núcleo orbital azul original e um painel de leitura com clima e atividade local. Não conecta agenda/e-mail/notícias nem gera um briefing falado combinado.
+
+- Serviços, HUD e ciclo do processo principal: **60 testes aprovados**, sem falhas/skips. O principal real é carregado com Electron/OS substituídos; o clima usa transporte controlado.
+- Painel React: **nove testes aprovados**, sem falhas/skips, com componentes reais e hooks controlados. Cobrem atualização, cancelamento, retorno atrasado, fonte ausente e recorte de até 100 execuções; não são execução de navegador.
+- Suíte completa local anterior aos nove testes do painel: **255 testes, 244 aprovados e 11 falhas**, sem skips. As 11 falhas ocorreram em operações de link físico/junção/symlink negadas pelo sandbox (`EPERM`), inclusive efeitos de arquivos que dependem desses recursos. Não foram removidos testes nem enfraquecidas as verificações para produzir aprovação. O CI Windows normal deve confirmar esses casos.
+- TypeScript estrito e compilação aprovados com as dependências locais. O compilador foi invocado diretamente porque o atalho npm não estava disponível neste ambiente.
+- Inspeção no navegador com bridge e dados explicitamente simulados: núcleo visível em espera, zero consultas no carregamento, Contexto somente por clique, fonte meteorológica indisponível sem valores inventados, atividade preservada e cancelamento ao fechar a consulta pendente. As capturas não validam clima real, áudio ou hardware.
+
+O pacote e a abertura nativa da 0.3.0 estão pendentes de registro do CI. O teste da voz no equipamento do usuário continua sendo um aceite separado; o preset aprovado não foi alterado por esta revisão.
 
 ## Correção 0.2.3 — CI aprovado, ensaio físico pendente
 

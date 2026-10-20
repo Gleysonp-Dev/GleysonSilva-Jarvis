@@ -8,6 +8,7 @@ import { OpenAIService, OpenAIServiceError } from '../packages/openai/index.mjs'
 import { VisionService } from '../apps/desktop/vision.mjs';
 import { defaults, validateSettings } from '../apps/desktop/settings.mjs';
 import { StartupGreetingService, StartupGreetingError } from '../packages/greeting/index.mjs';
+import { ContextService, ContextError } from '../packages/context/index.mjs';
 import { SpeechService, SpeechServiceError } from '../packages/speech/index.mjs';
 import { SpeechController, SpeechControlError } from '../packages/speech/controller.mjs';
 import { GreetingMusicStore } from '../apps/desktop/greeting-music.mjs';
@@ -45,7 +46,7 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
   const token = randomBytes(32).toString('hex');
   let privateConfig = {};
   try { privateConfig = validateSettings(JSON.parse(await readFile(path.join(dataDir, 'config.json'), 'utf8'))); } catch { /* An absent or invalid private config uses generic defaults. */ }
-  let settings = { ...defaults, ...privateConfig, workspaceRoot, apps: [] }, key = '', elevenKey = '', generation = 0, closing = false, textRunId;
+  let settings = { ...defaults, ...privateConfig, workspaceRoot, apps: [] }, key = '', elevenKey = '', generation = 0, closing = false, textRunId, contextFlight;
   const clients = new Set(), runs = new Map(), knownRuns = new Map(), approvals = new Map(), connections = new Set();
   const startupFlights = new Map(), startupAttempts = new Map();
   let runtime;
@@ -68,6 +69,7 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     if (run && run.generation === generation && !run.controller.signal.aborted) emit({ ...event, profileId: run.profileId });
   } });
   const startupService = new StartupGreetingService({ getSettings: () => settings, getKey: () => elevenKey || process.env.ELEVENLABS_API_KEY || '', fetch: fetchImpl });
+  const contextService = new ContextService({ weather: startupService, getProfileId: () => settings.profileId, getSnapshot: profileId => runtime.getSnapshot(profileId) });
   const speech = new SpeechController({ service: new SpeechService({ getSettings: () => settings, getKey: () => elevenKey || process.env.ELEVENLABS_API_KEY || '', fetch: fetchImpl }), getProfile: () => settings.profileId });
   const musicStore = new GreetingMusicStore({ dataDir });
   const publicSettings = () => ({ ...settings, apps: [], hasKey: Boolean(key || process.env.OPENAI_API_KEY), hasElevenKey: Boolean(elevenKey || process.env.ELEVENLABS_API_KEY), hasGreetingMusic: musicStore.available() });
@@ -85,10 +87,27 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     for (const controller of connections) controller.abort();
     for (const [id] of approvals) runtime.approve(id, false);
     approvals.clear(); runs.clear(); connections.clear(); startupFlights.clear(); textRunId = undefined;
+    contextFlight = undefined;
     await vision.handle({ type: 'reset' });
     emit({ type: 'session.reset', reason });
   }
   const handlers = {
+    async readContext(input) {
+      object(input, ['timezone']);
+      contextFlight?.abort();
+      const controller = new AbortController(), profileId = settings.profileId, startGeneration = generation;
+      contextFlight = controller; connections.add(controller);
+      try {
+        const result = await contextService.read(input, { signal: controller.signal });
+        if (controller.signal.aborted || startGeneration !== generation || profileId !== settings.profileId) reject('A leitura do contexto foi interrompida.');
+        return result;
+      } finally { if (contextFlight === controller) contextFlight = undefined; connections.delete(controller); }
+    },
+    async cancelContext(input) {
+      if (input != null) object(input, []);
+      const controller = contextFlight; controller?.abort(); contextFlight = undefined;
+      return { cancelled: Boolean(controller) };
+    },
     async boot() { const status = await vision.handle({ type: 'status' }); return { settings: publicSettings(), snapshot: runtime.getSnapshot(settings.profileId), capabilities: { desktop: false, vision: status.available === true, localTest: true, ephemeralBiometrics: true, jarvisSpeech: true, startup: false, voiceWake: false } }; },
     async saveSettings(input) {
       object(input, ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey', 'startAtLogin', 'standbyEnabled', 'wakeClapEnabled', 'wakeVoiceEnabled', 'greetingMusicEnabled']);
@@ -239,7 +258,7 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
       if (asset[0] === 'index.html') content = Buffer.from(content.toString('utf8').replace('</head>', `<meta name="jarvis-token" content="${token}"><script src="/test-bridge.js" defer></script></head>`));
       headers(res, asset[1]); res.writeHead(200); res.end(req.method === 'HEAD' ? undefined : content);
     } catch (error) {
-      const safeError = error instanceof ClientError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError || error instanceof StartupGreetingError;
+      const safeError = error instanceof ClientError || error instanceof ContextError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError || error instanceof StartupGreetingError;
       const message = safeError ? error.message : 'Não foi possível concluir a operação local.';
       if (!res.headersSent) { res.writeHead(error instanceof ClientError ? error.status : safeError ? 400 : 500); res.end(JSON.stringify({ ok: false, error: message })); }
       else res.end();

@@ -44,7 +44,7 @@
     if (!response.ok || payload.ok !== true) throw new Error(payload.error || 'A solicitação local falhou.');
     return payload.result;
   }
-  const methods = ['boot', 'saveSettings', 'chooseWorkspace', 'chooseApp', 'text', 'cancel', 'callTool', 'approve', 'memorySave', 'memoryDelete', 'realtimeSession', 'vision', 'openExternal', 'listModels', 'startupGreeting', 'cancelGreeting', 'speak', 'cancelSpeech', 'wakeStart', 'wakeStop', 'chooseGreetingMusic'];
+  const methods = ['boot', 'readContext', 'cancelContext', 'saveSettings', 'chooseWorkspace', 'chooseApp', 'text', 'cancel', 'callTool', 'approve', 'memorySave', 'memoryDelete', 'realtimeSession', 'vision', 'openExternal', 'listModels', 'startupGreeting', 'cancelGreeting', 'speak', 'cancelSpeech', 'wakeStart', 'wakeStop', 'chooseGreetingMusic'];
   const bridge = Object.fromEntries(methods.map(method => [method, value => invoke(method, value)]));
   bridge.onEvent = callback => { if (typeof callback !== 'function') throw new Error('Callback inválido.'); listeners.add(callback); return () => listeners.delete(callback); };
   Object.defineProperty(window, 'jarvis', { value: Object.freeze(bridge), configurable: false, writable: false });

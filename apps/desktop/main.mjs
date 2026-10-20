@@ -11,6 +11,7 @@ import { SettingsStore, validateSettings } from './settings.mjs';
 import { createWindowsAdapters } from './platform/windows.mjs';
 import { VisionService } from './vision.mjs';
 import { StartupGreetingService } from '../../packages/greeting/index.mjs';
+import { ContextService, ContextError } from '../../packages/context/index.mjs';
 import { SpeechService, SpeechServiceError } from '../../packages/speech/index.mjs';
 import { SpeechController, SpeechControlError } from '../../packages/speech/controller.mjs';
 import { configureStartup, isStandbyLaunch, WindowsWakeService } from './startup.mjs';
@@ -66,7 +67,7 @@ if (process.argv.includes('--jarvis-smoke')) {
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let mainWindow, settings, runtime, provider, vision, startupService, speech, musicStore, wakeService, tray;
+let mainWindow, settings, runtime, provider, vision, startupService, contextService, contextFlight, speech, musicStore, wakeService, tray;
 let startupStatus = { available: false, enabled: false }, standbyActive = false;
 let generation = 0, shuttingDown = false, cleanupPromise, shutdownPromise, shutdownComplete = false, textRunId;
 const runs = new Map();
@@ -127,6 +128,7 @@ async function clearSessions(reason) {
   for (const [runId, run] of runs) { run.controller.abort(); runtime?.cancel(runId); }
   for (const controller of connectionControllers) controller.abort();
   connectionControllers.clear();
+  contextFlight = undefined;
   startupFlights.clear();
   for (const [approvalId] of approvals) runtime?.approve(approvalId, false);
   approvals.clear(); runs.clear(); textRunId = undefined;
@@ -201,13 +203,30 @@ function handle(name, fn) {
     if (shuttingDown) throw new Error('O aplicativo está encerrando.');
     try { return await fn(input); }
     catch (error) {
-      if (error instanceof InputError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError) throw new Error(error.message);
+      if (error instanceof InputError || error instanceof ContextError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError) throw new Error(error.message);
       // Native errors may include OS paths, command arguments or credentials.
       throw new Error('A operação não pôde ser concluída. Revise a configuração e o histórico local.');
     }
   });
 }
 function registerIPC() {
+  handle('readContext', async input => {
+    only(record(input, 1000), ['timezone']);
+    contextFlight?.abort();
+    const controller = new AbortController(), profileId = settings.get().profileId, startGeneration = generation;
+    contextFlight = controller; connectionControllers.add(controller);
+    try {
+      const result = await contextService.read(input, { signal: controller.signal });
+      if (controller.signal.aborted || generation !== startGeneration || settings.get().profileId !== profileId) invalid('A leitura do contexto foi interrompida.');
+      return result;
+    } finally { if (contextFlight === controller) contextFlight = undefined; connectionControllers.delete(controller); }
+  });
+  handle('cancelContext', input => {
+    if (input != null) only(record(input, 100), []);
+    const controller = contextFlight;
+    controller?.abort(); contextFlight = undefined;
+    return { cancelled: Boolean(controller) };
+  });
   handle('boot', async () => ({ settings: { ...settings.public(), hasGreetingMusic: musicStore.available() }, snapshot: runtime.getSnapshot(settings.get().profileId), capabilities: { desktop: process.platform === 'win32', vision: (await vision.handle({ type: 'status' })).available === true, startup: startupStatus.available, voiceWake: process.platform === 'win32', jarvisSpeech: true }, startup: startupStatus, productName: PRODUCT }));
   handle('saveSettings', async input => {
     only(record(input, 5000), ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey', 'startAtLogin', 'standbyEnabled', 'wakeClapEnabled', 'wakeVoiceEnabled', 'greetingMusicEnabled']);
@@ -389,6 +408,7 @@ async function startApplication() {
   settings.write({ workspaceRoot });
   provider = new OpenAIService({ getKey: () => settings.getSecret(), getSettings: () => settings.get(), runtime, onEvent: providerEvent });
   startupService = new StartupGreetingService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() });
+  contextService = new ContextService({ weather: startupService, getProfileId: () => settings.get().profileId, getSnapshot: profileId => runtime.getSnapshot(profileId) });
   vision = new VisionService({ dataDir: path.join(userData, 'vision'), modelsDir: path.join(userData, 'models'), crypto: safeStorage, ...(app.isPackaged ? { workerPath: path.join(process.resourcesPath, 'vision', 'worker.py') } : {}) });
   protocol.handle('jarvis', async request => {
     const url = new URL(request.url), mime = ASSETS.get(url.pathname);

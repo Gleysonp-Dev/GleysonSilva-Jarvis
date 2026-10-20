@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const invoke = method => value => ipcRenderer.invoke('jarvis:' + method, value);
 contextBridge.exposeInMainWorld('jarvis', Object.freeze({
- boot:invoke('boot'),saveSettings:invoke('saveSettings'),chooseWorkspace:invoke('chooseWorkspace'),chooseApp:invoke('chooseApp'),
+ boot:invoke('boot'),readContext:invoke('readContext'),cancelContext:invoke('cancelContext'),saveSettings:invoke('saveSettings'),chooseWorkspace:invoke('chooseWorkspace'),chooseApp:invoke('chooseApp'),
  text:invoke('text'),cancel:invoke('cancel'),callTool:invoke('callTool'),approve:invoke('approve'),
  memorySave:invoke('memorySave'),memoryDelete:invoke('memoryDelete'),realtimeSession:invoke('realtimeSession'),
  vision:invoke('vision'),openExternal:invoke('openExternal'),listModels:invoke('listModels'),startupGreeting:invoke('startupGreeting'),

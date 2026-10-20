@@ -1,12 +1,12 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar o [código-fonte público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis) e entregar um resultado verificável. O **MVP 0.2.3 teve 229 testes, TypeScript, build, pacote e abertura nativa aprovados no CI Windows**. A janela no computador do usuário foi confirmada por captura de tela da base 0.2.1. Fechamento corrigido, filtros e recursos físicos da nova versão ainda exigem ensaio. Não há release assinada ou validação completa em instalação limpa.
+Roteiro para instalar a revisão **0.3.0 pelo [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main)** e entregar um resultado verificável. Ela acrescenta núcleo orbital azul original e Contexto sob demanda com clima e atividade local. As verificações finais e o novo pacote ainda estão em andamento. **Os 229 testes, pacote e abertura nativa aprovados no CI Windows são da base 0.2.3**, não uma aprovação automática da 0.3.0. Não há release assinada ou validação completa em instalação limpa.
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
 ## 1. Inspecionar o ambiente
 
-1. Leia README, package.json e instruções locais aplicáveis.
+1. Leia README, package.json e instruções locais aplicáveis. Confirme branch `main`, versão 0.3.0 e commit utilizado; não execute por engano um EXE 0.2.3 para validar estes recursos.
 2. Confirme Windows, Node 24 ou superior e npm; SQLite usa o runtime integrado.
 3. Não imprima variáveis de ambiente, credenciais ou arquivos privados.
 4. Use uma pasta de ensaio descartável para testar ferramentas.
@@ -29,11 +29,13 @@ Com lockfile válido, `npm ci` pode substituir `npm install` para reproduzir as 
 npm start
 ```
 
-Confirme janela, conversa, Ajustes, Memória, Registro e Presença. O núcleo permanece ciano; sem captura ou sessão real, os indicadores não devem alegar conexão.
+Confirme janela, conversa, Contexto, Ajustes, Memória, Registro e Presença. O núcleo orbital azul deve manter centro vazio e cor constante, sem texto central ou anéis segmentados. Sem captura ou sessão real, os indicadores não devem alegar conexão. Movimento reduzido deve congelar a geometria; o nível real do áudio continua sendo a origem do pulso no modo normal.
 
-### Abertura real do pacote e no CI
+### Pacote Windows e evidência histórica
 
-O pacote atual é **GleysonSilva-Jarvis-0.2.3-Windows.exe**. Além do empacotamento, o [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. A captura de tela do usuário confirmou a janela da versão 0.2.1; registre separadamente o ensaio da nova versão no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
+O executável **GleysonSilva-Jarvis-0.2.3-Windows.exe** é a base anterior e não contém núcleo orbital/Contexto da 0.3.0. Até registrar geração, integridade e abertura real do novo pacote, valide a revisão nova pelo código-fonte. Não crie um link de download presumido nem apresente a 0.2.3 como novo instalador.
+
+Como evidência histórica, o [CI 5733b37 da 0.2.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. A captura de tela do usuário confirmou a janela da versão 0.2.1; registre separadamente o ensaio da 0.3.0 no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
 
 No 0.2.0, `await app.whenReady()` no topo ESM impedia concluir a inicialização no Electron 44.9.0. A revisão 0.2.1 corrigiu esse caminho e passou no CI com Electron real. Electron 44.9.0/Node 24.22 e SQLite foram verificados; a causa não era autostart/hardware/SQLite. O ensaio no ambiente Codex ficou bloqueado por ACL antes do app; isso é distinto da abertura aprovada no CI Windows. Nenhuma sandbox foi desativada para esse aceite. Registre abertura e recursos separadamente.
 
@@ -59,7 +61,7 @@ Peça ao usuário que preencha os campos mascarados em Ajustes, sem enviar a cha
 | Sessão | 10 minutos por padrão; permitido de 1 a 30. |
 | Perfil | `default` por padrão; memórias separadas por perfil. |
 
-O fluxo de voz 0.2.0 usa OpenAI para compreender/gerar texto e ElevenLabs para narrar. A saída de áudio OpenAI fica desativada. O campo legado `voice: marin`, se presente na configuração, não seleciona a voz audível deste fluxo. Não use uma voz OpenAI ou do navegador como alternativa silenciosa a erro da ElevenLabs.
+O fluxo de voz usa OpenAI para compreender/gerar texto e ElevenLabs para narrar. A saída de áudio OpenAI fica desativada. O campo legado `voice: marin`, se presente na configuração, não seleciona a voz audível deste fluxo. Não use uma voz OpenAI ou do navegador como alternativa silenciosa a erro da ElevenLabs.
 
 Na apresentação 0.2.2, saudação e conversa falada não acrescentam transcrições ao painel Conversa: a pessoa ouve o áudio e acompanha a pulsação/estado. Mensagens digitadas e suas respostas continuam no painel; a fonte do clima aparece compacta. Não desative reconhecimento de fala nem remova o histórico interno necessário à OpenAI para obter esse resultado visual.
 
@@ -77,6 +79,9 @@ A [amostra pública em assets/voice/jarvis-demo.mp3](assets/voice/jarvis-demo.mp
 6. **Memória:** salvar preferência de teste, conferir recuperação no mesmo perfil e apagar.
 7. **Amostra fixa:** em Ajustes → Saudação, reproduzir/parar a frase gravada sem API ou microfone. Não representa clima atual nem nova conversa.
 8. **Recepção:** configurar cidade privadamente e usar Iniciar Jarvis. Conferir relógio, tempo/previsão, atribuição e áudio correspondente. Ouvir saudação repete o áudio preparado sem nova geração.
+9. **Contexto:** abrir pelo botão lateral e conferir Tempo e Atividade local, com fonte/horários. Sem cidade, conferir orientação para Ajustes; sem rede, indisponibilidade sem valores inventados. Configurada a cidade, o clima deve funcionar também com saudação automática desligada e sem chave ElevenLabs. Atualizar pode reutilizar cache válido por até dez minutos. Fechar durante consulta e trocar de perfil não devem exibir resposta antiga. Conferir ausência de captura, narração e transcrições adicionadas por essa leitura.
+
+A atividade é um snapshot de até 100 execuções recentes do perfil, com até oito exibidas. Não é agenda nem integração Google. Google Calendar, e-mail, notícias e briefing falado combinado ainda não estão implementados; não solicite acesso a essas contas durante a instalação. Veja [docs/context.md](docs/context.md).
 
 A geração pode consumir as contas e está sujeita a limites. Não reinicie serviços nem altere quotas para contornar recusas. Um arquivo gravado preserva o boletim do momento da síntese, não uma previsão atualizada.
 
@@ -104,7 +109,7 @@ No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua i
 
 ## 7. Distinguir baseline de novos recursos
 
-A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
+A 0.3.0 está em verificação. Registre os resultados atuais de núcleo/Contexto, TypeScript, testes, build e pacote sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 
 - CI do commit ba0680: 147 testes, compilação e artefato portátil Windows aprovados.
 - Falha nativa do EXE 0.2.0 confirmada pelo usuário: processo sem janela, por bloqueio da inicialização ESM. Correção 0.2.1 aprovada em abertura real no CI e abertura visual no computador do usuário confirmada por captura de tela. O bloqueio local por ACL foi um ensaio separado.
@@ -128,6 +133,8 @@ Ambiente e Node:
 Versão/commit:
 Verificações: aprovadas / falhas / skips
 Superfície: Electron / navegador local / prévia / EXE
+Núcleo orbital: centro vazio, cor constante, áudio real e movimento reduzido
+Contexto: fontes, horário/cache, perfil, indisponibilidade e cancelamento
 Microfone: captura, cancelamento e liberação
 Câmera: resolução, imagem e liberação
 OpenAI texto: resposta real / não ensaiado

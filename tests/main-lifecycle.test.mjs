@@ -13,9 +13,9 @@ const { code } = await transform(source, { format: 'cjs', target: 'node24', defi
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
 
-async function fixture(t, { blockWake = false, resetFailure = false } = {}) {
+async function fixture(t, { blockWake = false, resetFailure = false, lateContext = false } = {}) {
   const calls = { mute: 0, destroy: 0, hide: 0, speechReset: 0, wakeStop: 0, visionClose: 0, runtimeClose: 0, trayDestroy: 0, quit: 0, cancelledRuns: [], signals: [], errors: [] };
-  const wake = deferred(), ipc = new Map(), windows = [], trays = [];
+  const wake = deferred(), context = deferred(), ipc = new Map(), windows = [], trays = [];
   const current = { profileId: 'default', standbyEnabled: true, startAtLogin: false, wakeVoiceEnabled: true, startupGreeting: true, apps: [], elevenVoiceId: 'testVoice' };
   const app = new EventEmitter();
   Object.assign(app, { isPackaged: true, setName() {}, enableSandbox() {}, requestSingleInstanceLock: () => true, whenReady: async () => {}, getPath: () => 'C:\\fake-private-data', isReady: () => true,
@@ -36,7 +36,7 @@ async function fixture(t, { blockWake = false, resetFailure = false } = {}) {
     async loadURL() {}
   }
   class Tray { constructor() { trays.push(this); } setToolTip() {} on() {} setContextMenu(menu) { this.menu = menu; } destroy() { calls.trayDestroy++; } }
-  const settings = class { get() { return structuredClone(current); } write() {} public() { return { ...current }; } getSecret() { return 'fake-key'; } getElevenSecret() { return 'fake-key'; } };
+  const settings = class { get() { return structuredClone(current); } write(value) { Object.assign(current, value); } save(value) { Object.assign(current, value); } public() { return { ...current }; } getSecret() { return 'fake-key'; } getElevenSecret() { return 'fake-key'; } };
   const blocking = (_input, { signal }) => new Promise((resolve, reject) => { calls.signals.push(signal); signal.addEventListener('abort', () => reject(new Error('cancelled')), { once: true }); });
   const runtime = { cancel(id) { calls.cancelledRuns.push(id); }, approve() {}, async close() { calls.runtimeClose++; }, getSnapshot() { return { memories: [], tasks: [], procedures: [] }; } };
   const session = { setPermissionRequestHandler() {}, setPermissionCheckHandler() {}, setDevicePermissionHandler() {}, on() {} };
@@ -49,6 +49,7 @@ async function fixture(t, { blockWake = false, resetFailure = false } = {}) {
     './platform/windows.mjs': { createWindowsAdapters: () => ({}) },
     './vision.mjs': { VisionService: class { async handle(input) { if (input.type === 'reset' && resetFailure) throw new Error('reset failed'); return { available: false }; } close() { calls.visionClose++; } } },
     '../../packages/greeting/index.mjs': { StartupGreetingService: class { prepare = blocking; } },
+    '../../packages/context/index.mjs': { ContextService: class { read(input, options) { if (!lateContext) return blocking(input, options); calls.signals.push(options.signal); return context.promise; } }, ContextError: class extends Error {} },
     '../../packages/speech/index.mjs': { SpeechService: class {}, SpeechServiceError: class extends Error {} },
     '../../packages/speech/controller.mjs': { SpeechController: class { reset() { calls.speechReset++; } }, SpeechControlError: class extends Error {} },
     './startup.mjs': { configureStartup: () => ({ available: true, enabled: false }), isStandbyLaunch: () => false, WindowsWakeService: class { async stop() { calls.wakeStop++; if (blockWake) await wake.promise; } } },
@@ -62,8 +63,40 @@ async function fixture(t, { blockWake = false, resetFailure = false } = {}) {
   const window = windows[0];
   const invoke = (name, input) => ipc.get('jarvis:' + name)({ sender: window.webContents, senderFrame: window.webContents.mainFrame }, input);
   t.after(async () => { wake.resolve(); await module.exports.requestShutdown('test_cleanup'); });
-  return { calls, app, window, trays, invoke, releaseWake: wake.resolve, shutdown: module.exports.requestShutdown };
+  return { calls, app, window, trays, invoke, releaseWake: wake.resolve, resolveContext: context.resolve, shutdown: module.exports.requestShutdown };
 }
+
+test('context bridge rejects caller-selected profiles and cancels reading without affecting speech', async t => {
+  const f = await fixture(t);
+  await assert.rejects(f.invoke('readContext', { timezone: 'UTC', profileId: 'other' }), /Argumento não permitido/);
+  const reading = f.invoke('readContext', { timezone: 'UTC' });
+  const rejected = assert.rejects(reading);
+  await flush(); assert.equal(f.calls.signals.length, 1);
+  assert.deepEqual(await f.invoke('cancelContext'), { cancelled: true });
+  await rejected; assert.equal(f.calls.signals[0].aborted, true);
+  assert.equal(f.calls.speechReset, 0);
+  assert.deepEqual(await f.invoke('cancelContext'), { cancelled: false });
+});
+
+test('context results from an earlier profile cannot return after settings reset', async t => {
+  const f = await fixture(t, { lateContext: true });
+  const reading = f.invoke('readContext', { timezone: 'UTC' });
+  const rejected = assert.rejects(reading, /leitura do contexto foi interrompida/);
+  await flush();
+  await f.invoke('saveSettings', { profileId: 'other' });
+  assert.equal(f.calls.signals[0].aborted, true);
+  f.resolveContext({ weather: { locationLabel: 'old-profile-private-data' } });
+  await rejected;
+});
+
+test('X also aborts a context request before worker cleanup', async t => {
+  const f = await fixture(t, { blockWake: true });
+  const reading = f.invoke('readContext', { timezone: 'UTC' });
+  const rejected = assert.rejects(reading);
+  await flush(); f.window.emit('close', { preventDefault() {} });
+  assert.equal(f.window.isDestroyed(), true); assert.equal(f.calls.signals[0].aborted, true);
+  await rejected; f.releaseWake(); await f.shutdown();
+});
 
 test('X destroys the standby window immediately and cancels pending work before slow worker cleanup', async t => {
   const f = await fixture(t, { blockWake: true });

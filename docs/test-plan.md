@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-Este plano cobre a revisão 0.2.3, com **229 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados no [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134)**. O [CI da base 0.2.2 d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes e preservou a apresentação sem transcrições. Esses resultados não comprovam latência, reconhecimento facial, som audível, fechamento durante áudio ou ativação por dispositivos.
+Este plano cobre a revisão 0.3.0, incluindo núcleo orbital azul e Contexto sob demanda. Resultados dessa revisão devem ser registrados por execução/commit em [Validação](validation.md). O histórico da revisão 0.2.3 teve **229 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados no [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134)**. O [CI da base 0.2.2 d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes e preservou a apresentação sem transcrições. Resultados históricos não comprovam a revisão nova, latência, reconhecimento facial, som audível, fechamento durante áudio ou ativação por dispositivos.
 
 ## Evidências já registradas
 
@@ -52,6 +52,7 @@ Não é necessário instalar OpenCV ou baixar modelos para os testes de protocol
 | Login/palavra Windows | Opções opt-in, caminho do pacote, protocolo do worker, idioma ausente e cancelamento. | APIs/processos substituídos; não altera um login real nem reconhece voz física. |
 | Música | Fonte explícita, reprodução, volume e limpeza após erro/parada. | AudioContext/HTMLAudio substituídos; a prévia privada aprovada é uma evidência separada da recepção integrada. |
 | Integração App | Hooks/controlador reais: capacidade no boot, uma única permissão pendente durante pausa/retorno, cancelamento abortando preparação e rearmando espera. | Provedores/captura substituídos; não comprova ativação física ou áudio ouvido. |
+| Contexto 0.3.0 | Leitura de clima independente da saudação/TTS, fonte e atualidade, cache compartilhado, estados parciais, limite de registros, cancelamento e isolamento de perfil. | Respostas de fonte e relógio substituídos não comprovam disponibilidade da rede nem clima observado no local. |
 | Visão Python | Rejeição de formatos, dimensões antes de decode, ausência opcional de modelos, cinco pontos antes de feature e normalização. | Backend falso; não mede detecção ou identificação reais. |
 | Executor local | Consulte `tests/runtime.test.mjs` para política, caminhos, estado e resultados verificados. | Verifique quais adaptadores do sistema foram substituídos antes de interpretar o resultado. |
 
@@ -76,6 +77,17 @@ Para o harness, inicie `npm run test:local` e abra `http://127.0.0.1:47832`. O s
 7. Abra um aplicativo cadastrado e verifique o processo observado. Um comando disparado sem confirmação de funcionamento deve permanecer falha ou não verificado.
 
 O fluxo atual só pode anunciar os controles realmente implementados. Foco de janela arbitrária, controle visual de qualquer aplicativo, leitura de qualquer página, envio de mensagens e casa conectada exigem adaptadores próprios e não são aprovados por esse ensaio.
+
+## Contexto sob demanda e núcleo orbital — 0.3.0
+
+1. Com saudação desativada e sem chaves de voz/modelo, abra **Contexto**. A leitura de clima deve funcionar quando houver cidade configurada; não deve pedir microfone/câmera, carregar credenciais ElevenLabs, sintetizar, tocar música, narrar nem executar ferramentas. Fechar o painel mantém o dashboard sem cartões ou transcrições.
+2. Sem cidade, confirme `not_configured` e o acesso a Ajustes. Com cidade, confira unidade Celsius, condição, mínima/máxima e chance de precipitação quando fornecida, fonte Open-Meteo e horários. Ausência de probabilidade deve aparecer sem valor inventado.
+3. Consulte novamente em menos de dez minutos e confira a indicação de cache. Após expirar, mudar coordenadas/fuso ou mudar a data local, a fonte deve ser consultada novamente. Rejeite observação com mais de três horas, futuro além da tolerância, data diária incorreta, unidades erradas ou intervalos inválidos.
+4. Desligue a rede e simule resposta inválida/lenta. O clima deve ficar indisponível, sem estimativas ou corpo bruto de erro; a atividade local deve continuar disponível. Uma falha do registro local não deve apagar o estado independente do clima.
+5. Feche o painel durante uma consulta lenta e reabra; repita com atualização, troca de cidade, perfil e encerramento. Respostas antigas não podem reaparecer, narrar ou mostrar registros de outro perfil. Campos extras, perfil ou endpoint enviados pela interface devem ser recusados.
+6. Gere atividades em dois perfis e confira o isolamento, estados e horários. Compare contagens com o recorte das cem execuções mais recentes; a lista mostra até oito. Faça mais de cem execuções de teste e confirme que a tela informa o limite, sem apresentar o recorte como total histórico. Argumentos, resumos livres, caminhos, memórias e procedimentos não devem aparecer na resposta de contexto. O registro local não deve ser apresentado como agenda.
+7. Confirme ausência de conexões ou dados de calendário, e-mail e notícias: esses recursos são futuros. O painel não deve acrescentar dados automaticamente ao modelo ou à saudação aprovada.
+8. No núcleo orbital original, confira matiz azul constante e pulsação durante entrada de áudio, reprodução e execução, sem texto no centro. Teste janela pequena, redimensionamento, escala de tela e preferência de movimento reduzido. A animação não deve alterar permissões nem iniciar áudio. Registre fluidez/consumo no equipamento usado; aparência não comprova latência de resposta.
 
 ## Texto e memória com OpenAI
 
@@ -163,6 +175,8 @@ Login Windows: pacote/caminho, entrada real e desativação
 Música: não fornecida / arquivo privado testado, fim e cancelamento
 Identificação real: dependências/pesos, cenários e resultados
 Ações: prévia, confirmação, resultado, cancelamento e restauração
+Contexto: fontes disponíveis, horários/cache, recorte de atividade, cancelamento e perfis
+Núcleo orbital: superfície/tamanho, movimento reduzido, fluidez e aceite visual
 Latência: quantidade, p50/p95 e método
 Limitações ou falhas em aberto:
 ```

@@ -1,6 +1,6 @@
 # Arquitetura — Projeto GleysonSilva-Jarvis
 
-O MVP 0.2.0 separa interface, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador. A nova conversa e os gatilhos nativos ainda precisam de validação real completa.
+O MVP 0.3.0 separa interface, leitura de contexto, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador. Conversa, gatilhos nativos e nova apresentação ainda precisam de validação real completa.
 
 ## Componentes e fronteiras
 
@@ -9,6 +9,9 @@ flowchart LR
     Pessoa[Pessoa] --> UI[React + HUD Canvas]
     UI --> Bridge[Bridge limitada / preload]
     Bridge --> Main[Processo principal Electron]
+    Main --> Context[ContextService: leitura sob demanda]
+    Context --> Weather[Open-Meteo: clima validado]
+    Context -->|Perfil confiável e resumo limitado| Runtime
     Main --> Provider[Serviço OpenAI]
     Provider --> Responses[Responses: texto e ferramentas]
     UI -->|Microfone WebRTC após ativação| Realtime[OpenAI Realtime]
@@ -31,11 +34,12 @@ flowchart LR
 
 | Camada | Responsabilidade | Não recebe como autoridade |
 | --- | --- | --- |
-| Renderer | Conversa, HUD, captura, WebRTC, fila/reprodução de fala, palmas e aprovações. | Chave salva, Node, shell ou embeddings faciais. |
+| Renderer | Conversa, núcleo orbital azul, cartões de contexto, captura, WebRTC, fila/reprodução de fala, palmas e aprovações. | Chave salva, Node, shell ou embeddings faciais. |
 | Preload | Expor métodos explícitos, filtrar IPC e entregar eventos. | Código arbitrário fornecido pelo modelo ou página. |
 | Processo principal | Validar origem/argumentos, guardar configuração, ligar serviços, vincular perfil e cancelar sessões. | Um perfil escolhido unilateralmente por uma ferramenta. |
 | Provider OpenAI | Responses/Realtime, streaming, memória recuperada e delegação de ferramentas. | Autoridade para ignorar a política local. |
 | Controlador de fala | Texto limitado, síntese ElevenLabs, correlação e cancelamento por geração. | Poder de executar ferramentas ou trocar silenciosamente de voz. |
+| ContextService | Clima e atividade local observados, com fonte, horário e estados parciais. | Perfil recebido da interface, autoridade para agir ou acesso a chaves de voz. |
 | Runtime | Limites de pasta, confirmação, idempotência, efeitos e registro persistente. | Instruções embutidas em arquivos, seleção de página ou texto de memória. |
 | Worker facial | Detectar, alinhar e extrair vetores de um quadro. | Nomes, chaves, banco de tarefas ou acesso à rede. |
 
@@ -59,7 +63,7 @@ A conversa falada começa pelo controle de voz. O renderer pede microfone, cria 
 
 Trechos completos do texto são enfileirados para `packages/speech`, com perfil, execução e ID de trecho. O principal valida a configuração, sintetiza na ElevenLabs e retorna áudio limitado, sem chave/ID de voz. O cliente prepara/reproduz os trechos em ordem; cancelamento invalida a geração e seus resultados atrasados. Eventos `.done` não enfileiram uma nova fala. Erro de síntese mantém texto/aviso; não troca para voz OpenAI ou do navegador.
 
-Captura e fala local possuem analisadores. O HUD usa os envelopes preservando ciano e título, e uma cadência própria para ferramentas. A narração usa reprodução fixa 0,95× com altura preservada e efeito 0,78. O teste de microfone é local, sem provedor. A conversa completa com essa nova saída ainda exige aceite real.
+Captura e fala local possuem analisadores. No 0.3.0, o núcleo mecânico ciano dá lugar a uma composição orbital original de filamentos e partículas azuis, com centro vazio. O matiz permanece azul nos estados; envelopes de áudio alteram luz e pulsação, e ferramentas usam uma cadência própria. O Canvas limita resolução e reduz movimento conforme a preferência do sistema. A narração mantém reprodução fixa 0,95× com altura preservada e efeito 0,78. O teste de microfone é local, sem provedor. A conversa completa com essa saída e a nova composição ainda exigem aceite real.
 
 O cliente deduplica eventos e `call_id`. Uma chamada de função é delegada à bridge; o resultado volta como `function_call_output`. Só uma continuação ainda ativa dispara `response.create`. Respostas interrompidas não podem reiniciar a tarefa quando um resultado atrasado chega.
 
@@ -73,9 +77,21 @@ Encerrar voz libera microfone, tracks remotas, contexto de áudio, conexão e te
 
 O renderer analisa duas palmas por Web Audio, sem enviar áudio à nuvem; o worker de palavra também é local. Esses gatilhos não abrem conversa OpenAI. Antes de recepção/música e durante uso ativo do microfone, o controlador pausa a espera. A captura retorna somente se a intenção de espera continuar ativa; limpeza e gerações descartam callbacks antigos.
 
-O serviço de saudação usa relógio do PC, coordenadas privadas e Open-Meteo, com atribuição. A síntese usa a mesma voz ElevenLabs. Cancelar também aborta a preparação no backend. Uma fonte musical privada pode acompanhar a recepção até fim/interrupção, mas não há faixa padrão e o arquivo ainda não foi fornecido.
+O serviço de saudação usa relógio do PC, coordenadas privadas e Open-Meteo, com atribuição. A síntese usa a mesma voz ElevenLabs. Cancelar também aborta a preparação no backend. Uma fonte musical privada pode acompanhar a recepção até fim/interrupção; a prévia com o arquivo fornecido foi aprovada, mas não há faixa padrão distribuída nem aceite físico completo do fluxo integrado.
 
 Detecção real, segundo plano, idioma, login e retorno não foram aprovados fisicamente. Navegador não altera login nem oferece o worker nativo. Consulte [Espera](standby.md).
+
+## Contexto sob demanda — 0.3.0
+
+O painel **Contexto** chama `readContext({ timezone })` pela bridge limitada. O principal valida origem e campos, captura o perfil das configurações confiáveis e mantém uma consulta cancelável. `cancelContext()` interrompe a leitura; uma nova consulta substitui a anterior. Troca de configuração/perfil, encerramento e descarte do painel invalidam resultados atrasados. O harness local oferece o mesmo contrato, mantendo as verificações de origem e token.
+
+`packages/context` reúne duas fontes independentes: `StartupGreetingService.readWeather()` e um resumo do snapshot de execuções do perfil. A leitura explícita de clima funciona com a saudação desativada, sem carregar chave ElevenLabs, sintetizar, tocar música ou abrir microfone/câmera. `prepare()` preserva a saudação aprovada e reutiliza a mesma consulta/cache de clima.
+
+O clima é consultado no endpoint fixo Open-Meteo. Unidades, faixas, código meteorológico, data local e atualidade são validados. O cache em memória dura até dez minutos para as mesmas coordenadas, fuso e data; a observação atual deve ter no máximo três horas, com tolerância limitada para relógio futuro. Respostas inválidas ou fora do prazo não viram estimativas. A interface recebe valores validados, cidade, fonte/atribuição, horários e indicação de cache; a resposta de contexto não contém coordenadas, chaves ou ID de voz. Os estados são `ok`, `not_configured` e `unavailable`.
+
+A atividade local resume até cem registros recentes do perfil e apresenta até oito entradas, com ferramenta conhecida, estado e horário. Contagens referem-se ao recorte observado; argumentos, resumos livres, caminhos, memórias e procedimentos não saem nessa resposta. Uma falha de fonte preserva a outra; mudar de perfil descarta o conjunto em andamento. Esse histórico de execuções não é uma agenda.
+
+Os cartões aparecem somente no painel solicitado e não acrescentam transcrições à conversa, narração ou contexto automático ao modelo. Calendário, e-mail, notícias e briefing combinando essas fontes continuam no roadmap, sem conexão ou dados simulados apresentados como reais.
 
 ## Arquivos e resultados verificáveis
 
@@ -113,6 +129,7 @@ A pessoa confirma o perfil sugerido. Reconhecimento não autentica, não libera 
 | Programas Windows | Adaptadores limitados e executáveis cadastrados. | Indisponíveis. |
 | Conversa | Microfone enviado à OpenAI; texto da resposta enviado à ElevenLabs. | Mesmo fluxo com ambos os provedores configurados. |
 | Teste de microfone | Análise local sem sessão paga. | Análise local sem sessão paga. |
+| Contexto | Clima Open-Meteo e atividade local sob demanda; sem captura ou síntese. | Mesmo contrato, com fontes reais configuradas ou estados de indisponibilidade. |
 | Espera | Palmas e palavra locais; microfone ativo se habilitado. | Palmas locais, sujeito a limites de segundo plano; sem palavra nativa/login. |
 | Música | Fonte privada escolhida pelo usuário. | Não há arquivo padrão; o ensaio não comprova seletor nativo. |
 | Rostos | Fluxo local opcional; cadastro protegido pelo mecanismo do sistema. | Não comprova a proteção/persistência nativa do Electron. |
@@ -123,6 +140,6 @@ Chaves permanentes não chegam ao bundle nem retornam em `boot()`. Texto, memór
 
 Testes offline cobrem contratos, streaming, cancelamento, arquivos, fala, gatilhos e protocolo facial com backends/dispositivos substituídos. O ensaio real anterior confirmou texto OpenAI, captura/liberação de microfone, webcam 640×480 e saída OpenAI marin ouvida. Esta última motivou a nova rota de voz, ainda sem aceite real completo. OpenCV e pesos faciais permanecem ausentes.
 
-A revisão local passou por 214 testes, TypeScript e build; o CI 0.2.0 ainda está pendente no registro. Não houve execução física do EXE, login, ativação por palmas/palavra ou reconhecimento real. Consulte [Validação](validation.md).
+O histórico registra 214 testes locais no 0.2.0; a abertura do pacote foi corrigida no 0.2.1 e confirmada visualmente pelo usuário. O 0.2.3 teve 229 testes e abertura nativa aprovados no CI Windows. Esses resultados pertencem às respectivas versões. Resultados e limitações da revisão 0.3.0 devem ser associados à execução/commit no [registro de validação](validation.md); não equivalem a ensaio de dispositivos, login ou identificação real.
 
 O [plano de testes](test-plan.md) define ensaios separados com conta, microfone, som audível, webcam, pessoas voluntárias, arquivos descartáveis e instalação limpa. O [roadmap](roadmap.md) usa essas evidências como critério para ampliar capacidades.

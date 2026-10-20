@@ -36,6 +36,45 @@ async function fixture(t, { config, fetch: fetchImpl } = {}) {
   };
 }
 
+test('context HTTP reads configured weather without greeting, a voice key or provider speech calls', async t => {
+  const calls = [];
+  const f = await fixture(t, { config: { startupGreeting: false, weatherLocation: { name: 'Cidade de teste', latitude: 0, longitude: 0 } }, fetch: async url => {
+    calls.push(url); assert.equal(new URL(url).hostname, 'api.open-meteo.com');
+    const now = Math.floor(Date.now() / 1000);
+    return Response.json({ current: { time: now, temperature_2m: 24, weather_code: 1 }, current_units: { temperature_2m: '°C' },
+      daily: { time: [Math.floor(now / 86400) * 86400], temperature_2m_min: [20], temperature_2m_max: [27], precipitation_probability_max: [10] },
+      daily_units: { temperature_2m_min: '°C', temperature_2m_max: '°C', precipitation_probability_max: '%' } });
+  } });
+  assert.equal((await f.post('readContext', { timezone: 'UTC', profileId: 'other' })).status, 400);
+  assert.equal((await f.post('readContext', { timezone: 'UTC', endpoint: 'https://example.com' })).status, 400);
+  assert.equal(calls.length, 0);
+  const result = await f.value('readContext', { timezone: 'UTC' });
+  assert.equal(result.weather.status, 'ok'); assert.equal(result.weather.weather.currentTemperature, 24);
+  assert.equal(result.activity.status, 'ok'); assert.equal(result.activity.total, 0);
+  assert.equal(result.sources.length, 2); assert.equal(calls.length, 1);
+  assert.equal(JSON.stringify(result).includes('latitude'), false);
+  assert.equal(JSON.stringify(result).includes('audioBase64'), false);
+  const again = await f.value('readContext', { timezone: 'UTC' });
+  assert.equal(again.weather.cache.hit, true); assert.equal(calls.length, 1);
+});
+
+test('context HTTP cancellation aborts its source and cannot return a delayed result', async t => {
+  let began;
+  const started = new Promise(resolve => { began = resolve; });
+  let sourceSignal;
+  const f = await fixture(t, { config: { startupGreeting: false, weatherLocation: { name: 'Cidade de teste', latitude: 0, longitude: 0 } }, fetch: async (_url, options) => {
+    sourceSignal = options.signal; began();
+    return new Promise((_, reject) => options.signal.addEventListener('abort', () => reject(new Error('private-provider-detail')), { once: true }));
+  } });
+  const reading = f.post('readContext', { timezone: 'UTC' });
+  await started;
+  assert.deepEqual(await f.value('cancelContext'), { cancelled: true });
+  const response = await reading; assert.equal(response.status, 400);
+  assert.equal(sourceSignal.aborted, true);
+  assert.equal((await response.text()).includes('private-provider-detail'), false);
+  assert.deepEqual(await f.value('cancelContext'), { cancelled: false });
+});
+
 test('loopback serves only allowlisted assets and rejects Host, origin, CSRF and GET effects', async t => {
   const f = await fixture(t);
   const index = await fetch(f.local.url);
