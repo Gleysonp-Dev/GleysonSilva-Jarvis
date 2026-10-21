@@ -1,6 +1,6 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar o [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main) e entregar um resultado verificável. A revisão visual **0.3.1 está com CI e pacote em andamento**: ajusta o núcleo ao vídeo fornecido pelo autor, preservando voz, saudação, Contexto e demais funções da 0.3.0. O pacote 0.3.0 indicado abaixo é a revisão anterior e não contém o novo visual. O [CI b032bd3 da 0.3.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real; esse resultado não valida a 0.3.1. Não há release assinada ou validação completa em instalação limpa.
+Roteiro para instalar a revisão visual **0.3.1** pelo [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main) ou pacote portátil e entregar um resultado verificável. A revisão ajusta o núcleo ao vídeo fornecido pelo autor, preservando voz, saudação, Contexto e demais funções da 0.3.0. O [CI bfcc67b9 da 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h14, America/New_York**. O aceite visual do núcleo, a instalação limpa e os ensaios completos de dispositivos permanecem pendentes. Não há release assinada.
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
@@ -31,11 +31,18 @@ npm start
 
 Confirme janela, conversa, Contexto, Ajustes, Memória, Registro e Presença. Na 0.3.1, o núcleo usa dez curvas com intensidades distintas, deformação assimétrica, focos luminosos e campo azul sobre grade plana ampla. O centro deixa a grade visível, sem texto novo central ou anéis segmentados. A paleta ciano/azul permanece fixa em todos os estados. Compare com a [análise do vídeo fornecido pelo autor](docs/research/referencia-video-nucleo.md), sem afirmar igualdade de pixels. Sem captura ou sessão real, os indicadores não devem alegar conexão. Movimento reduzido deve congelar a geometria; o nível real do áudio continua sendo a origem do pulso no modo normal.
 
-### Pacote Windows 0.3.0 — revisão anterior
+### Pacote Windows 0.3.1
 
-Para ensaiar a revisão anterior, baixe o [artefato Windows da execução 39513420678](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.3.0-Windows.exe**. Ele não inclui o novo núcleo 0.3.1; o pacote dessa revisão ainda está em preparação. O pacote 0.3.0 não exige Node. Confira o `.sha256` incluído; o SHA-256 do EXE é `01bd3300aacdffe787945475a1373224321c8d462d328e12f7ef35c452b72421`. O artefato tem retenção até 18 de janeiro de 2027; não é um link permanente de release. Se indisponível, use o código-fonte e registre o build local.
+Baixe o [artefato Windows da execução 39519770787](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.3.1-Windows.exe**. O pacote não exige Node. Confira o `.sha256` incluído; o ZIP e o EXE foram baixados e comparados com os valores publicados. O artefato tem retenção até **18 de janeiro de 2027, horário de Nova York**; não é um link permanente de release. Se indisponível, use o código-fonte e registre o build local.
 
-O [CI da 0.3.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/job/118939722750) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`, às 23:14:59 UTC de 20 de outubro de 2026. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. Registre separadamente o ensaio da 0.3.0 no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
+| Arquivo 0.3.1 | Tamanho | SHA-256 conferido |
+| --- | --- | --- |
+| ZIP do artefato | 104.010.427 bytes | `8d148043d4b736d2fe143cb1db0c369e21dcf185d97c0db1a70a2fba8e954b9e` |
+| GleysonSilva-Jarvis-0.3.1-Windows.exe | 104.001.614 bytes | `aba928ffc4132cabf96e41d4f089e9f1f4c677875de0577b76506ae8607949f2` |
+
+O [CI da 0.3.1, commit bfcc67b9deebff447cfa112cf755662993002328](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/job/118960468252) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`, em **20 de outubro de 2026, às 20h14, America/New_York**. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. Registre separadamente o ensaio da 0.3.1 no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
+
+**Histórico 0.3.0:** o [artefato da revisão anterior](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731) contém **GleysonSilva-Jarvis-0.3.0-Windows.exe**, cujo SHA-256 é `01bd3300aacdffe787945475a1373224321c8d462d328e12f7ef35c452b72421`. Seu [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/job/118939722750) aprovou abertura nativa real em 20 de outubro de 2026, às 19h14, America/New_York. Essa revisão não contém o novo núcleo e não deve ser usada para validar a mudança visual da 0.3.1.
 
 No 0.2.0, `await app.whenReady()` no topo ESM impedia concluir a inicialização no Electron 44.9.0. A revisão 0.2.1 corrigiu esse caminho e passou no CI com Electron real. Electron 44.9.0/Node 24.22 e SQLite foram verificados; a causa não era autostart/hardware/SQLite. O ensaio no ambiente Codex ficou bloqueado por ACL antes do app; isso é distinto da abertura aprovada no CI Windows. Nenhuma sandbox foi desativada para esse aceite. Registre abertura e recursos separadamente.
 
@@ -109,7 +116,9 @@ No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua i
 
 ## 7. Distinguir baseline de novos recursos
 
-A 0.3.1 está em verificação, com CI e pacote em andamento. O usuário relatou que o roteiro funcional curto da 0.3.0 funcionou e aprovou essa parte; reprovou o núcleo, que motivou a revisão visual atual. Esse relato não descreve uma bateria completa de dispositivos e cenários. Registre os resultados atuais do núcleo, TypeScript, testes, build e pacote sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
+A 0.3.1 tem CI, pacote e abertura nativa real aprovados; o aceite visual e a bateria completa de dispositivos permanecem pendentes. O usuário relatou que o roteiro funcional curto da 0.3.0 funcionou e aprovou essa parte; reprovou o núcleo, que motivou a revisão visual atual. Esse relato não descreve uma bateria completa de dispositivos e cenários. Registre os resultados atuais sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
+
+- Revisão 0.3.1: **264/264 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York. ZIP e EXE baixados e hashes conferidos; aceite visual do autor ainda pendente.
 
 - Revisão anterior 0.3.0: **264 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678). Aceite do roteiro funcional curto informado pelo usuário; núcleo visual reprovado. Não usar esse CI ou o EXE 0.3.0 como prova da 0.3.1.
 

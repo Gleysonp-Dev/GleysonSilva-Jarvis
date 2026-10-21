@@ -2,7 +2,7 @@
 
 Contexto é o primeiro passo do briefing com fontes reais: um painel de leitura aberto pelo botão **Contexto** na barra lateral. O dashboard permanece sem cartões automáticos, boletins escritos ou transcrições. Abrir o painel não liga microfone/câmera, não produz áudio e não chama OpenAI ou ElevenLabs.
 
-A 0.3.1 altera o desenho do núcleo e preserva o comportamento do painel implementado na 0.3.0. CI e pacote da revisão visual estão em andamento, sem aprovação registrada para esta revisão.
+A 0.3.1 altera o desenho do núcleo e preserva o comportamento do painel implementado na 0.3.0. O [CI bfcc67b9 da revisão visual](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787) aprovou 264/264 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real em 20 de outubro de 2026, às 20h14, America/New_York. O aceite visual pelo autor permanece pendente.
 
 ## Usar
 
@@ -58,4 +58,4 @@ Google Calendar, agenda, e-mail, notícias e resumo falado combinado **ainda nã
 
 A revisão anterior 0.3.0 teve **264 testes**, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678). A inspeção visual usou serviços substituídos e dados simulados identificados. Uma consulta real à fonte meteorológica ficou indisponível por resolução de rede. Posteriormente, o usuário relatou funcionamento no roteiro funcional curto e aprovou a parte funcional da 0.3.0, mas reprovou o núcleo. Esse relato não discrimina todos os dados meteorológicos, dispositivos ou cenários e não valida a nova composição.
 
-A 0.3.1 está com CI e pacote em andamento; o aceite visual ainda está pendente. Registrar separadamente esses resultados, uso do áudio e ensaio físico. Detalhes em [Validação](validation.md) e instalação em [AI_INSTALL.md](../AI_INSTALL.md).
+A 0.3.1 teve **264/264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787). O [pacote 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) foi baixado; ZIP e EXE tiveram seus hashes conferidos. O aceite visual ainda está pendente. Registrar separadamente esses resultados, uso do áudio e ensaio físico; não há release assinada. Detalhes em [Validação](validation.md) e instalação em [AI_INSTALL.md](../AI_INSTALL.md).

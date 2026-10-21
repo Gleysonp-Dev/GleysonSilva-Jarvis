@@ -1,14 +1,16 @@
 # Projeto GleysonSilva-Jarvis
 
-![GleysonSilva-Jarvis — núcleo circular ciano e identidade própria](assets/branding/social-preview.png)
+![Prévia do núcleo orbital 0.3.1](assets/screenshots/core-031.png)
+
+Prévia visual com dados de demonstração; não representa uma sessão conectada.
 
 Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais que você pode revisar antes de autorizar.
 
-**Revisão visual 0.3.1 em preparação:** o núcleo foi redesenhado a partir do vídeo de referência enviado pelo autor. O painel **Contexto** da 0.3.0 permanece aberto somente pelo botão, com clima da Open-Meteo e execuções locais do perfil, fonte e horário. A mudança visual não acrescenta transcrições, narração ou cartões à tela principal. CI e pacote da 0.3.1 estão em andamento; ainda não há aprovação desta revisão.
+**Revisão visual 0.3.1 com CI e pacote Windows aprovados:** o núcleo foi redesenhado a partir do vídeo de referência enviado pelo autor. O painel **Contexto** da 0.3.0 permanece aberto somente pelo botão, com clima da Open-Meteo e execuções locais do perfil, fonte e horário. A mudança visual não acrescenta transcrições, narração ou cartões à tela principal. O aceite visual do novo núcleo pelo autor ainda está pendente.
 
 O núcleo é uma implementação original em Canvas: dez curvas de intensidades diferentes formam um contorno assimétrico, com fios ciano, focos luminosos e um campo azul sobre grade plana ampla. O centro continua sem texto e deixa o fundo visível. A paleta ciano/azul permanece fixa em todos os estados; brilho e expansão respondem ao microfone e ao áudio reproduzido. Não contém código ou assets do produto de referência. O desenho respeita movimento reduzido e limita atualização e resolução para controlar o custo de renderização. A [análise do vídeo de referência](docs/research/referencia-video-nucleo.md) distingue o observado da implementação própria.
 
-**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. O [CI da revisão anterior 0.3.0, commit b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678), aprovou **264 testes, zero falhas/skips**, TypeScript, compilação, pacote e abertura nativa real. O usuário relatou que o roteiro funcional curto da 0.3.0 funcionou e aprovou essa parte, mas reprovou o núcleo visual; isso motivou a 0.3.1. Esse relato não substitui a validação completa em instalação limpa e de todos os dispositivos. Não há release assinada.
+**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. O [CI da 0.3.1, commit bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), aprovou **264 testes, zero falhas/skips**, TypeScript, compilação, pacote e abertura nativa real em **20 de outubro de 2026, às 20h14, America/New_York**. O usuário havia aprovado o roteiro funcional curto da revisão anterior 0.3.0, mas reprovou seu núcleo visual; isso motivou a 0.3.1. O novo visual, a instalação limpa e todos os dispositivos ainda exigem ensaios próprios. Não há release assinada.
 
 Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou transcrições no painel **Conversa**. Mensagens digitadas e suas respostas permanecem visíveis. A voz aprovada mantém reprodução a **0,95×**, altura preservada e efeito metálico fixo **0,78**. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
 
@@ -50,7 +52,9 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-O [pacote Windows 0.3.0 do CI](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731) continua disponível como **revisão anterior**, sem o novo núcleo da 0.3.1. Para ensaiar essa revisão anterior, entre no GitHub, baixe o ZIP, extraia e abra **GleysonSilva-Jarvis-0.3.0-Windows.exe**. O pacote portátil não exige Node; o código-fonte continua sendo a alternativa pública para instalação assistida. O artefato de CI tem prazo de retenção e não é uma release assinada. Seu teste nativo confirmou janela, DOM, preload e boot com rede/captura/login isolados. O pacote da 0.3.1 ainda está em preparação. Confira a integridade e os limites em [Validação](docs/validation.md).
+Baixe o [pacote Windows 0.3.1 do CI](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.3.1-Windows.exe** para ensaiar o novo núcleo. O pacote portátil não exige Node. ZIP e EXE foram baixados e tiveram a integridade conferida; o SHA-256 do EXE é `aba928ffc4132cabf96e41d4f089e9f1f4c677875de0577b76506ae8607949f2`. O artefato fica retido até **18 de janeiro de 2027, horário de Nova York**; não é um link permanente nem uma release assinada. O [teste nativo da 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/job/118960468252) confirmou janela, DOM, preload e boot com rede/captura/login isolados. Confira tamanhos, hashes e limites em [Instalação assistida](AI_INSTALL.md) e [Validação](docs/validation.md).
+
+O [artefato 0.3.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731) permanece somente como referência histórica da revisão anterior, sem o novo núcleo.
 
 ### Configuração e primeira conversa
 
@@ -128,7 +132,7 @@ Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [Elev
 npm run verify
 ```
 
-**0.3.1:** revisão visual em verificação, com CI e pacote em andamento. Não herda o aceite dos testes ou do pacote anterior; o núcleo novo ainda precisa de aprovação visual.
+**0.3.1:** [CI bfcc67b9 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York: **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. O ZIP e o EXE foram baixados e seus SHA-256 conferidos. Esses resultados são da execução atual, sem depender do CI anterior. O núcleo novo ainda precisa de aprovação visual; esse ensaio isolado não comprova conversa, dispositivos, login ou instalação limpa.
 
 **0.3.0:** [CI b032bd3 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678): **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. Inspeção visual usou dados simulados identificados; a consulta meteorológica ao vivo ficou indisponível por falha de resolução de rede. Posteriormente, o usuário relatou funcionamento no roteiro funcional curto e aprovou essa parte, reprovando o núcleo visual. O relato não discrimina todos os dispositivos, provedores e cenários, nem comprova a 0.3.1. Os resultados históricos abaixo permanecem vinculados às revisões correspondentes.
 

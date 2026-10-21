@@ -8,7 +8,13 @@ O vídeo fornecido, de aproximadamente 49,92 segundos, orientou a reconstrução
 
 Verificação local da 0.3.1: **quatro testes do HUD aprovados**, zero falhas/skips, TypeScript e compilação aprovados. Os testes cobrem reação ao áudio, paleta fixa, limites de atualização/resolução, movimento reduzido e limpeza. A inspeção visual usa o renderizador real com áudio simulado e uma bridge de demonstração; não utiliza o microfone, chaves ou APIs do autor. A voz e o restante dos serviços funcionais permanecem na base anterior.
 
-O CI, o pacote e sua abertura nativa ainda estão em andamento para esta revisão. O aceite visual final do autor é separado dessas verificações automáticas.
+O [CI Windows da 0.3.1, commit bfcc67b9deebff447cfa112cf755662993002328](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O [job 118960468252](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/job/118960468252) confirmou ready, window, dom, preload, boot e packaged verdadeiros em **20 de outubro de 2026, às 20:14, horário de Nova York**. Rede, captura e início no login ficaram isolados nesse ensaio.
+
+O artefato **12310612279** foi baixado e conferido: ZIP de **104.010.427 bytes**, SHA-256 `8d148043d4b736d2fe143cb1db0c369e21dcf185d97c0db1a70a2fba8e954b9e`, igual ao digest do CI. A extração aceitou somente o EXE esperado e seu checksum. O **GleysonSilva-Jarvis-0.3.1-Windows.exe** tem **104.001.614 bytes** e SHA-256 `aba928ffc4132cabf96e41d4f089e9f1f4c677875de0577b76506ae8607949f2`, igual ao `.sha256` incluído. O artefato tem retenção até 18 de janeiro de 2027 no horário de Nova York.
+
+Uma amostragem no navegador local, com o Canvas real e áudio simulado, registrou **240 quadros**, mediana de **1,8 ms** e p95 de **2,3 ms** nas chamadas de desenho, com backing de **950 × 648**. A instrumentação pertence à prévia de trabalho e não é incluída no produto. Ela não mede a apresentação final pela GPU, FPS sustentado em outra máquina ou latência da IA.
+
+O aceite visual final do autor é separado dessas verificações automáticas. Não há release assinada ou ensaio completo em instalação limpa.
 
 ## Revisão 0.3.0 — núcleo orbital e Contexto sob demanda
 
