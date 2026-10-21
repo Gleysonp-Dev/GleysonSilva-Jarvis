@@ -1,5 +1,9 @@
 # Validação do MVP
 
+## Revisão 0.5.2 — tela cheia
+
+Botão discreto no topo, F11 para alternar e Esc para sair. O estado acompanha eventos da janela e a troca mantém a conversa. Testes de fronteira exercitam bridge, validação de origem e booleano, atalhos, concorrência, erro e limpeza. O ensaio do pacote Windows foi estendido para clicar no botão real e confirmar entrada/saída no estado nativo e acessível. Verificação local: 413 testes, 402 aprovados e as 11 falhas EPERM anteriores de links/junções bloqueados pelo sandbox; zero skips. Os 54 testes focados, TypeScript e build passaram. CI/pacote novos ainda em preparação; evidências anteriores abaixo são históricas. [Uso](fullscreen.md).
+
 ## Correção 0.5.1 — navegador padrão e transição da roupa
 
 O autor relatou que a 0.5.0 pedia cadastro ao abrir o navegador e demorava para comentar a roupa após a saudação. A captura enviada mostra sessão de voz conectada e uma autorização legada `apps_open/browser`. O relato indica que o comentário chegou a ser gerado; não fornece medidas de tempo nem valida todos os cenários de dispositivos.

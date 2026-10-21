@@ -7,7 +7,7 @@ import { spawn, execFile } from 'node:child_process';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const MARKER = 'JARVIS_NATIVE_SMOKE=';
-const CHECKS = ['ready', 'window', 'dom', 'preload', 'boot'];
+const CHECKS = ['ready', 'window', 'dom', 'preload', 'boot', 'fullscreen'];
 const EXCLUDED_ENV = new Set(['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'ELECTRON_RUN_AS_NODE', 'NODE_OPTIONS']);
 
 function validReport(report, token, expectedPackaged) {

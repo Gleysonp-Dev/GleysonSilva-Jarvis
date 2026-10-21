@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { transform } from 'esbuild';
+import { loadRendererModule } from './renderer-module-loader.mjs';
 
 const require = createRequire(import.meta.url), React = require('react');
 const source = `${await readFile(new URL('../apps/desktop/renderer/App.tsx', import.meta.url), 'utf8')}\nexport { App };`;
@@ -58,7 +59,7 @@ function environment(t, options = {}) {
   }
   const fakeCapture = async input => { calls.push('capture'); return options.capture ? options.capture(input) : 'data:image/jpeg;base64,/9j/2Q=='; };
   const originals = new Map();
-  const globals = { window: { jarvis: bridge, location: { href: 'http://127.0.0.1:47833/' }, addEventListener(name, callback) { listeners.set(name, callback); }, removeEventListener(name) { listeners.delete(name); } }, document: { getElementById: () => ({}), activeElement: null }, navigator: { userActivation: { hasBeenActive: true } }, Audio: AudioDouble, AudioContext: Context, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, setTimeout(callback, delay) { const timer = { callback, delay, cleared: false }; timers.push(timer); return timer; }, clearTimeout(timer) { if (timer) timer.cleared = true; } };
+  const globals = { window: { jarvis: bridge, location: { href: 'http://127.0.0.1:47833/' }, addEventListener(name, callback) { listeners.set(name, callback); }, removeEventListener(name) { listeners.delete(name); } }, document: { getElementById: () => ({}), activeElement: null, addEventListener() {}, removeEventListener() {} }, navigator: { userActivation: { hasBeenActive: true } }, Audio: AudioDouble, AudioContext: Context, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, setTimeout(callback, delay) { const timer = { callback, delay, cleared: false }; timers.push(timer); return timer; }, clearTimeout(timer) { if (timer) timer.cleared = true; } };
   for (const [key, value] of Object.entries(globals)) { originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value }); }
   const createUrl = URL.createObjectURL, revokeUrl = URL.revokeObjectURL;
   URL.createObjectURL = value => { const url = createUrl.call(URL, value); createdUrls.push(url); return url; };
@@ -73,6 +74,7 @@ function environment(t, options = {}) {
     if (name === './standby') return { LocalClapStandby: Standby };
     if (name === './greeting-music') return { GreetingMusic: Music };
     if (name === './outfit-camera') return { captureOutfitImage: fakeCapture };
+    if (name === './fullscreen') return loadRendererModule('fullscreen.ts');
     if (name === './speech-effects') return { DEFAULT_SPEECH_EFFECT_AMOUNT: 0.78, createSpeechEffects(input) { calls.push(['effect', input.amount]); return { dispose() {} }; } };
     if (name.startsWith('./')) return {};
     return require(name);

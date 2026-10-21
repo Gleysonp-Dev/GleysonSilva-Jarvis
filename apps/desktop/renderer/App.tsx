@@ -9,6 +9,7 @@ import { LocalClapStandby } from './standby';
 import { GreetingMusic } from './greeting-music';
 import { ContextPanel } from './context-panel';
 import { captureOutfitImage } from './outfit-camera';
+import { createFullscreenController } from './fullscreen';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; done?: boolean; origin?: 'voice' | 'greeting'; source?: JarvisWeatherAttribution | string };
 type Drawer = 'settings' | 'memory' | 'activity' | 'presence' | 'context' | null;
@@ -61,6 +62,8 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
     stop: <rect x="5" y="5" width="14" height="14" rx="2"/>,
     send: <><path d="m4 12 16-8-6 16-3-7-7-1Z"/><path d="m11 13 9-9"/></>,
     settings: <><path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1 1-3Z"/><circle cx="12" cy="12" r="3"/></>,
+    fullscreen: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5"/>,
+    'fullscreen-exit': <path d="M3 8h5V3m8 0v5h5M3 16h5v5m8 0v-5h5"/>,
     memory: <><path d="M9 4C5 2 2 7 5 10c-4 3-1 9 3 8 0 4 4 4 4 1V5c0-2-2-3-3-1Zm6 0c4-2 7 3 4 6 4 3 1 9-3 8 0 4-4 4-4 1"/><path d="m7 8 2 2m-3 5 3-1m8-6-2 2m3 5-3-1"/></>,
     activity: <><path d="M3 12h4l3-8 4 16 3-8h4"/></>,
     context: <><circle cx="12" cy="12" r="8"/><path d="m12 7 2 5-2 5-2-5 2-5ZM4 12H2m20 0h-2M12 4V2m0 20v-2"/></>,
@@ -143,6 +146,8 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [drawer, setDrawer] = useState<Drawer>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const fullscreenController = useRef<ReturnType<typeof createFullscreenController> | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesRef = useRef(messages); messagesRef.current = messages;
   const visibleMessages = messages.filter(message => !message.origin);
@@ -228,6 +233,12 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const showError = (value: unknown) => setError(value instanceof Error ? value.message : typeof value === 'object' && value && 'message' in value ? String(value.message) : String(value));
   async function refresh() { if (!bridge) return; try { const data = await bridge.boot(); setSnapshot(normalizeSnapshot(data.snapshot || emptySnapshot)); } catch (e) { showError(e); } }
   const upsertMessage = (message: Message) => setMessages(previous => { const i = previous.findIndex(m => m.id === message.id); if (i < 0) return [...previous, message]; return previous.map((m, n) => n === i ? { ...m, ...message } : m); });
+
+  useEffect(() => {
+    const controller = createFullscreenController({ bridge, document, window, onChange: setFullscreen, onError: showError });
+    fullscreenController.current = controller;
+    return () => { fullscreenController.current = null; controller.dispose(); };
+  }, [bridge]);
 
   useEffect(() => {
     if (!bridge) { setBooted(true); return; }
@@ -773,7 +784,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const profileMemories = snapshot.memories.filter(m => !m.profileId || m.profileId === settings.profileId);
   const activity = [...actions, ...snapshot.tasks.filter(t => !actions.some(a => a.id === t.id))].slice(0, 30);
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 05.1</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
+    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 05.2</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="icon-button fullscreen-button" type="button" aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'} aria-pressed={fullscreen} title={fullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia (F11)'} onClick={() => { void fullscreenController.current?.toggle(); }}><Icon name={fullscreen ? 'fullscreen-exit' : 'fullscreen'} size={18}/></button><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
     <main className="workspace">
       <nav className="rail" aria-label="Painéis"><button className={drawer === 'context' ? 'selected' : ''} title="Contexto" aria-label="Contexto" aria-expanded={drawer === 'context'} onClick={() => setDrawer('context')}><Icon name="context"/><span>CONTEXTO</span></button><button className={drawer === 'memory' ? 'selected' : ''} title="Memória" aria-label="Memória" onClick={() => setDrawer('memory')}><Icon name="memory"/><span>MEMÓRIA</span></button><button className={drawer === 'activity' ? 'selected' : ''} title="Atividades" aria-label="Atividades" onClick={() => setDrawer('activity')}><Icon name="activity"/><span>REGISTRO</span></button><button className={drawer === 'presence' ? 'selected' : ''} title="Presença e perfis" aria-label="Presença e perfis" onClick={() => setDrawer('presence')}><Icon name="camera"/><span>PRESENÇA</span></button><div className="rail-spacer"/><button title="Configurações" aria-label="Configurações" onClick={openSettings}><Icon name="settings"/><span>AJUSTES</span></button></nav>
       <section className="core-column" aria-label="Núcleo Jarvis">

@@ -87,7 +87,7 @@ function environment(t, { getUserMedia, settings = {}, capabilities = {}, greeti
   class Audio { constructor(src) { this.src = src; audios.push(this); } }
   const values = {
     window: { jarvis: bridge, location: { href: 'http://127.0.0.1:47833/index.html' }, addEventListener(name, callback) { domListeners.set(name, callback); }, removeEventListener(name) { domListeners.delete(name); } },
-    document: { getElementById: () => ({}), activeElement: null },
+    document: { getElementById: () => ({}), activeElement: null, addEventListener() {}, removeEventListener() {} },
     navigator: { mediaDevices: { getUserMedia: getUserMedia ?? (async () => microphone()) } },
     AudioContext: Context, Audio,
     setTimeout(callback, ms) { const id = ++sequence; timeouts.set(id, { callback, ms }); return id; },

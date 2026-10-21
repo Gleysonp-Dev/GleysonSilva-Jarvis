@@ -54,6 +54,9 @@ declare global {
   }
   interface JarvisEvent { type: string; id?: string; profileId?: string; runId?: string; tool?: string; sources?: JarvisToolSource[]; retrievedAt?: number | string; text?: string; delta?: string; state?: string; status?: string; name?: string; summary?: string; message?: string; approvalId?: string; args?: unknown; [key: string]: any; }
   interface JarvisBridge {
+    getFullscreen?(): Promise<boolean>;
+    setFullscreen?(enabled: boolean): Promise<boolean>;
+    onFullscreen?(callback: (enabled: boolean) => void): () => void;
     boot(): Promise<{ settings: JarvisSettings; snapshot: JarvisSnapshot; capabilities: JarvisCapabilities; startup?: { available: boolean; requested?: boolean; enabled: boolean; reason?: string } }>;
     saveSettings(settings: Partial<JarvisSettings> & { apiKey?: string; elevenApiKey?: string }): Promise<unknown>;
     startupGreeting?(input: { hour: number; timezone: string }): Promise<{ text: string; weatherStatus: string; locationLabel?: string; audioBase64: string | null; mime: string; reason?: string; attribution?: JarvisWeatherAttribution | string }>;

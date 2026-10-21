@@ -213,6 +213,15 @@ function handle(name, fn) {
   });
 }
 function registerIPC() {
+  handle('getFullscreen', input => {
+    if (input != null) only(record(input, 100), []);
+    return mainWindow.isFullScreen();
+  });
+  handle('setFullscreen', enabled => {
+    if (typeof enabled !== 'boolean') invalid('Estado de tela cheia inválido.');
+    mainWindow.setFullScreen(enabled);
+    return mainWindow.isFullScreen();
+  });
   handle('readContext', async input => {
     only(record(input, 1000), ['timezone']);
     contextFlight?.abort();
@@ -444,6 +453,11 @@ async function startApplication() {
   mainWindow.webContents.on('will-navigate', (event, url) => { if (url !== APP_URL) event.preventDefault(); });
   mainWindow.webContents.on('will-attach-webview', event => event.preventDefault());
   mainWindow.webContents.on('render-process-gone', () => { if (!shuttingDown) { void clearSessions('renderer_closed'); vision.close(); } });
+  const publishFullscreen = () => {
+    if (!shuttingDown && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send('jarvis:fullscreen', mainWindow.isFullScreen());
+  };
+  mainWindow.on('enter-full-screen', publishFullscreen);
+  mainWindow.on('leave-full-screen', publishFullscreen);
   mainWindow.on('close', event => { if (!shutdownComplete) { event.preventDefault(); void requestShutdown('window_closed'); } });
   app.on('before-quit', event => { if (!shutdownComplete) { event.preventDefault(); void requestShutdown('app_quit'); } });
   app.on('window-all-closed', () => { if (!shuttingDown) void requestShutdown('all_windows_closed'); });
@@ -457,9 +471,26 @@ async function startApplication() {
       const dom = !!document.querySelector('#root .app-shell');
       const preload = typeof window.jarvis?.boot === 'function';
       const data = preload ? await window.jarvis.boot() : null;
-      return { dom, preload, boot: !!(data && typeof data.settings?.profileId === 'string' && Array.isArray(data.snapshot?.memories) && Array.isArray(data.snapshot?.tasks) && typeof data.capabilities?.desktop === 'boolean') };
+      const fullscreenButton = document.querySelector('button.fullscreen-button');
+      const waitFullscreen = async enabled => {
+        const limit = Date.now() + 3000;
+        while (Date.now() < limit) {
+          if (await window.jarvis.getFullscreen() === enabled && fullscreenButton?.getAttribute('aria-pressed') === String(enabled)) return true;
+          await new Promise(resolve => setTimeout(resolve, 25));
+        }
+        return false;
+      };
+      let fullscreen = false;
+      if (fullscreenButton && typeof window.jarvis?.getFullscreen === 'function' && typeof window.jarvis?.setFullscreen === 'function') {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        fullscreenButton.click();
+        const entered = await waitFullscreen(true);
+        fullscreenButton.click();
+        fullscreen = entered && await waitFullscreen(false);
+      }
+      return { dom, preload, fullscreen, boot: !!(data && typeof data.settings?.profileId === 'string' && Array.isArray(data.snapshot?.memories) && Array.isArray(data.snapshot?.tasks) && typeof data.capabilities?.desktop === 'boolean') };
     })()`, false), 20000, 'JARVIS_SMOKE_TIMEOUT');
-    if (!result?.dom || !result?.preload || !result?.boot) throw new Error('JARVIS_SMOKE_NOT_READY');
+    if (!result?.dom || !result?.preload || !result?.boot || !result?.fullscreen) throw new Error('JARVIS_SMOKE_NOT_READY');
     process.stdout.write(`JARVIS_NATIVE_SMOKE=${JSON.stringify({ token: smoke.token, ready: app.isReady(), window: !mainWindow.isDestroyed(), ...result, packaged: app.isPackaged })}\n`);
     await cleanup('smoke_test'); app.exit(0);
   }

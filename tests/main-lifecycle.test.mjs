@@ -15,7 +15,7 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
 
 async function fixture(t, { blockWake = false, resetFailure = false, lateContext = false, lateOutfit = false } = {}) {
-  const calls = { mute: 0, destroy: 0, hide: 0, speechReset: 0, wakeStop: 0, visionClose: 0, runtimeClose: 0, trayDestroy: 0, quit: 0, cancelledRuns: [], signals: [], errors: [] };
+  const calls = { mute: 0, destroy: 0, hide: 0, speechReset: 0, wakeStop: 0, visionClose: 0, runtimeClose: 0, trayDestroy: 0, quit: 0, cancelledRuns: [], signals: [], errors: [], fullscreen: [], sent: [] };
   const wake = deferred(), context = deferred(), outfit = deferred(), ipc = new Map(), windows = [], trays = [];
   const current = { profileId: 'default', standbyEnabled: true, startAtLogin: false, wakeVoiceEnabled: true, startupGreeting: true, apps: [], elevenVoiceId: 'testVoice' };
   const app = new EventEmitter();
@@ -23,15 +23,18 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
     quit() { const event = { prevented: false, preventDefault() { this.prevented = true; } }; this.emit('before-quit', event); if (!event.prevented) calls.quit++; }, exit() { throw new Error('Unexpected forced exit.'); } });
   class Window extends EventEmitter {
     destroyed = false;
+    fullscreen = false;
     constructor() {
       super(); this.webContents = new EventEmitter(); const contents = this.webContents;
       contents.mainFrame = { origin: 'jarvis://app', url: 'jarvis://app/index.html' };
-      Object.assign(contents, { isDestroyed: () => this.destroyed, setAudioMuted(value) { assert.equal(value, true); calls.mute++; }, setWindowOpenHandler() {}, send() {} });
+      Object.assign(contents, { isDestroyed: () => this.destroyed, setAudioMuted(value) { assert.equal(value, true); calls.mute++; }, setWindowOpenHandler() {}, send(...args) { calls.sent.push(args); } });
       windows.push(this);
     }
     isDestroyed() { return this.destroyed; }
     destroy() { this.destroyed = true; calls.destroy++; this.webContents.emit('render-process-gone'); this.emit('closed'); app.emit('window-all-closed'); }
     hide() { calls.hide++; }
+    isFullScreen() { return this.fullscreen; }
+    setFullScreen(enabled) { calls.fullscreen.push(enabled); this.fullscreen = enabled; this.emit(enabled ? 'enter-full-screen' : 'leave-full-screen'); }
     show() {} focus() {} isMinimized() { return false; }
     minimize() { this.emit('minimize'); }
     async loadURL() {}
@@ -67,8 +70,57 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
   const window = windows[0];
   const invoke = (name, input) => ipc.get('jarvis:' + name)({ sender: window.webContents, senderFrame: window.webContents.mainFrame }, input);
   t.after(async () => { wake.resolve(); await module.exports.requestShutdown('test_cleanup'); });
-  return { calls, app, window, trays, invoke, adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, shutdown: module.exports.requestShutdown };
+  return { calls, app, window, trays, invoke, invokeFrom: (event, name, input) => ipc.get('jarvis:' + name)(event, input), adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, shutdown: module.exports.requestShutdown };
 }
+
+test('fullscreen IPC enters, returns and publishes the actual native window state', async t => {
+  const f = await fixture(t);
+  assert.equal(await f.invoke('getFullscreen'), false);
+  assert.equal(await f.invoke('setFullscreen', true), true);
+  assert.equal(await f.invoke('getFullscreen'), true);
+  assert.equal(await f.invoke('setFullscreen', false), false);
+  assert.deepEqual(f.calls.fullscreen, [true, false]);
+  assert.deepEqual(f.calls.sent.filter(([channel]) => channel === 'jarvis:fullscreen'), [['jarvis:fullscreen', true], ['jarvis:fullscreen', false]]);
+  // A native transition can occur outside the renderer button (for example the OS).
+  f.window.fullscreen = true; f.window.emit('enter-full-screen');
+  assert.deepEqual(f.calls.sent.at(-1), ['jarvis:fullscreen', true]);
+  await f.shutdown();
+  const sent = f.calls.sent.length;
+  f.window.emit('leave-full-screen');
+  assert.equal(f.calls.sent.length, sent);
+});
+
+test('fullscreen IPC accepts only booleans from the trusted main frame and stops on shutdown', async t => {
+  const f = await fixture(t), frame = f.window.webContents.mainFrame;
+  for (const value of [undefined, null, 1, 0, 'true', {}, []]) await assert.rejects(f.invoke('setFullscreen', value), /inválido/);
+  const untrusted = [
+    { sender: {}, senderFrame: frame },
+    { sender: f.window.webContents, senderFrame: { ...frame } },
+    { sender: f.window.webContents, senderFrame: undefined },
+  ];
+  for (const event of untrusted) {
+    await assert.rejects(f.invokeFrom(event, 'getFullscreen'), /origem não autorizada/);
+    await assert.rejects(f.invokeFrom(event, 'setFullscreen', true), /origem não autorizada/);
+  }
+  const originalURL = frame.url;
+  frame.url = 'https://example.org/';
+  await assert.rejects(f.invoke('setFullscreen', true), /origem não autorizada/);
+  frame.url = originalURL;
+  assert.deepEqual(f.calls.fullscreen, []);
+  await f.shutdown();
+  await assert.rejects(f.invoke('setFullscreen', true));
+  assert.deepEqual(f.calls.fullscreen, []);
+});
+
+test('fullscreen native errors are redacted without closing the app or stopping voice', async t => {
+  const f = await fixture(t);
+  f.window.setFullScreen = () => { throw new Error('C:\\private\\secret'); };
+  await assert.rejects(f.invoke('setFullscreen', true), error => {
+    assert.doesNotMatch(error.message, /private|secret/);
+    return /operação não pôde ser concluída/.test(error.message);
+  });
+  assert.equal(f.window.isDestroyed(), false); assert.equal(f.calls.speechReset, 0); assert.equal(f.calls.wakeStop, 0);
+});
 
 test('outfit IPC requires enabled choice, exposes capability and aborts before X cleanup finishes', async t => {
   const f = await fixture(t, { lateOutfit: true });

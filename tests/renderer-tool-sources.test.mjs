@@ -27,7 +27,8 @@ function button(tree, label) {
 const sources = (runId, overrides = {}) => ({ type: 'sources', tool: 'web_search', profileId: 'principal', runId,
   retrievedAt: Date.now() - 1000, sources: [{ url: 'https://example.org/research', title: 'Pesquisa verificável' }], ...overrides });
 function environment(t) {
-  const slots = [], pending = [], subscribers = new Set(), domListeners = new Map(), opened = [], decisions = [], voiceSessions = [];
+  const slots = [], pending = [], subscribers = new Set(), domListeners = new Map(), opened = [], decisions = [], voiceSessions = [], fullscreenRequests = [], fullscreenSubscribers = new Set();
+  let fullscreen = false;
   let cursor = 0;
   const hooks = {
     useState(initial) { const index = cursor++; if (!slots[index]) slots[index] = { value: typeof initial === 'function' ? initial() : initial }; return [slots[index].value, next => { slots[index].value = typeof next === 'function' ? next(slots[index].value) : next; }]; },
@@ -42,6 +43,9 @@ function environment(t) {
     onEvent(callback) { subscribers.add(callback); return () => subscribers.delete(callback); },
     async wakeStop() {}, async cancelGreeting() {}, async cancelSpeech() {},
     async openExternal(url) { opened.push(url); },
+    async getFullscreen() { return fullscreen; },
+    async setFullscreen(enabled) { fullscreenRequests.push(enabled); fullscreen = enabled; return fullscreen; },
+    onFullscreen(callback) { fullscreenSubscribers.add(callback); return () => fullscreenSubscribers.delete(callback); },
     async approve(input) { decisions.push(input); },
     async saveSettings(value) { const previous = current.profileId; Object.assign(current, value); emit({ type: 'session.reset', profileId: previous, reason: 'profile_changed' }); },
   };
@@ -53,7 +57,7 @@ function environment(t) {
   }
   const globals = {
     window: { jarvis: bridge, location: { href: 'http://127.0.0.1:47833/' }, addEventListener(name, callback) { domListeners.set(name, callback); }, removeEventListener(name) { domListeners.delete(name); } },
-    document: { getElementById: () => ({}), activeElement: null },
+    document: { getElementById: () => ({}), activeElement: null, addEventListener() {}, removeEventListener() {} },
   };
   const originals = new Map();
   for (const [key, value] of Object.entries(globals)) { originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value }); }
@@ -72,11 +76,26 @@ function environment(t) {
     for (const slot of slots) slot?.cleanup?.();
     for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
   });
-  return { ...compiled.exports, opened, decisions, voiceSessions, emit, current,
+  return { ...compiled.exports, opened, decisions, voiceSessions, fullscreenRequests, emit, current,
+    changeFullscreen(enabled) { fullscreen = enabled; for (const callback of fullscreenSubscribers) callback(enabled); },
     render() { cursor = 0; const tree = compiled.exports.App({ skipAutomaticGreeting: true }); while (pending.length) pending.shift()(); return tree; },
     running(runId, profileId = current.profileId) { emit({ type: 'state', state: 'running', tool: 'web_search', runId, profileId }); },
   };
 }
+
+test('header fullscreen button reflects native state and returns to the normal window without interrupting voice', async t => {
+  const f = environment(t); let tree = f.render(); await flush(); tree = f.render();
+  assert.equal(button(tree, 'Tela cheia').props['aria-pressed'], false);
+  await button(tree, /^Iniciar conversa por voz/).props.onClick(); await flush();
+  assert.equal(f.voiceSessions.length, 1);
+  await button(f.render(), 'Tela cheia').props.onClick(); await flush();
+  tree = f.render(); assert.equal(button(tree, 'Sair da tela cheia').props['aria-pressed'], true);
+  await button(tree, 'Sair da tela cheia').props.onClick(); await flush();
+  assert.equal(button(f.render(), 'Tela cheia').props['aria-pressed'], false);
+  assert.deepEqual(f.fullscreenRequests, [true, false]);
+  assert.equal(f.voiceSessions.length, 1); assert(button(f.render(), /^Encerrar voz/));
+  f.changeFullscreen(true); assert.equal(button(f.render(), 'Sair da tela cheia').props['aria-pressed'], true);
+});
 
 test('source normalization permits bounded public HTTP links and removes credentials, controls, unsafe schemes and duplicates', t => {
   const { normalizeToolSources } = environment(t);

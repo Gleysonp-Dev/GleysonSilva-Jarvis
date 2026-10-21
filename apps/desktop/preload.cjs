@@ -6,5 +6,7 @@ contextBridge.exposeInMainWorld('jarvis', Object.freeze({
  memorySave:invoke('memorySave'),memoryDelete:invoke('memoryDelete'),realtimeSession:invoke('realtimeSession'),
  vision:invoke('vision'),observeOutfit:invoke('observeOutfit'),cancelOutfit:invoke('cancelOutfit'),openExternal:invoke('openExternal'),listModels:invoke('listModels'),startupGreeting:invoke('startupGreeting'),
  speak:invoke('speak'),cancelSpeech:invoke('cancelSpeech'),wakeStart:invoke('wakeStart'),wakeStop:invoke('wakeStop'),chooseGreetingMusic:invoke('chooseGreetingMusic'),cancelGreeting:invoke('cancelGreeting'),
+ getFullscreen:invoke('getFullscreen'),setFullscreen:invoke('setFullscreen'),
+ onFullscreen(callback){if(typeof callback!=='function')throw new Error('Callback inválido.');const listener=(_event,enabled)=>{if(typeof enabled==='boolean')callback(enabled);};ipcRenderer.on('jarvis:fullscreen',listener);return()=>ipcRenderer.removeListener('jarvis:fullscreen',listener);},
  onEvent(callback){if(typeof callback!=='function')throw new Error('Callback inválido.');const listener=(_event,data)=>callback(data);ipcRenderer.on('jarvis:event',listener);return()=>ipcRenderer.removeListener('jarvis:event',listener);}
 }));

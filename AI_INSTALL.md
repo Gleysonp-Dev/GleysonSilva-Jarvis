@@ -1,5 +1,11 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
+## Atualização 0.5.2 — tela cheia
+
+Revisão atual do código: **0.5.2**, indicador **MVP / 05.2**. CI e pacote desta revisão em preparação; os pacotes abaixo são históricos e não incluem o botão novo. Feche o Jarvis anterior por X/Sair antes de executar a nova versão. Os dados privados usam o mesmo diretório; preserve chaves, voz, cidade e música existentes.
+
+O botão de expandir no canto superior direito e **F11** alternam a tela cheia; **Esc** sai. Valide o retorno à janela durante uma conversa, sem repetir a recepção ou interromper o áudio. A opção vale para a janela atual e não altera a inicialização com o Windows. No navegador, depende do suporte à API de tela cheia. [Detalhes](docs/fullscreen.md).
+
 **Correção 0.5.1 disponível:** navegador padrão sem cadastro e comentário de roupa preparado durante a saudação. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Os pacotes anteriores abaixo são históricos. Para atualizar, feche o Jarvis anterior por X/Sair antes de executar a nova versão, evitando que a trava de instância apenas traga a janela antiga. Confira o indicador **MVP / 05.1**. As chaves, voz, cidade, música e opções salvas usam o mesmo diretório privado e não precisam ser cadastradas novamente. Se início no Windows já estiver ativo, o processo principal registra o caminho estável do novo executável ao abrir; não mova esse arquivo depois.
 
 ## Pacote Windows 0.5.1
