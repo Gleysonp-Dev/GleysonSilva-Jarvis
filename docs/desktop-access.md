@@ -1,6 +1,8 @@
-# Aplicativos, pastas, web e clima — revisão 0.4.0
+# Aplicativos, pastas, web e clima — preservados na revisão 0.5.0
 
 A 0.4.0 acrescenta descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao clima. Essas ferramentas podem ser solicitadas por texto ou durante a conversa com a voz Jarvis configurada. O núcleo aprovado da 0.3.1, reprodução a 0,95×, efeito metálico 0,78, música privada e painel limpo são preservados.
+
+A 0.5.0 acrescenta a sequência opcional de **login → espera por duas palmas → música/saudação → comentário da roupa → conversa por voz**, sem alterar as confirmações destas ferramentas. A conversa pode renovar a conexão por prazo quando a opção contínua estiver habilitada; isso não autoriza ações espontâneas, repete consultas ou abre sites sozinha. A revisão 0.5.0 ainda aguarda CI, pacote e ensaio integrado; veja [Recepção](startup-greeting.md), [Espera e Windows](standby.md) e [OpenAI](openai.md).
 
 O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. O [pacote Windows](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110/artifacts/12312007661) foi baixado e teve ZIP/EXE conferidos por hash. Os ensaios de ações/voz na máquina do usuário e busca paga na sua conta ainda devem ser registrados separadamente. Consulte [Validação](validation.md) e [Instalação assistida](../AI_INSTALL.md).
 

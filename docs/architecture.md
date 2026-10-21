@@ -1,6 +1,8 @@
 # Arquitetura — Projeto GleysonSilva-Jarvis
 
-O MVP 0.4.0 separa interface, leitura de contexto/web, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. Esta revisão acrescenta descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao tempo atual; preserva o núcleo 0.3.1 aprovado pelo autor, voz e música. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador. Há [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovado com **343/343 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real; as ferramentas no equipamento de destino e a pesquisa paga ainda exigem ensaio próprio. Guia de uso e limites em [Acesso desktop e web](desktop-access.md).
+O MVP 0.5.0 separa interface, leitura de contexto/web, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. A recepção passa a encadear saudação com música, um quadro opcional para comentar roupa e entrada opcional em conversa contínua. Preserva o núcleo 0.3.1 aprovado pelo autor, a voz e os acessos desktop/web da 0.4.0. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador.
+
+O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343/343 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real daquela versão. CI, pacote e ensaio integrado da 0.5.0 ainda precisam ser registrados em [Validação](validation.md). Guia de comandos preservados em [Acesso desktop e web](desktop-access.md).
 
 ## Componentes e fronteiras
 
@@ -14,6 +16,8 @@ flowchart LR
     Context -->|Perfil confiável e resumo limitado| Runtime
     Main --> Provider[Serviço OpenAI]
     Provider --> Responses[Responses: texto e ferramentas]
+    UI -->|JPEG único opcional, câmera já encerrada| Main
+    Provider --> Outfit[Responses: comentário de roupa sem ferramentas]
     UI -->|Microfone WebRTC após ativação| Realtime[OpenAI Realtime]
     Realtime -->|Texto e ferramentas| UI
     Provider -->|Negociação SDP| Realtime
@@ -37,10 +41,10 @@ flowchart LR
 
 | Camada | Responsabilidade | Não recebe como autoridade |
 | --- | --- | --- |
-| Renderer | Conversa, núcleo orbital azul, Contexto sob demanda, fontes compactas, captura, WebRTC, fila/reprodução de fala, palmas e aprovações. | Chave salva, Node, shell ou embeddings faciais. |
+| Renderer | Conversa, núcleo orbital azul, Contexto sob demanda, fontes compactas, captura limitada, WebRTC, fila/reprodução de fala, palmas e sequência da recepção. | Chave salva, Node, shell ou embeddings faciais. |
 | Preload | Expor métodos explícitos, filtrar IPC e entregar eventos. | Código arbitrário fornecido pelo modelo ou página. |
 | Processo principal | Validar origem/argumentos, guardar configuração, ligar serviços, vincular perfil e cancelar sessões. | Um perfil escolhido unilateralmente por uma ferramenta. |
-| Provider OpenAI | Responses/Realtime, streaming, memória recuperada e delegação de ferramentas. | Autoridade para ignorar a política local. |
+| Provider OpenAI | Responses/Realtime, streaming, memória recuperada, ferramentas e chamada isolada de roupa. | Autoridade para ignorar a política local; a chamada de roupa não recebe ferramentas/histórico. |
 | Controlador de fala | Texto limitado, síntese ElevenLabs, correlação e cancelamento por geração. | Poder de executar ferramentas ou trocar silenciosamente de voz. |
 | ContextService | Clima e atividade local observados, com fonte, horário e estados parciais. | Perfil recebido da interface, autoridade para agir ou acesso a chaves de voz. |
 | Runtime | Limites de pasta, confirmação, idempotência, efeitos e registro persistente. | Instruções embutidas em arquivos, seleção de página ou texto de memória. |
@@ -63,7 +67,7 @@ O provider limita turnos, quantidade de ferramentas e prazo total. Repetir uma c
 
 ## Voz, pulsação e interrupção
 
-A conversa falada começa pelo controle de voz. O renderer pede microfone, cria `RTCPeerConnection` e envia SDP ao principal. O principal negocia com chave protegida e devolve SDP. O microfone segue para a OpenAI no WebRTC; a sessão solicita saída em texto e ferramentas. Qualquer track de áudio remota inesperada é desativada/encerrada, sem reprodução.
+A conversa falada começa pelo controle de voz ou, quando escolhido, após as etapas da recepção. O renderer pede microfone, cria `RTCPeerConnection` e envia SDP ao principal. O principal negocia com chave protegida e devolve SDP. O microfone segue para a OpenAI no WebRTC; a sessão solicita saída em texto e ferramentas. Qualquer track de áudio remota inesperada é desativada/encerrada, sem reprodução.
 
 Trechos completos do texto são enfileirados para `packages/speech`, com perfil, execução e ID de trecho. O principal valida a configuração, sintetiza na ElevenLabs e retorna áudio limitado, sem chave/ID de voz. O cliente prepara/reproduz os trechos em ordem; cancelamento invalida a geração e seus resultados atrasados. Eventos `.done` não enfileiram uma nova fala. Erro de síntese preserva texto interno e aviso, sem transcrever a resposta falada nem trocar para voz OpenAI ou do navegador.
 
@@ -73,15 +77,17 @@ O cliente deduplica eventos e `call_id`. Uma chamada de função é delegada à 
 
 Interromper solicita `response.cancel`, aborta síntese/reprodução e cancela execuções pendentes. Cada resposta usa nova execução; um identificador cancelado não é reaproveitado. Resultados atrasados não podem voltar a falar ou agir. Efeitos completos permanecem no registro; cancelamento não reverte o passado.
 
-Encerrar voz libera microfone, tracks remotas, contexto de áudio, conexão e temporizadores. O limite de sessão é de um a trinta minutos. Mudança de configuração/perfil publica `session.reset`; a interface fecha voz, teste de microfone, câmera e aprovações anteriores.
+Encerrar voz libera microfone, tracks remotas, contexto de áudio, conexão e temporizadores. O limite de sessão é de um a trinta minutos por conexão. Com `continuousVoiceEnabled` e intenção ativa, alcançar esse prazo normal configurado pode iniciar nova conexão; falhas de autenticação, rede ou serviço não iniciam tentativas indefinidas. A renovação não repete recepção/câmera nem transfere todo o histórico encerrado. **Interromper** também limpa a intenção de renovação. Mudança de configuração/perfil publica `session.reset`; a interface fecha voz, teste de microfone, câmera e aprovações anteriores. Uma sessão iniciada tardiamente precisa ser descartada se sua geração já tiver sido cancelada.
 
 ## Espera, login e recepção
 
 `startAtLogin` e `standbyEnabled` começam desligados. O pacote Windows pode registrar seu executável estável para iniciar depois do login. Quando configurado para espera, o app aguarda gatilho; não é serviço antes do login. O principal mantém bandeja, pausa/retorno e worker offline System.Speech limitado à palavra “Jarvis”, dependente de idioma instalado.
 
-O renderer analisa duas palmas por Web Audio, sem enviar áudio à nuvem; o worker de palavra também é local. Esses gatilhos não abrem conversa OpenAI. Antes de recepção/música e durante uso ativo do microfone, o controlador pausa a espera. A captura retorna somente se a intenção de espera continuar ativa; limpeza e gerações descartam callbacks antigos.
+O renderer analisa duas palmas por Web Audio, sem enviar áudio à nuvem; o worker de palavra também é local e pode ficar desabilitado para uso exclusivo de palmas. A fase de espera não abre conversa OpenAI. Antes de recepção/música e durante uso ativo do microfone, o controlador pausa a espera. A captura retorna somente se a intenção de espera continuar ativa e não houver conversa; limpeza e gerações descartam callbacks antigos.
 
-O serviço de saudação usa relógio do PC, coordenadas privadas e Open-Meteo, com atribuição. A síntese usa a mesma voz ElevenLabs. Cancelar também aborta a preparação no backend. Uma fonte musical privada pode acompanhar a recepção até fim/interrupção; a prévia com o arquivo fornecido foi aprovada, mas não há faixa padrão distribuída nem aceite físico completo do fluxo integrado.
+O serviço de saudação usa relógio do PC, coordenadas privadas e Open-Meteo, com atribuição. A síntese usa a mesma voz ElevenLabs. Cancelar também aborta a preparação no backend. Uma fonte musical privada acompanha somente a saudação inicial até fim/interrupção; não há faixa padrão distribuída. Após ela, `receptionOutfitEnabled` permite a etapa isolada de imagem e `receptionVoiceEnabled` permite abrir conversa. Ambas e `continuousVoiceEnabled` começam em `false` no pacote público. O comentário não tem música e usa o mesmo preset de fala, sem transcrição no painel.
+
+Para observar a roupa, `observeOutfit`/`cancelOutfit` passam pela bridge limitada e a capacidade `outfitObservation`. Um único JPEG de até 640×480 e 512 KiB é capturado e as tracks param antes do envio. O principal valida argumento, opção explícita, perfil e geração; o provedor usa Responses com o modelo de texto configurado, `detail:'low'`, `store:false`, sem memória, histórico ou ferramentas. A imagem não é persistida pelo aplicativo. A resposta é limitada à roupa visível; conteúdo insuficiente e falhas não justificam elogio inventado. A sequência pode prosseguir à voz quando essa etapa fica indisponível. Cancelamento impede resposta/fala tardia e novo microfone.
 
 Detecção real, segundo plano, idioma, login e retorno não foram aprovados fisicamente. Navegador não altera login nem oferece o worker nativo. Consulte [Espera](standby.md).
 
@@ -131,7 +137,7 @@ O banco e sua pasta são privados em relação ao repositório, mas isso não si
 
 ## Câmera e identidade
 
-O painel Presença pede acesso ao vídeo somente por clique. A prévia pode funcionar sem Python ou pesos. Com o backend disponível, um quadro reduzido segue ao principal e ao worker por pipe privado. O worker detecta com YuNet, alinha cinco pontos e extrai vetores SFace normalizados. Ele não grava a imagem nem recebe nomes.
+O painel Presença pede acesso ao vídeo por clique. A recepção tem uma opção separada, com informação explícita de envio de um quadro de roupa à OpenAI; ela não usa o cadastro facial nem deixa vídeo contínuo aberto. A prévia e a captura de roupa podem funcionar sem Python ou pesos. No reconhecimento local, um quadro reduzido segue ao principal e ao worker por pipe privado. O worker detecta com YuNet, alinha cinco pontos e extrai vetores SFace normalizados. Ele não grava a imagem nem recebe nomes.
 
 O principal mantém o cadastro protegido e aceita o reconhecimento somente com margem, limiar e consistência temporal. Cadastro exige três amostras consistentes. Múltiplos rostos, desconhecidos ou ambiguidade preservam uma apresentação neutra. O renderer recebe dados de apresentação; não recebe embeddings.
 
@@ -148,13 +154,15 @@ A pessoa confirma o perfil sugerido. Reconhecimento não autentica, não libera 
 | Abrir pasta local | Explorador, caminho existente e confirmação; não amplia a pasta de trabalho. | Integração Windows indisponível. |
 | Web e pesquisa | Leitor público sem sessão e busca hospedada OpenAI, após confirmação. | Mesmo contrato de consulta quando o serviço estiver disponível; não comprova aberturas nativas. |
 | Conversa | Microfone enviado à OpenAI; texto da resposta enviado à ElevenLabs. | Mesmo fluxo com ambos os provedores configurados. |
+| Roupa na recepção | JPEG único enviado à OpenAI após escolha explícita; vídeo encerrado antes do pedido, sem imagem persistida pelo app. | Mesmo contrato quando disponível; não comprova permissão/câmera no pacote. |
+| Conversa contínua | Renovação normal por prazo após escolha explícita; interromper/reset encerra intenção e captura. | Mesmo controlador, sujeito a limites de captura em segundo plano do navegador. |
 | Teste de microfone | Análise local sem sessão paga. | Análise local sem sessão paga. |
 | Contexto | Clima Open-Meteo e atividade local sob demanda; sem captura ou síntese. | Mesmo contrato, com fontes reais configuradas ou estados de indisponibilidade. |
 | Espera | Palmas e palavra locais; microfone ativo se habilitado. | Palmas locais, sujeito a limites de segundo plano; sem palavra nativa/login. |
 | Música | Fonte privada escolhida pelo usuário. | Não há arquivo padrão; o ensaio não comprova seletor nativo. |
 | Rostos | Fluxo local opcional; cadastro protegido pelo mecanismo do sistema. | Não comprova a proteção/persistência nativa do Electron. |
 
-Chaves permanentes não chegam ao bundle nem retornam em `boot()`. Texto, memórias e resultados necessários podem sair para a OpenAI; texto narrado vai à ElevenLabs e coordenadas do clima à Open-Meteo. `store:false` não equivale a retenção zero. Configuração legada de voz OpenAI não seleciona a saída audível atual. A síntese nunca amplia a autoridade das ferramentas.
+Chaves permanentes não chegam ao bundle nem retornam em `boot()`. Texto, memórias e resultados necessários podem sair para a OpenAI; com a opção de roupa habilitada, uma imagem limitada também sai em chamada separada. Texto narrado vai à ElevenLabs e coordenadas do clima à Open-Meteo. `store:false` não equivale a retenção zero. A conexão usa o projeto da chave API salva; não há login com a assinatura ChatGPT. Configuração legada de voz OpenAI não seleciona a saída audível atual. A síntese nunca amplia a autoridade das ferramentas.
 
 ## Verificação e limites atuais
 

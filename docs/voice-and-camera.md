@@ -1,10 +1,10 @@
-# Projeto GleysonSilva-Jarvis: voz e câmera
+# Projeto GleysonSilva-Jarvis: voz e câmera — revisão 0.5.0
 
 O núcleo mantém o ciano aprovado em todos os estados. Ouvindo e respondendo, brilho e expansão acompanham o envelope do áudio capturado e reproduzido; durante uma ferramenta, a pulsação segue a atividade do executor. Aguardar o modelo, aguardar confirmação e executar devem continuar distinguíveis pelo rótulo de estado. Com movimento reduzido, os estados continuam legíveis sem exigir animação.
 
 ## Voz do MVP
 
-A sessão 0.2.0 usa o microfone e WebRTC com OpenAI para entrada de voz e resposta em texto. O texto é enfileirado para a ElevenLabs, que produz a voz configurada. VAD e botão solicitam interrupção da resposta, síntese e reprodução. Encerrar deve liberar microfone, áudio, conexão e temporizadores. A nova conversa completa com o clone ainda precisa de ensaio real.
+A conversa usa microfone e WebRTC com OpenAI para entrada de voz e resposta em texto. O texto é enfileirado para a ElevenLabs, que produz a voz configurada. VAD solicita interrupção da resposta; o botão **Interromper** também encerra a intenção de conversa contínua e deve liberar microfone, áudio, conexão e temporizadores. O ensaio integrado da recepção 0.5.0 e de sua conversa prolongada ainda precisa ser realizado.
 
 O clone **GleysonSilva-Jarvis** já foi criado e uma frase gerada pelo painel com Eleven Multilingual v2. Clonagem e distribuição dos áudios selecionados foram autorizadas; referência e ID permanecem privados. O caminho atual bloqueia áudio OpenAI e não troca para outra voz quando a ElevenLabs falha. Exige chave OpenAI, chave ElevenLabs e voz configurada; erro deve permanecer visível. A [documentação ElevenLabs](elevenlabs.md) distingue geração real dos testes com transporte substituído.
 
@@ -14,9 +14,17 @@ Em **Ajustes → Saudação**, use **Amostra fixa da voz** para reproduzir o [MP
 
 A saudação, amostra e nova saída da conversa usam tom metálico fixo **0,78**, sem ajuste. A narração é reproduzida a **0,95×, preservando a altura da voz**: 5% mais lenta que a origem. A síntese continua com velocidade 1 e os parâmetros aprovados; o clone e os arquivos originais permanecem iguais. O núcleo acompanha o sinal local após o efeito. O aceite auditivo da saudação/amostra não comprova a nova conversa.
 
-A amostra é fixa; respostas novas usam novas gerações ElevenLabs. O código 0.2.0 integra fila, correlação por execução/trecho, reprodução e descarte de resultados cancelados. Não há modelo de voz exportado junto do MP3 e não há alternativa automática com voz OpenAI ou do navegador.
+A amostra é fixa; respostas novas usam novas gerações ElevenLabs. O controlador integra fila, correlação por execução/trecho, reprodução e descarte de resultados cancelados. Não há modelo de voz exportado junto do MP3 e não há alternativa automática com voz OpenAI ou do navegador.
 
 Uma conversa por texto transmite palavras progressivamente, mas não liga o microfone nem reproduz áudio. Na revisão 0.2.2, saudação e conversa falada usam áudio, pulsação e estado da conexão, sem acrescentar transcrições ao painel Conversa. Mensagens digitadas e suas respostas continuam visíveis; a fonte meteorológica fica compacta. A compreensão de voz e o histórico necessário aos provedores continuam internos. A apresentação foi verificada com serviços substituídos e o [CI 0.2.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes e abertura nativa; áudio e hardware reais continuam sendo ensaios separados. No modo sem bridge, uma prévia visual não demonstra os serviços.
+
+## Conversa após a recepção e conexão contínua
+
+Em Ajustes, `receptionVoiceEnabled` permite iniciar a sessão depois da saudação e do comentário de roupa opcional. `continuousVoiceEnabled` permite renovar a conexão após encerramento normal por prazo. As duas opções começam em `false` no pacote público. A chave OpenAI salva no aplicativo evita redigitá-la a cada abertura; não equivale a entrar na conta ChatGPT nem mantém o microfone transmitindo durante a espera por palmas.
+
+A renovação não repete saudação, música ou câmera. O limite configurado continua valendo para cada sessão e a memória explícita do perfil continua disponível; o histórico completo da sessão anterior não vira uma conversa ilimitada. Uma falha de autenticação, transporte ou serviço encerra o fluxo sem novas tentativas indefinidas.
+
+Enquanto a conversa estiver conectada, o microfone envia áudio à OpenAI, inclusive no silêncio entre comandos. A detecção de palmas é pausada nesse período. **Interromper**, troca de perfil, reset e saída desligam captura e renovação, invalidando callbacks antigos. Uma nova escolha é necessária para voltar a conversar. Conexão prolongada pode aumentar consumo nos provedores; acompanhe o projeto usado pela sua chave.
 
 ## Verificação do microfone e saída
 
@@ -29,13 +37,26 @@ O harness de teste é iniciado com `npm run test:local` e aberto em `http://127.
 3. Reproduza o teste local de saída, quando disponível, e confirme som audível no dispositivo escolhido. Um gráfico variando, sozinho, não comprova que a pessoa ouviu o som.
 4. Com ambas as chaves e voz configuradas, inicie conversa, pergunte em português e confirme resposta adequada, voz Jarvis ouvida e pulsação, sem transcrição no painel. Registre modelos/dispositivos sem o ID privado. Pode haver consumo nos dois provedores.
 5. Interrompa uma resposta por voz e pelo botão. Confirme que o áudio anterior para, nenhuma fala/transcrição é acrescentada ao painel e nenhum resultado antigo começa uma nova ação. Confira separadamente que uma mensagem digitada continua visível.
-6. Encerre a sessão e confirme no indicador do sistema que o microfone foi liberado. Repita com falha de rede, permissão negada e encerramento da janela.
+6. Com conversa contínua habilitada, aguarde o limite de sessão e confirme uma única renovação, sem repetir recepção ou câmera. Interrompa durante a renovação e confirme que nenhuma sessão atrasada abre o microfone.
+7. Encerre a sessão e confirme no indicador do sistema que o microfone foi liberado. Repita com falha de rede, autenticação recusada, permissão negada, troca de perfil e encerramento da janela; erro não deve disparar reconexão indefinida.
 
 Se a solicitação de dispositivo não aparecer, confira as permissões de câmera/microfone do Windows e da origem local. Navegadores exigem origem considerada segura para `getUserMedia`; `localhost` é o caminho previsto para o harness. O comportamento em uma máquina deve ser registrado, não inferido a partir de testes de parser.
 
+## Um quadro para comentar a roupa
+
+`receptionOutfitEnabled` é uma escolha independente do cadastro facial e começa em `false`. O controle informa **envio de uma imagem da câmera à OpenAI**. Com a opção habilitada, depois da saudação o controlador abre a câmera, obtém um único JPEG de até 640×480 e 512 KiB e encerra as tracks antes do pedido ao provedor. Cancelamento durante permissão/captura deve encerrar qualquer dispositivo que for concedido tardiamente.
+
+A bridge expõe somente `observeOutfit` e `cancelOutfit`, com a capacidade `outfitObservation`. O principal valida configuração, formato, tamanho e execução ativa. Responses usa o modelo de texto já configurado, imagem em detalhe baixo e `store:false`; não recebe histórico, memórias ou ferramentas nessa chamada. A imagem não é salva no banco, em logs, no repositório ou em arquivo pelo aplicativo. Isso não representa uma promessa de retenção zero do provedor; consulte [OpenAI](openai.md).
+
+Há no máximo uma observação pendente por perfil, uma tentativa por minuto e seis por hora. O pedido tem prazo de até trinta segundos. A espera por limite ou falha não inicia tentativas de câmera ocultas.
+
+O pedido é um comentário breve e cordial sobre peças, cores e combinação que estiverem visíveis. Não identifica a pessoa, não faz inferências pessoais ou sensíveis e não pode iniciar ferramentas. Imagem insuficiente, câmera indisponível ou erro deve gerar uma limitação clara, sem inventar um elogio. A conversa pode começar mesmo quando essa etapa ficar indisponível, se sua opção e os serviços necessários estiverem ativos.
+
+O comentário é narrado com a voz Jarvis aprovada, sem música e sem transcrição no dashboard. Não há análise contínua de vídeo, envio de rostos cadastrados ou dependência de Python/OpenCV para essa função. Ao terminar, a câmera permanece desligada. Testar permissão, enquadramento, tracks e resultado efetivamente ouvido é necessário no computador de destino.
+
 ## Câmera local e perfis
 
-Há duas capacidades diferentes: visualizar um quadro confirma captura de câmera; reconhecer uma pessoa exige modelos, vetores e validação de identidade. A ausência de modelos não deve ser anunciada como falha da câmera. Um status “modelos não configurados” não demonstra que a webcam está funcionando.
+O painel Presença oferece captura e reconhecimento local de perfil. Visualizar um quadro confirma captura de câmera; reconhecer uma pessoa exige modelos, vetores e validação de identidade. Isso é separado do comentário de roupa enviado à OpenAI. A ausência de modelos faciais não deve ser anunciada como falha da câmera nem impedir a captura de roupa. Um status “modelos não configurados” não demonstra que a webcam está funcionando.
 
 O worker opcional recebe JPEG/PNG por pipe privado, detecta rostos usando YuNet e extrai vetores SFace depois de alinhar os pontos faciais. Ele não abre a webcam, não possui nomes e não grava quadros. O processo principal guarda as representações necessárias no armazenamento protegido e responde ao renderer somente com dados de apresentação. Consulte a [instalação e o protocolo de visão](../services/vision/README.md).
 
@@ -70,6 +91,8 @@ Os vetores continuam sendo informação biométrica sensível mesmo sem fotograf
 Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância. Similaridade de vetores não é probabilidade de identidade. O limiar e a margem entre candidatos exigem calibração; nenhum número de acerto é publicado sem uma amostra de testes documentada.
 
 ## Estado de validação
+
+A 0.5.0 aguarda CI, pacote e ensaio integrado de login, duas palmas, música/saudação, imagem e conversa contínua. O [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou 343 testes e abertura nativa daquela versão; não valida a nova câmera externa ou renovação de sessão.
 
 No ensaio real, microfone produziu nível e foi liberado; câmera exibiu prévia 640×480 e parou. Uma resposta OpenAI Realtime foi ouvida com marin, voz diferente da desejada; motivou a rota ElevenLabs atual. **A nova conversa com o clone ainda não foi confirmada integralmente.**
 

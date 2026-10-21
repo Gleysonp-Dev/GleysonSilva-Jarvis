@@ -74,6 +74,22 @@ test('voice tool bridge refreshes current weather on every request without greet
   assert.equal((await f.value('callTool', { id: randomUUID(), runId: randomUUID(), name: 'apps_find', args: { query: 'Notepad' } })).status, 'failed');
 });
 
+test('HTTP reception observation is opt-in and uses only one bounded image without adding a runtime transcript', async t => {
+  const requests = []; const imageDataUrl = 'data:image/jpeg;base64,/9j/4AEB/9k=';
+  const f = await fixture(t, { fetch: async (url, options) => {
+    assert.equal(url, 'https://api.openai.com/v1/responses'); const body = JSON.parse(options.body); requests.push(body);
+    return Response.json({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: 'Sua camisa azul está elegante, senhor.' }] }] });
+  } });
+  assert.equal((await f.value('boot')).capabilities.outfitObservation, true);
+  assert.equal((await f.post('observeOutfit', { imageDataUrl })).status, 400); assert.equal(requests.length, 0);
+  await f.value('saveSettings', { apiKey: 'mock-private-openai-key', receptionOutfitEnabled: true, receptionVoiceEnabled: true, continuousVoiceEnabled: true });
+  const result = await f.value('observeOutfit', { imageDataUrl });
+  assert.match(result.text, /camisa azul/); assert.equal(result.imageDataUrl, undefined); assert.equal(requests.length, 1);
+  assert.equal(requests[0].store, false); assert.equal(requests[0].input[0].content.find(x => x.type === 'input_image').image_url, imageDataUrl);
+  assert.equal((await f.value('boot')).snapshot.tasks.length, 0); assert.equal((await f.value('cancelOutfit')).cancelled, false);
+  assert.equal((await f.post('observeOutfit', { imageDataUrl, profileId: 'other' })).status, 400);
+});
+
 test('context HTTP cancellation aborts its source and cannot return a delayed result', async t => {
   let began;
   const started = new Promise(resolve => { began = resolve; });

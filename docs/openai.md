@@ -1,20 +1,23 @@
 # Projeto GleysonSilva-Jarvis: OpenAI
 
-O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrada falada e geração de texto. A resposta audível vem da ElevenLabs com a voz configurada; o áudio de saída OpenAI fica desativado. A revisão 0.4.0 acrescenta pesquisa web, leitura de páginas, clima atual e acesso ampliado a aplicativos/pastas pela conversa, preservando a voz aprovada.
+O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrada falada e geração de texto. A resposta audível vem da ElevenLabs com a voz configurada; o áudio de saída OpenAI fica desativado. A revisão 0.5.0 acrescenta comentário opcional de roupa por uma imagem e entrada na conversa após a recepção, com renovação opcional da sessão. Pesquisa web, leitura de páginas, clima atual e acesso ampliado a aplicativos/pastas da 0.4.0 são preservados.
 
 O modelo solicita ferramentas; o executor local valida argumentos, verifica a pasta autorizada, apresenta a confirmação necessária e registra o resultado. Uma resposta gerada não prova que uma ação aconteceu.
 
 ## Configuração
 
-Abra **Ajustes**, informe sua chave de API no campo de senha e salve. Não envie a chave na conversa, não a inclua em capturas de tela e não crie arquivos de credenciais dentro do repositório. A interface informa apenas se existe uma chave configurada.
+Abra **Ajustes**, informe sua chave de API no campo de senha e salve. No aplicativo nativo, ela permanece protegida para as próximas aberturas; não é necessário preenchê-la a cada uso. A conexão é com o projeto da sua chave de API OpenAI. Não há login OAuth com ChatGPT ou uso automático da assinatura do ChatGPT. Não envie a chave na conversa, não a inclua em capturas de tela e não crie arquivos de credenciais dentro do repositório. A interface informa apenas se existe uma chave configurada.
 
 | Campo | Padrão | Observação |
 | --- | --- | --- |
 | Modelo de texto | `gpt-5.4-mini` | Responses, streaming e function calling. |
 | Modelo de conversa falada | `gpt-realtime` | Entrada de microfone e saída em texto, com ferramentas. |
 | Voz audível | ElevenLabs configurada | Exige chave ElevenLabs e ID privado da voz existente. |
-| Limite da sessão | 10 minutos | O controlador local encerra a conexão ao atingir o prazo. |
+| Limite da sessão | 10 minutos | De 1 a 30 minutos por conexão. Conversa contínua pode renovar após encerramento normal por prazo. |
 | Perfil | `default` | Preferências salvas e execução são separadas por identificador. |
+| Conversa após a recepção | Desligada | Abre o microfone depois da saudação e da etapa opcional de roupa. |
+| Conversa contínua | Desligada | Renova sessão por prazo; não repete recepção e não tenta indefinidamente após erro. |
+| Comentário de roupa | Desligado | Envia um JPEG limitado da câmera à OpenAI, após escolha explícita em Ajustes. |
 
 Os IDs são configuráveis. O catálogo do provedor e as permissões da conta podem mudar; a listagem autenticada de modelos confirma IDs visíveis à conta, sem garantir cada modalidade. A seleção de texto foi verificada na [página oficial GPT-5.4 Mini](https://developers.openai.com/api/docs/models/gpt-5.4-mini). O modelo de áudio segue o [schema oficial de criação de chamadas](https://developers.openai.com/api/reference/resources/realtime/subresources/calls/methods/create).
 
@@ -32,9 +35,11 @@ O serviço OpenAI fala somente com `https://api.openai.com/v1`; a chave permanen
 
 No modo texto, o provedor recebe a solicitação, o histórico fornecido àquele turno, as preferências explícitas do perfil e os resultados de ferramentas necessários à continuação. Não envie conteúdo privado que não queira processar no serviço externo. A seleção da pasta limita o executor; não equivale a enviar automaticamente todos os arquivos.
 
-Na sessão de voz, o microfone transmite áudio à OpenAI enquanto a conexão estiver aberta, incluindo períodos em que a pessoa ainda não terminou de falar. O texto a narrar é enviado à ElevenLabs pelo principal, com credencial própria. Encerrar fecha captura, conexão, síntese pendente e reprodução. A detecção de fim de fala e a transcrição em português fazem parte da configuração. Frames e vetores faciais não são incluídos nesses pedidos.
+Na sessão de voz, o microfone transmite áudio à OpenAI enquanto a conexão estiver aberta, incluindo o silêncio entre comandos e períodos em que a pessoa ainda não terminou de falar. O texto a narrar é enviado à ElevenLabs pelo principal, com credencial própria. Encerrar fecha captura, conexão, síntese pendente e reprodução. A detecção de fim de fala e a transcrição em português fazem parte da configuração. Vídeo e vetores de reconhecimento facial não são incluídos nesses pedidos de conversa.
 
-A espera por palmas ou pela palavra nativa é processamento local e não abre uma sessão OpenAI. Ela mantém o microfone ativo enquanto habilitada, cede ao uso de conversa/teste e pausa durante a recepção. Veja [Espera local](standby.md).
+O comentário de roupa é um pedido Responses separado e opcional: envia um JPEG de até 640×480 e 512 KiB, com `detail:'low'` e `store:false`, ao modelo de texto configurado. O aplicativo encerra as tracks da câmera antes do envio e não persiste a imagem. Essa chamada não contém histórico, memórias ou ferramentas; limita a resposta a roupa visível, sem identificação ou inferências pessoais. Imagem insuficiente e falha de captura/provedor não autorizam elogio inventado. O texto do comentário segue à ElevenLabs para narração pela voz aprovada. A câmera não fica aberta durante a conversa por causa dessa opção.
+
+A espera por palmas ou pela palavra nativa é processamento local e não abre uma sessão OpenAI. Ela mantém o microfone ativo enquanto habilitada, cede ao uso de conversa/teste e pausa durante a recepção. Com a opção de conversa após a recepção habilitada, a sessão OpenAI começa somente depois da saudação e do comentário opcional. Manter a chave salva não abre esse fluxo antes das palmas. Veja [Espera local](standby.md).
 
 As requisições Responses definem `store:false`. Isso evita depender da recuperação de respostas armazenadas para a continuação da tarefa e **não significa retenção zero** para todas as finalidades do provedor. Consulte os [controles de dados oficiais](https://developers.openai.com/api/docs/guides/your-data).
 
@@ -47,6 +52,14 @@ O mesmo conjunto de ferramentas locais é exposto por function calling ao texto 
 O retorno exige resposta completa, chamada de busca concluída e texto utilizável. Até seis fontes únicas vêm de `output_text.annotations` do tipo `url_citation`; não são criadas a partir de links inventados no texto. Pesquisa sem citações preserva lista vazia. Os links HTTP(S) aparecem clicáveis em uma faixa compacta, inclusive em conversa falada, sem transcrever a fala. Ver [documentação oficial de web search](https://developers.openai.com/api/docs/guides/tools-web-search) e [guia do Jarvis](desktop-access.md).
 
 `web_read` consulta texto de um site público pelo leitor local, sem usar cookies/login ou JavaScript. A leitura não usa chave OpenAI diretamente, mas seu texto pode ser enviado na continuação da conversa para interpretação. Páginas e resultados são dados não confiáveis, sem autoridade para iniciar ações. Abrir uma URL, ler seu texto e pesquisá-la são operações distintas, com confirmação do pedido aplicável.
+
+## Continuidade da conexão de voz
+
+`receptionVoiceEnabled` permite iniciar voz após a recepção; `continuousVoiceEnabled` permite renovar quando uma sessão alcançar seu limite normal de duração configurado. As opções começam em `false`. Enquanto a conversa contínua estiver desejada, cada renovação abre uma conexão nova, sem repetir música, saudação ou fotografia. A memória explícita do perfil é recuperada na abertura; o histórico completo da conversa encerrada não é transferido como uma sessão infinita.
+
+Autenticação recusada, falha de rede ou outro erro interrompem o fluxo sem ciclo indefinido de novas tentativas. **Interromper**, troca de perfil, reset ou saída removem a intenção de renovação e liberam o microfone. Uma negociação que terminar atrasada não pode restaurar a escuta ou falar na sessão cancelada. O usuário pode iniciar uma nova conversa quando quiser.
+
+Cada conexão e nova geração continuam sujeitas à disponibilidade, permissões e cobrança da conta API e da ElevenLabs. O limite por sessão é um limite técnico de duração, não um orçamento de uma conversa contínua. A espera local por palmas não transmite áudio à OpenAI; a conversa já conectada transmite. A interface deve deixar esses estados distinguíveis sem transcrever as falas no dashboard.
 
 ## Memória e aprendizagem
 
@@ -62,7 +75,7 @@ O parser SSE aceita fragmentos UTF-8 divididos pela rede, comentários de heartb
 
 Cancelar propaga um sinal ao transporte e ao executor. Uma solicitação tem prazo total padrão de três minutos, incluindo espera por confirmação. Uma autorização pendente expira junto com esse prazo. Interromper a fala ou desconectar não apaga efeitos que já foram confirmados; consulte o registro antes de repetir uma tarefa.
 
-Responses reporta tokens acumulados por turno. O limite de tempo de voz e o limite de chamadas reduzem sessões acidentais, mas não são um teto monetário garantido. Configure os limites do projeto na plataforma e acompanhe o consumo. Não há valor de custo ou promessa de latência medidos sem uma sessão real com sua conta.
+Responses reporta tokens acumulados por turno. O limite de chamadas e o limite de tempo de cada conexão reduzem execuções acidentais, mas não são um teto monetário garantido. A opção de conversa contínua pode criar sessões sucessivas e o comentário de roupa faz uma chamada adicional de imagem/modelo. Configure os limites do projeto na plataforma e acompanhe o consumo. Não há valor de custo ou promessa de latência medidos sem uma sessão real com sua conta.
 
 ## Erros e diagnóstico
 
@@ -87,4 +100,4 @@ Para usar uma voz baseada em gravação **dentro da OpenAI**, também seria nece
 
 ## Validação desta entrega
 
-Os testes offline verificam streaming, segurança de erros, memória, ferramentas, cancelamento e timeout com transporte substituído. O ensaio real confirmou resposta de texto correta e uma resposta OpenAI Realtime audível, mas essa saída anterior era marin e motivou a troca. **A conversa nova com o clone ainda não foi confirmada em sessão real completa.** Não há p50/p95 nem cifragem nativa comprovados. Veja [Validação](validation.md) e [Plano de testes](test-plan.md).
+Os testes offline verificam streaming, segurança de erros, memória, ferramentas, cancelamento e timeout com transporte substituído. Os **343 testes e a abertura nativa aprovados no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** são evidência histórica. A revisão 0.5.0 aguarda CI, pacote e ensaio integrado de imagem/recepção/renovação; não há p50/p95 publicados. O ensaio antigo confirmou texto e uma resposta Realtime audível com marin, antes da troca para ElevenLabs. O roteiro curto posterior aprovado pelo autor não substitui os testes específicos da nova sequência. Veja [Validação](validation.md) e [Plano de testes](test-plan.md).

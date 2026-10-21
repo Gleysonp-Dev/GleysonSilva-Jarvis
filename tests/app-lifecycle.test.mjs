@@ -71,10 +71,10 @@ function environment(t, { getUserMedia, settings = {}, capabilities = {}, greeti
     async text(input) { textRequests.push(input); return { text: 'Resposta digitada preservada.' }; },
   };
   class Voice {
-    constructor(_bridge, callbacks) { this.callbacks = callbacks; this.interruptions = 0; voiceSessions.push(this); }
+    constructor(_bridge, callbacks) { this.callbacks = callbacks; this.interruptions = 0; this.stops = 0; voiceSessions.push(this); }
     async start() { this.callbacks.connection(true); this.callbacks.state('listen'); }
     interrupt() { this.interruptions++; }
-    stop() { this.callbacks.connection(false); this.callbacks.ended(); }
+    stop() { this.stops++; this.callbacks.connection(false); this.callbacks.ended('stopped'); }
   }
   class Context {
     state = 'running'; sampleRate = 48000; currentTime = 0; destination = {};
@@ -145,7 +145,7 @@ test('pause/resume while permission is pending keeps one microphone request and 
   app.emit({ type: 'standby.pause' }); await flush(); assert(second.track.stops > 0); assert(app.contexts.every(context => context.state === 'closed'));
 });
 
-test('cancelling a preparing greeting aborts real service synthesis, drops late audio and returns to standby', async t => {
+test('Interromper aborts real greeting synthesis, drops late audio and keeps the microphone stopped until explicit reactivation', async t => {
   const provider = deferred(), controller = new AbortController();
   let providerSignal, syntheses = 0, requests = 0;
   const initial = microphone(), resumed = microphone();
@@ -161,7 +161,8 @@ test('cancelling a preparing greeting aborts real service synthesis, drops late 
   assert.equal(app.cancelledGreetings, 1); assert.equal(providerSignal.aborted, true);
   provider.resolve({ audio: Buffer.from('late-fake-mp3'), contentType: 'audio/mpeg' }); await flush();
   assert.equal(app.audios.length, 0); assert.equal(syntheses, 1);
-  app.runDelay(4000); await flush(); assert.equal(requests, 2); assert(button(app.render(), /^Pausar espera$/));
+  app.runDelay(4000); await flush(); assert.equal(requests, 1); assert(button(app.render(), /^Ativar espera$/));
+  button(app.render(), /^Ativar espera$/).props.onClick(); await flush(); assert.equal(requests, 2); assert(button(app.render(), /^Pausar espera$/));
 });
 
 test('repeated greetings stay out of the conversation while one compact weather credit and useful errors remain', async t => {
@@ -197,10 +198,10 @@ test('voice transcripts do not render or autoscroll; typed messages, voice contr
   tree = app.render();
   assert.equal(elements(tree).filter(element => element.type === 'article').length, 0);
   assert.equal(label(tree).includes('falada oculta'), false); assert.equal(scrolls, initialScrolls);
-  button(tree, /^Interromper$/).props.onClick(); assert.equal(session.interruptions, 1);
+  button(tree, /^Interromper$/).props.onClick(); assert.equal(session.stops, 1); assert.equal(session.interruptions, 0);
   session.callbacks.error('Falha de síntese de teste.');
   assert.match(label(app.render()), /Falha de síntese de teste/);
-  await button(app.render(), /^Encerrar voz/).props.onClick(); await flush(); tree = app.render();
+  await flush(); tree = app.render(); assert(button(tree, /^Iniciar conversa por voz/));
   elements(tree).find(element => element.type === 'textarea' && element.props.id === 'message-input').props.onChange({ target: { value: 'Pergunta digitada preservada?' } });
   tree = app.render(); elements(tree).find(element => element.props?.className === 'composer').props.onSubmit({ preventDefault() {} });
   await flush(); tree = app.render();

@@ -8,6 +8,7 @@ import { createSpeechEffects, DEFAULT_SPEECH_EFFECT_AMOUNT, type SpeechEffectsCo
 import { LocalClapStandby } from './standby';
 import { GreetingMusic } from './greeting-music';
 import { ContextPanel } from './context-panel';
+import { captureOutfitImage } from './outfit-camera';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; done?: boolean; origin?: 'voice' | 'greeting'; source?: JarvisWeatherAttribution | string };
 type Drawer = 'settings' | 'memory' | 'activity' | 'presence' | 'context' | null;
@@ -166,13 +167,16 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const [demoStarting, setDemoStarting] = useState(false);
   const [playbackKind, setPlaybackKind] = useState<'demo' | 'greeting'>('demo');
   const demoGeneration = useRef(0);
-  const demo = useRef<{ audio: HTMLAudioElement; context: AudioContext; frame: number; objectUrl?: string; effects?: SpeechEffectsController } | null>(null);
+  const demo = useRef<{ audio: HTMLAudioElement; context: AudioContext; frame: number; objectUrl?: string; effects?: SpeechEffectsController; finish(completed: boolean): void; timer?: ReturnType<typeof setTimeout> } | null>(null);
   const startupAttempted = useRef(skipAutomaticGreeting);
   const greetingGeneration = useRef(0);
   const [greetingBusy, setGreetingBusy] = useState(false);
   const [greetingNeedsTap, setGreetingNeedsTap] = useState(false);
   const greetingAudio = useRef<{ base64: string; mime: string } | null>(null);
   const greetingInFlight = useRef(false);
+  const reception = useRef<{ controller: AbortController; profileId: string; runId: string } | null>(null);
+  const continuousWanted = useRef(false);
+  const voiceResumeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const music = useRef<GreetingMusic | null>(null);
   const musicPlaying = useRef(false);
   const [standbyArmed, setStandbyArmed] = useState(false);
@@ -251,6 +255,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (e.type === 'session.reset') {
         setDrawer(current => current === 'context' ? null : current);
         sourceRuns.current.clear(); setToolSources(null);
+        continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false;
         pauseStandby(); music.current?.stop();
         voice.current?.stop(); voice.current = null; stopMicTest(); stopDemo(); stopCamera();
         greetingAudio.current = null; setElevenApiKey(''); setWeatherAttribution(undefined);
@@ -301,7 +306,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (e.type === 'memory') void refresh();
       if (e.type === 'error') showError(e.message || e.error || 'A operação não pôde ser concluída.');
     });
-    const cleanup = () => { mounted = false; sourceRuns.current.clear(); standbyWanted.current = false; clearTimeout(standbyResumeTimer.current); pauseStandby(); music.current?.stop(); unsub(); voice.current?.stop(); stopMicTest(); stopDemo(); stopCamera(); };
+    const cleanup = () => { mounted = false; sourceRuns.current.clear(); continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false; clearTimeout(standbyResumeTimer.current); pauseStandby(); music.current?.stop(); unsub(); voice.current?.stop(); stopMicTest(); stopDemo(); stopCamera(); };
     window.addEventListener('beforeunload', cleanup);
     return () => { window.removeEventListener('beforeunload', cleanup); cleanup(); };
   }, []);
@@ -320,11 +325,11 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   function resumeStandbySoon() {
     clearTimeout(standbyResumeTimer.current);
-    if (standbyWanted.current) standbyResumeTimer.current = setTimeout(() => { void startStandby(); }, 4000);
+    if (standbyWanted.current && !continuousWanted.current && !reception.current) standbyResumeTimer.current = setTimeout(() => { void startStandby(); }, 4000);
   }
   async function startStandby() {
     const current = settingsRef.current;
-    if (!standbyWanted.current || !current.standbyEnabled || standbyStarting.current || standby.current || voice.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) return;
+    if (!standbyWanted.current || !current.standbyEnabled || standbyStarting.current || standby.current || voice.current || continuousWanted.current || reception.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) return;
     const generation = ++standbyGeneration.current;
     standbyStarting.current = true;
     let available = false;
@@ -354,9 +359,9 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     }
   }
   wakeGreeting.current = source => {
-    if (!standbyWanted.current || wakeBusy.current || Date.now() - lastWake.current < 8000 || voice.current || demo.current || runRef.current || greetingInFlight.current) return;
+    if (!standbyWanted.current || wakeBusy.current || Date.now() - lastWake.current < 8000 || voice.current || continuousWanted.current || reception.current || demo.current || runRef.current || greetingInFlight.current) return;
     lastWake.current = Date.now(); wakeBusy.current = true; pauseStandby();
-    void startGreeting(false).finally(() => { wakeBusy.current = false; });
+    void startGreeting(false, true).finally(() => { wakeBusy.current = false; });
   };
   function toggleStandby() {
     if (standbyWanted.current) { standbyWanted.current = false; pauseStandby(); }
@@ -389,16 +394,22 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     finally { if (runRef.current === id) { runRef.current = null; setRunId(null); setBackendState('idle'); } resumeStandbySoon(); inputRef.current?.focus(); }
   }
   async function cancel() {
+    continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false; pauseStandby();
     stopDemo();
-    voice.current?.interrupt();
+    voice.current?.stop(); voice.current = null; setVoiceActive(false); setVoiceConnected(false); setVoiceState('idle');
     if (runRef.current && bridge) { try { await bridge.cancel(runRef.current); setApprovals([]); } catch (e) { showError(e); } }
   }
   async function toggleVoice() {
-    if (voice.current) { voice.current.stop(); voice.current = null; return; }
-    if (!bridge || runId || demo.current || demoStarting || greetingBusy || micFlight.current) return;
-    if (!settings.hasKey) { setDrawer('settings'); return; }
-    if (!capabilities.jarvisSpeech) { setError('Esta sessão usa o servidor anterior. Abra a versão atualizada para conversar com a voz Jarvis.'); return; }
-    if (!settings.hasElevenKey || !settings.elevenVoiceId) { focusElevenKey.current = true; openSettings(); return; }
+    if (voice.current || continuousWanted.current) { continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); voice.current?.stop(); voice.current = null; setVoiceActive(false); setVoiceConnected(false); setVoiceState('idle'); resumeStandbySoon(); return; }
+    await startVoice(false);
+  }
+  async function startVoice(fromReception: boolean) {
+    const current = settingsRef.current;
+    if (!bridge || voice.current || runRef.current || demo.current || reception.current || micFlight.current) return;
+    if (!current.hasKey) { continuousWanted.current = false; setDrawer('settings'); return; }
+    if (!capabilitiesRef.current.jarvisSpeech) { continuousWanted.current = false; setError('Esta sessão usa o servidor anterior. Abra a versão atualizada para conversar com a voz Jarvis.'); return; }
+    if (!current.hasElevenKey || !current.elevenVoiceId) { continuousWanted.current = false; focusElevenKey.current = true; openSettings(); return; }
+    if (fromReception) continuousWanted.current = Boolean(current.continuousVoiceEnabled && current.receptionVoiceEnabled);
     pauseStandby();
     stopMicTest();
     setError(''); setVoiceActive(true);
@@ -408,10 +419,23 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       transcript: (role, text, id, done) => upsertMessage({ role, text, id, done, origin: 'voice' }),
       levels: value => { levels.current = value; if (micMeter.current) micMeter.current.style.setProperty('--level', String(Math.max(value.mic, value.speaker))); },
       error: setError,
-      ended: () => { if (voice.current === session) voice.current = null; setVoiceActive(false); setVoiceConnected(false); setApprovals(items => items.filter(x => !String(x.runId || '').startsWith('voice'))); resumeStandbySoon(); },
+      ended: reason => {
+        if (voice.current !== session) return;
+        voice.current = null; setVoiceActive(false); setVoiceConnected(false); setApprovals(items => items.filter(x => !String(x.runId || '').startsWith('voice')));
+        const latest = settingsRef.current;
+        if (reason === 'expired' && continuousWanted.current && latest.profileId === current.profileId && latest.continuousVoiceEnabled && latest.receptionVoiceEnabled) {
+          setVoiceActive(true); setVoiceState('connecting');
+          clearTimeout(voiceResumeTimer.current);
+          voiceResumeTimer.current = setTimeout(() => { if (continuousWanted.current && settingsRef.current.profileId === current.profileId) void startVoice(true); }, 1200);
+        } else {
+          continuousWanted.current = false;
+          if (reason === 'expired') setNotice('A sessão de voz chegou ao limite configurado. Inicie outra quando quiser.');
+          resumeStandbySoon();
+        }
+      },
     });
     voice.current = session;
-    await session.start(settings.profileId, settings.maxSessionMinutes);
+    await session.start(current.profileId, current.maxSessionMinutes);
   }
   function stopMicTest() {
     micGeneration.current++;
@@ -453,21 +477,32 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   function stopDemo(resume = true) {
     demoGeneration.current++;
-    if (greetingInFlight.current && !demo.current) void bridge?.cancelGreeting?.().catch(() => {});
+    const activeReception = reception.current; reception.current = null;
+    activeReception?.controller.abort();
+    if (activeReception) {
+      void bridge?.cancelOutfit?.().catch(() => {});
+      void bridge?.cancelSpeech?.({ runId: activeReception.runId }).catch(() => {});
+    }
+    if (greetingInFlight.current) void bridge?.cancelGreeting?.().catch(() => {});
     greetingInFlight.current = false;
     musicPlaying.current = false; music.current?.stop();
     greetingGeneration.current++; setGreetingBusy(false); setGreetingNeedsTap(false);
-    const session = demo.current;
-    if (session) {
-      demo.current = null; cancelAnimationFrame(session.frame);
-      session.audio.onended = null; session.audio.onerror = null; session.audio.pause(); session.audio.removeAttribute('src'); session.audio.load();
-      try { session.effects?.dispose(); } catch { /* Closing the context still releases the graph. */ }
-      void session.context.close().catch(() => {});
-      if (session.objectUrl) URL.revokeObjectURL(session.objectUrl);
-    }
+    releasePlayback(false);
     setDemoPlaying(false); setDemoStarting(false); levels.current = { mic: 0, speaker: 0, wave: [] };
     if (micMeter.current) micMeter.current.style.setProperty('--level', '0');
     if (resume) resumeStandbySoon();
+  }
+  function releasePlayback(completed: boolean) {
+    const session = demo.current; if (!session) return;
+    demo.current = null; clearTimeout(session.timer); cancelAnimationFrame(session.frame);
+    session.audio.onended = null; session.audio.onerror = null; session.audio.pause(); session.audio.removeAttribute('src'); session.audio.load();
+    try { session.effects?.dispose(); } catch { /* Closing the context still releases the graph. */ }
+    void session.context.close().catch(() => {});
+    if (session.objectUrl) URL.revokeObjectURL(session.objectUrl);
+    setDemoPlaying(false); setDemoStarting(false); levels.current = { mic: 0, speaker: 0, wave: [] };
+    musicPlaying.current = false; music.current?.stop();
+    session.finish(completed);
+    if (!reception.current) { greetingInFlight.current = false; resumeStandbySoon(); }
   }
   async function toggleDemo() {
     if (demo.current || demoStarting) { stopDemo(); return; }
@@ -475,7 +510,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     pauseStandby();
     await playAudio(new URL('./voice-demo.mp3', window.location.href).href, 'demo');
   }
-  async function playAudio(source: string, kind: 'demo' | 'greeting', objectUrl?: string, automatic = false) {
+  async function playAudio(source: string, kind: 'demo' | 'greeting', objectUrl?: string, automatic = false): Promise<boolean> {
     const generation = ++demoGeneration.current; setDemoStarting(true); setError('');
     setPlaybackKind(kind);
     let context: AudioContext | undefined;
@@ -492,18 +527,23 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       try { effects = createSpeechEffects({ context, input: mediaSource, output: analyser, amount: DEFAULT_SPEECH_EFFECT_AMOUNT }); }
       catch { mediaSource.disconnect(); mediaSource.connect(analyser); setNotice('Efeito metálico indisponível neste dispositivo. Reproduzindo a voz original.'); }
       analyser.connect(context.destination);
-      const session = { audio, context, frame: 0, objectUrl, effects }; demo.current = session;
-      audio.onended = () => { if (demo.current === session) stopDemo(); };
-      audio.onerror = () => { if (demo.current === session) { stopDemo(); setError(kind === 'greeting' ? 'Não foi possível reproduzir o áudio da saudação.' : 'A amostra de voz não está disponível nesta instalação. Atualize os arquivos do aplicativo e tente novamente.'); } };
+      let finish!: (completed: boolean) => void;
+      const ended = new Promise<boolean>(resolve => { finish = resolve; });
+      const session = { audio, context, frame: 0, objectUrl, effects, finish, timer: undefined as ReturnType<typeof setTimeout> | undefined }; demo.current = session;
+      audio.onended = () => { if (demo.current === session) releasePlayback(true); };
+      audio.onerror = () => { if (demo.current === session) { releasePlayback(false); setError(kind === 'greeting' ? 'Não foi possível reproduzir o áudio da saudação.' : 'A amostra de voz não está disponível nesta instalação. Atualize os arquivos do aplicativo e tente novamente.'); } };
       if (automatic && context.state === 'suspended' && !navigator.userActivation?.hasBeenActive) {
-        stopDemo(); setGreetingNeedsTap(true); setNotice('A saudação está pronta. Clique em Ouvir saudação para liberar o áudio no navegador.'); return;
+        releasePlayback(false); setGreetingNeedsTap(true); setNotice('A saudação está pronta. Clique em Ouvir saudação para liberar o áudio no navegador.'); return false;
       }
       let resumeTimer: ReturnType<typeof setTimeout> | undefined;
-      try { await Promise.race([context.resume(), new Promise((_, reject) => { resumeTimer = setTimeout(() => reject(new Error('audio_gesture_required')), 3000); })]); }
+      try { await Promise.race([context.resume(), ended.then(() => {}), new Promise((_, reject) => { resumeTimer = setTimeout(() => reject(new Error('audio_gesture_required')), 3000); })]); }
       finally { clearTimeout(resumeTimer); }
-      if (generation !== demoGeneration.current) return;
-      await audio.play();
-      if (generation !== demoGeneration.current) { audio.pause(); return; }
+      if (generation !== demoGeneration.current) return false;
+      session.timer = setTimeout(() => { if (demo.current === session) { releasePlayback(false); setError('A reprodução de voz demorou demais e foi interrompida.'); } }, 180000);
+      let playTimer: ReturnType<typeof setTimeout> | undefined;
+      try { await Promise.race([audio.play(), ended.then(() => {}), new Promise((_, reject) => { playTimer = setTimeout(() => reject(new Error('audio_start_timeout')), 10000); })]); }
+      finally { clearTimeout(playTimer); }
+      if (generation !== demoGeneration.current || demo.current !== session) { audio.pause(); return false; }
       setDemoPlaying(true); setDemoStarting(false);
       if (kind === 'greeting') { setGreetingNeedsTap(false); music.current?.duck(0.22); }
       const measure = () => {
@@ -515,37 +555,76 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
         if (micMeter.current) micMeter.current.style.setProperty('--level', String(value));
         session.frame = requestAnimationFrame(measure);
       }; measure();
+      return await ended;
     } catch (e) {
-      if (generation !== demoGeneration.current) return;
-      stopDemo(); void context?.close().catch(() => {}); if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (generation !== demoGeneration.current) return false;
+      releasePlayback(false); void context?.close().catch(() => {});
       if (kind === 'greeting') { setGreetingNeedsTap(true); setNotice('O áudio não iniciou. Clique em Ouvir saudação para tentar novamente.'); }
       else showError(e);
+      return false;
     }
   }
   async function playGreeting(automatic = false) {
     const audio = greetingAudio.current;
-    if (!audio || demo.current || voice.current || micTest.current || runRef.current) return;
+    if (!audio || demo.current || voice.current || micTest.current || runRef.current) return false;
     pauseStandby(); greetingInFlight.current = true; beginGreetingMusic();
     try {
       const decoded = atob(audio.base64), bytes = new Uint8Array(decoded.length);
       for (let index = 0; index < decoded.length; index++) bytes[index] = decoded.charCodeAt(index);
       const objectUrl = URL.createObjectURL(new Blob([bytes], { type: audio.mime || 'audio/mpeg' }));
-      await playAudio(objectUrl, 'greeting', objectUrl, automatic);
-    } catch (e) { stopDemo(); showError(e); }
+      return await playAudio(objectUrl, 'greeting', objectUrl, automatic);
+    } catch (e) { stopDemo(); showError(e); return false; }
   }
-  async function startGreeting(automatic = false) {
-    if (!bridge?.startupGreeting || voice.current || micTest.current || micFlight.current || runRef.current || demo.current || greetingInFlight.current) return;
-    pauseStandby(); stopDemo(false); const generation = ++greetingGeneration.current; greetingInFlight.current = true; setGreetingBusy(true); setError(''); greetingAudio.current = null; beginGreetingMusic();
+  async function startGreeting(automatic = false, receptionRequested = false) {
+    if (!bridge?.startupGreeting || voice.current || continuousWanted.current || micTest.current || micFlight.current || runRef.current || demo.current || greetingInFlight.current) return;
+    pauseStandby(); stopDemo(false); const generation = ++greetingGeneration.current;
+    const flow = { controller: new AbortController(), profileId: settingsRef.current.profileId, runId: `reception-${crypto.randomUUID()}` };
+    reception.current = flow;
+    const active = () => reception.current === flow && !flow.controller.signal.aborted && settingsRef.current.profileId === flow.profileId && generation === greetingGeneration.current;
+    greetingInFlight.current = true; setGreetingBusy(true); setError(''); greetingAudio.current = null; beginGreetingMusic();
+    let completed = false;
     try {
       const result = await bridge.startupGreeting({ hour: new Date().getHours(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
-      if (generation !== greetingGeneration.current) return;
-      setGreetingBusy(false);
+      if (!active()) return;
       setWeatherAttribution(result.attribution);
       if (result.text) upsertMessage({ id: `greeting-${crypto.randomUUID()}`, role: 'assistant', text: result.text, done: true, origin: 'greeting' });
-      if (result.audioBase64) { greetingAudio.current = { base64: result.audioBase64, mime: result.mime }; await playGreeting(automatic); }
+      if (result.audioBase64) {
+        greetingAudio.current = { base64: result.audioBase64, mime: result.mime };
+        completed = await playGreeting(automatic);
+        completed = completed && Boolean(result.text?.trim()) && !result.reason && !['not_configured', 'skipped', 'cancelled', 'failed'].includes(result.weatherStatus);
+        if (!active() || !completed || !receptionRequested) return;
+        if (settingsRef.current.receptionOutfitEnabled) {
+          try {
+            if (!bridge.observeOutfit) throw new Error('A observação da roupa exige a versão atualizada do aplicativo.');
+            stopCamera();
+            const imageDataUrl = await captureOutfitImage({ signal: flow.controller.signal });
+            if (!active()) return;
+            const observation = await bridge.observeOutfit({ imageDataUrl });
+            if (!active()) return;
+            if (typeof observation?.text !== 'string' || !observation.text.trim() || observation.text.length > 600) throw new Error('Não foi possível observar a roupa nesta captura.');
+            const utteranceId = `outfit-${crypto.randomUUID()}`;
+            const spoken = await bridge.speak({ text: observation.text, profileId: flow.profileId, runId: flow.runId, utteranceId });
+            if (!active()) return;
+            if (spoken.runId !== flow.runId || spoken.utteranceId !== utteranceId) throw new Error('A resposta de voz não corresponde à recepção atual.');
+            const decoded = atob(spoken.audioBase64), bytes = Uint8Array.from(decoded, char => char.charCodeAt(0));
+            const url = URL.createObjectURL(new Blob([bytes], { type: spoken.mime || 'audio/mpeg' }));
+            const spokenCompleted = await playAudio(url, 'greeting', url);
+            if (active() && !spokenCompleted) { setGreetingNeedsTap(false); setNotice('Não consegui reproduzir o comentário da roupa. Você pode continuar por voz.'); }
+          } catch (error) {
+            if (!active()) return;
+            setNotice('Não consegui observar sua roupa agora. A câmera foi desligada.');
+          }
+        }
+      }
       else setNotice(result.reason === 'requires_key' ? 'Configure a chave ElevenLabs em Ajustes para ouvir a saudação.' : 'Não foi possível gerar o áudio da saudação. Verifique a conexão e as permissões da chave ElevenLabs.');
-    } catch (e) { if (generation === greetingGeneration.current) showError(e); }
-    finally { if (generation === greetingGeneration.current) { setGreetingBusy(false); if (!demo.current) { greetingInFlight.current = false; musicPlaying.current = false; music.current?.stop(); resumeStandbySoon(); } } }
+    } catch (e) { if (active()) showError(e); }
+    finally {
+      if (active()) {
+        reception.current = null; greetingInFlight.current = false; setGreetingBusy(false); musicPlaying.current = false; music.current?.stop();
+        if (completed && receptionRequested && settingsRef.current.receptionVoiceEnabled) await startVoice(true);
+        else resumeStandbySoon();
+      }
+    }
   }
   function beginJarvis() {
     if (greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting))) { void cancel(); return; }
@@ -554,7 +633,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       setNotice(!current.hasElevenKey ? 'A saudação precisa da chave ElevenLabs. Informe-a no campo privado e salve para iniciar Jarvis.' : 'Configure a voz ElevenLabs e a cidade do boletim para iniciar a recepção Jarvis.');
       focusElevenKey.current = !current.hasElevenKey; openSettings(); return;
     }
-    void startGreeting(false);
+    void startGreeting(false, true);
   }
   async function decide(approval: JarvisEvent, allow: boolean) {
     if (!bridge || !approval.approvalId) return;
@@ -582,8 +661,9 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       }
       if (form.standbyEnabled && form.wakeClapEnabled === false && form.wakeVoiceEnabled === false) throw new Error('Escolha palmas ou a palavra Jarvis para ativar a espera.');
       if (form.standbyEnabled && (!(form.elevenVoiceId || '').trim() || (!settings.hasElevenKey && !elevenApiKey.trim()) || !weatherLocation)) throw new Error('Configure a voz, a chave ElevenLabs e a cidade antes de ativar a espera.');
-      standbyWanted.current = false; pauseStandby(); stopDemo(false);
-      await bridge.saveSettings({ profileId: form.profileId.trim(), textModel: form.textModel.trim(), realtimeModel: form.realtimeModel.trim(), voice: form.voice.trim(), maxSessionMinutes: Number(form.maxSessionMinutes), startupGreeting: Boolean(form.startupGreeting), weatherLocation, elevenVoiceId: (form.elevenVoiceId || '').trim(), ...(capabilities.jarvisSpeech ? { startAtLogin: Boolean(form.startAtLogin), standbyEnabled: Boolean(form.standbyEnabled), wakeClapEnabled: form.wakeClapEnabled !== false, wakeVoiceEnabled: form.wakeVoiceEnabled !== false, greetingMusicEnabled: form.greetingMusicEnabled !== false } : {}), ...(apiKey ? { apiKey: apiKey.trim() } : {}), ...(elevenApiKey ? { elevenApiKey: elevenApiKey.trim() } : {}) });
+      if ((form.receptionOutfitEnabled || form.receptionVoiceEnabled) && !settings.hasKey && !apiKey.trim()) throw new Error('Configure a chave OpenAI para observar a roupa ou iniciar os comandos por voz após a recepção.');
+      continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false; pauseStandby(); stopDemo(false);
+      await bridge.saveSettings({ profileId: form.profileId.trim(), textModel: form.textModel.trim(), realtimeModel: form.realtimeModel.trim(), voice: form.voice.trim(), maxSessionMinutes: Number(form.maxSessionMinutes), startupGreeting: Boolean(form.startupGreeting), weatherLocation, elevenVoiceId: (form.elevenVoiceId || '').trim(), ...(capabilities.jarvisSpeech ? { startAtLogin: Boolean(form.startAtLogin), standbyEnabled: Boolean(form.standbyEnabled), wakeClapEnabled: form.wakeClapEnabled !== false, wakeVoiceEnabled: form.wakeVoiceEnabled !== false, greetingMusicEnabled: form.greetingMusicEnabled !== false, receptionOutfitEnabled: Boolean(form.receptionOutfitEnabled), receptionVoiceEnabled: Boolean(form.receptionVoiceEnabled), continuousVoiceEnabled: Boolean(form.continuousVoiceEnabled && form.receptionVoiceEnabled) } : {}), ...(apiKey ? { apiKey: apiKey.trim() } : {}), ...(elevenApiKey ? { elevenApiKey: elevenApiKey.trim() } : {}) });
       setApiKey(''); setElevenApiKey('');
       const data = await bridge.boot();
       if (data.settings.profileId !== settings.profileId) { setMessages([]); setActions([]); setWeatherAttribution(undefined); }
@@ -662,7 +742,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const profileMemories = snapshot.memories.filter(m => !m.profileId || m.profileId === settings.profileId);
   const activity = [...actions, ...snapshot.tasks.filter(t => !actions.some(a => a.id === t.id))].slice(0, 30);
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 04</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
+    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 05</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
     <main className="workspace">
       <nav className="rail" aria-label="Painéis"><button className={drawer === 'context' ? 'selected' : ''} title="Contexto" aria-label="Contexto" aria-expanded={drawer === 'context'} onClick={() => setDrawer('context')}><Icon name="context"/><span>CONTEXTO</span></button><button className={drawer === 'memory' ? 'selected' : ''} title="Memória" aria-label="Memória" onClick={() => setDrawer('memory')}><Icon name="memory"/><span>MEMÓRIA</span></button><button className={drawer === 'activity' ? 'selected' : ''} title="Atividades" aria-label="Atividades" onClick={() => setDrawer('activity')}><Icon name="activity"/><span>REGISTRO</span></button><button className={drawer === 'presence' ? 'selected' : ''} title="Presença e perfis" aria-label="Presença e perfis" onClick={() => setDrawer('presence')}><Icon name="camera"/><span>PRESENÇA</span></button><div className="rail-spacer"/><button title="Configurações" aria-label="Configurações" onClick={openSettings}><Icon name="settings"/><span>AJUSTES</span></button></nav>
       <section className="core-column" aria-label="Núcleo Jarvis">
@@ -712,12 +792,18 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
 <p className="field-note greeting-test-note">A saudação e a conversa usam a mesma voz ElevenLabs, com efeito fixo e velocidade de 95%. Salve alterações antes de testar.</p>
 </fieldset><fieldset disabled={!bridge || !capabilities.jarvisSpeech || voiceActive || !!runId || saving}>
 <legend>03 / INÍCIO E ESPERA</legend>
+{capabilities.startup && <><button type="button" className="quiet-button" onClick={() => setForm(current => ({ ...current, startAtLogin: true, startupGreeting: true, standbyEnabled: true, wakeClapEnabled: true, wakeVoiceEnabled: false, greetingMusicEnabled: true, receptionOutfitEnabled: true, receptionVoiceEnabled: true, continuousVoiceEnabled: true }))}>Ativar recepção completa</button><p className="field-note">Prepara estas opções. Clique em Salvar configuração para aplicar: entrar com o Windows, aguardar duas palmas, música e saudação, uma captura da roupa enviada à OpenAI e comandos de voz contínuos.</p></>}
 <label className="greeting-toggle"><input type="checkbox" disabled={!capabilities.startup} checked={Boolean(form.startAtLogin)} onChange={e => setForm({ ...form, startAtLogin: e.target.checked, ...(e.target.checked ? { standbyEnabled: true } : {}) })}/><span>Iniciar ao entrar no Windows</span></label>
 {!capabilities.startup && <p className="field-note">Disponível no aplicativo Windows instalado ou portátil. O teste no navegador não altera a inicialização do computador.</p>}
 <label className="greeting-toggle"><input type="checkbox" checked={Boolean(form.standbyEnabled)} onChange={e => setForm({ ...form, standbyEnabled: e.target.checked })}/><span>Entrar em espera e saudar após ativação</span></label>
 <label className="greeting-toggle"><input type="checkbox" checked={form.wakeClapEnabled !== false} onChange={e => setForm({ ...form, wakeClapEnabled: e.target.checked })}/><span>Ativar com duas palmas</span></label>
 <label className="greeting-toggle"><input type="checkbox" disabled={!capabilities.voiceWake} checked={form.wakeVoiceEnabled !== false} onChange={e => setForm({ ...form, wakeVoiceEnabled: e.target.checked })}/><span>Ativar ao dizer “Jarvis”</span></label>
 <p className="field-note">A espera mantém o microfone ativo e processa a ativação neste computador. A fala “Jarvis” requer o reconhecedor de voz do Windows. A escuta pausa durante a saudação e a conversa.</p>
+<label className="greeting-toggle"><input type="checkbox" disabled={!bridge?.observeOutfit || capabilities.outfitObservation === false} checked={Boolean(form.receptionOutfitEnabled)} onChange={e => setForm({ ...form, receptionOutfitEnabled: e.target.checked })}/><span>Enviar uma captura à OpenAI para comentar a roupa</span></label>
+<p className="field-note">Após as palmas ou o botão Iniciar Jarvis, termina a saudação, captura uma imagem da câmera e a desliga antes do envio. Não guarda a imagem nem cadastra seu rosto. Requer sua permissão de câmera e a chave OpenAI.</p>
+<label className="greeting-toggle"><input type="checkbox" checked={Boolean(form.receptionVoiceEnabled)} onChange={e => setForm({ ...form, receptionVoiceEnabled: e.target.checked, ...(!e.target.checked ? { continuousVoiceEnabled: false } : {}) })}/><span>Aguardar comandos de voz após a recepção</span></label>
+<label className="greeting-toggle"><input type="checkbox" disabled={!form.receptionVoiceEnabled} checked={Boolean(form.continuousVoiceEnabled)} onChange={e => setForm({ ...form, continuousVoiceEnabled: e.target.checked })}/><span>Manter a conversa conectada à OpenAI</span></label>
+<p className="field-note">A conexão começa depois da recepção. O microfone envia áudio à OpenAI enquanto a conversa estiver ativa, com cobrança da API. A opção contínua renova sessões ao atingir o limite; Interromper, Encerrar voz ou fechar o aplicativo encerra a conexão. Erros exigem iniciar novamente.</p>
 {!capabilities.voiceWake && <p className="field-note">No navegador, a espera usa apenas palmas e pode ser suspensa quando a aba fica em segundo plano. Para esperar na bandeja do Windows, use o aplicativo nativo.</p>}
 <label className="greeting-toggle"><input type="checkbox" checked={form.greetingMusicEnabled !== false} onChange={e => setForm({ ...form, greetingMusicEnabled: e.target.checked })}/><span>Música durante a saudação</span></label>
 <div className="setting-row"><div><strong>Trilha de abertura</strong><p>{settings.hasGreetingMusic ? 'Arquivo privado pronto' : 'Aguardando arquivo de áudio'}</p></div><button className="quiet-button" type="button" disabled={!capabilities.desktop || !bridge?.chooseGreetingMusic} onClick={selectGreetingMusic}><Icon name="folder" size={16}/>Escolher áudio</button></div>

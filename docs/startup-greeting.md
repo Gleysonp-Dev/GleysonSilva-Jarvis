@@ -1,45 +1,53 @@
-# Saudação de abertura
+# Recepção e saudação — revisão 0.5.0
 
-Quando a saudação é solicitada, o Jarvis prepara uma fala com o horário local do computador, o tempo na cidade configurada e a previsão de hoje. A última frase é exatamente: **“Em que posso ajudá-lo agora, senhor?”** Não há chamada a um LLM para escrever essa mensagem.
+A recepção pode seguir esta sequência: **duas palmas → música e saudação com clima → comentário sobre a roupa → conversa por voz**. As duas últimas etapas são opções explícitas de Ajustes. Iniciar ao entrar no Windows e a espera também são escolhas da instalação; o pacote público não ativa captura ou login por conta própria. Veja [Espera e login](standby.md).
 
-Na revisão 0.2.2, a recepção é apresentada por áudio e pulsação, sem copiar o texto da saudação para o painel Conversa. A atribuição do clima permanece compacta, com fonte e licença. O texto continua no contrato interno para síntese e controle; mensagens digitadas pelo usuário e suas respostas permanecem visíveis. A apresentação foi verificada com serviços substituídos; o [CI da revisão](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes, compilação, pacote e abertura nativa, sem comprovar a recepção ao vivo.
+A revisão 0.5.0 está em preparação. CI, pacote e ensaio integrado desta sequência ainda precisam ser registrados em [Validação](validation.md). Os **343 testes e a abertura nativa aprovados na 0.4.0** são evidência da versão anterior, não da nova recepção.
 
-Com abertura automática habilitada e configuração completa, a interface pode preparar a recepção ao iniciar. Na revisão 0.2.0, **espera habilitada muda o início para aguardar “Jarvis” ou duas palmas**, antes da recepção; habilitar espera mantém a saudação ativa. Iniciar no Windows é opção para depois do login, não antes dele. Veja [Espera e login](standby.md).
+## Saudação e música
 
-O serviço usa “Bom dia” das 06h às 11h59, “Boa tarde” das 12h às 17h59 e “Boa noite” nos demais horários. Hora e fuso vêm do computador. As coordenadas e o nome da cidade ficam na configuração privada; o repositório não traz a localização pessoal do autor.
+Ao receber o gatilho elegível, o controlador pausa a espera local e prepara a fala com o horário do computador, tempo atual e previsão de hoje na cidade configurada. A frase final permanece **“Em que posso ajudá-lo agora, senhor?”**. A saudação é construída pelo serviço meteorológico e não por um LLM.
 
-## Voz e ativação
+O serviço usa “Bom dia” das 06h às 11h59, “Boa tarde” das 12h às 17h59 e “Boa noite” nos demais horários. Hora e fuso vêm do computador. Nome da cidade e coordenadas ficam na configuração privada; a localização pessoal do autor não acompanha o repositório.
 
-O backend exige `startupGreeting: true` antes de consultar tempo ou sintetizar fala. A saudação completa é gerada pela voz ElevenLabs configurada para aquela instalação; não é o MP3 fixo da demonstração. O autor ouviu e aprovou a narração de abertura com tempo/previsão gerada no painel. Para preservar essa escolha, o serviço usa **Eleven Multilingual v2**, estabilidade 0,5, similaridade 0,75, estilo 0, speaker boost ligado e velocidade 1, enviados explicitamente em cada síntese. O adaptador oferece Flash para outros usos, mas a abertura não troca automaticamente o modelo aprovado. Os campos seguem a [configuração oficial de voz](https://elevenlabs.io/docs/api-reference/voices/settings/update).
+A música selecionada privadamente acompanha a recepção inicial e termina com o fim ou a interrupção da saudação. Não continua no comentário de roupa nem na conversa. A espera por palmas/palavra fica suspensa durante som próprio e conversa para evitar que o assistente se reative. **Nenhuma trilha padrão é distribuída.** O arquivo privado aprovado pelo autor fica fora do GitHub e do pacote.
 
-O tom metálico é fixo no preset **0,78**, aplicado localmente pelo Web Audio. A reprodução é **0,95× com a altura da voz preservada**, 5% mais lenta que a origem, sem controle de intensidade. Não altera o clone, o MP3 original ou os parâmetros ElevenLabs: a velocidade de síntese continua em 1. A nova conversa usa o mesmo preset; seu aceite real completo ainda está pendente.
+O áudio usa a voz ElevenLabs configurada naquela instalação. A abertura não toca a apresentação fixa “Olá, …”; **Ajustes → Saudação → Amostra fixa da voz** é um teste separado, sem clima ou captura. O preset aprovado é Eleven Multilingual v2, estabilidade 0,5, similaridade 0,75, estilo 0, speaker boost ligado e velocidade de síntese 1. Os campos seguem a [configuração oficial de voz](https://elevenlabs.io/docs/api-reference/voices/settings/update).
 
-A velocidade de reprodução de 0,95× foi ouvida e aprovada pelo autor. A saudação completa é um fluxo distinto da frase de apresentação disponível em **Ajustes → Saudação → Amostra fixa da voz**.
+A reprodução mantém **0,95× com a altura preservada** e efeito metálico local fixo **0,78**, sem ajuste de intensidade. Saudação, comentário sobre roupa e respostas faladas usam essa mesma rota. Não há substituição silenciosa pela voz OpenAI ou do navegador.
 
-A saudação com clima/atribuição foi exibida no ensaio local, e a narração completa foi ouvida e aprovada. Isso não comprova início automático em nova instalação, ativação por palmas/palavra ou entrada na conta Windows; esses ensaios continuam pendentes.
+## Comentário sobre a roupa
 
-A integração usa uma chave ElevenLabs própria, preenchida no campo mascarado das configurações, sem enviá-la à conversa. Acesso ao painel pelo navegador não fornece essa chave automaticamente. Sem chave, o serviço retorna o texto e `reason: requires_key`, com `audioBase64: null`; não simula uma resposta falada. Voz ausente ou erro de síntese também preservam o texto e informam a causa de disponibilidade.
+Com a opção de comentário de roupa habilitada e uma chave OpenAI configurada, o aplicativo pede a câmera após terminar a saudação. Captura somente **um JPEG, até 640×480 e 512 KiB**; encerra as tracks de vídeo antes de encaminhar o quadro para a OpenAI. Não mantém um vídeo ao vivo nem salva a imagem no histórico ou em arquivo.
 
-O controlador aplica início único, limite de repetição, cancelamento ao mudar/encerrar e descarte de resultados antigos. Cancelar a recepção também aborta a síntese pendente no backend. Preparar o áudio não abre uma conversa de microfone. Se o navegador exigir gesto, **Ouvir saudação** toca o áudio já preparado sem nova consulta/síntese. Interromper precisa parar som e pulsação.
+A opção informa explicitamente que **uma imagem da câmera será enviada à OpenAI**. O serviço usa Responses com o modelo de texto configurado, `detail: 'low'` e `store:false`, sem histórico, memórias ou ferramentas. O pedido limita a resposta a um comentário breve e cordial sobre a roupa visível: cor, peça ou combinação. Não identifica a pessoa nem infere saúde, idade, origem, religião ou outros atributos pessoais.
 
-A espera local deve pausar antes da narração e de eventual música, retomando apenas se ainda habilitada. A música depende de arquivo privado fornecido pelo usuário e termina com a saudação ou interrupção. O arquivo do ensaio foi recebido e sua prévia aprovada; a recepção integrada ainda exige teste. **Nenhuma trilha padrão está incluída.**
+Se o enquadramento não mostrar roupa suficiente, a resposta deve reconhecer essa limitação. Permissão negada, câmera ocupada, chave ausente, modelo incompatível ou falha de rede não geram um elogio inventado. A etapa informa indisponibilidade e pode seguir para voz, se essa opção estiver habilitada e disponível. O comentário usa a voz aprovada e não acrescenta transcrição ao dashboard. Esse recurso não depende de YuNet/SFace e não cadastra um rosto. Veja [Voz e câmera](voice-and-camera.md).
+
+O backend aceita somente uma observação pendente por perfil, com intervalo mínimo de um minuto e até seis tentativas por hora. Esses limites não provocam nova captura automática quando atingidos. Cada comentário é uma solicitação de imagem/modelo e uma nova síntese de voz, sujeitas à disponibilidade e ao consumo dos provedores.
+
+## Entrada na conversa
+
+Com **conversa após a recepção** habilitada, o aplicativo inicia a captura de microfone e a sessão OpenAI Realtime somente depois das etapas anteriores. A resposta audível continua sendo ElevenLabs. A opção de **conversa contínua** permite renovar uma sessão encerrada por prazo normal enquanto essa intenção continuar ativa; não repete a música, a saudação ou a câmera a cada renovação.
+
+Falhas de autenticação ou rede não criam um ciclo de novas tentativas. **Interromper**, troca de perfil, reset ou saída cancelam a recepção e a intenção de renovação, param áudio/captura e invalidam resultados antigos. Encerrar a sessão contínua exige uma nova escolha para voltar a ouvir. Detalhes de conexão e custos estão em [OpenAI](openai.md).
 
 ## Tempo e previsão
 
-A consulta usa somente o endpoint HTTPS fixo `https://api.open-meteo.com/v1/forecast`, sem chave de tempo. São solicitadas temperatura atual, condição WMO, mínima/máxima do dia e probabilidade máxima de precipitação. As condições atuais são dados de modelo meteorológico, não uma medição de um sensor do computador. A [documentação Open-Meteo](https://open-meteo.com/en/docs) descreve variáveis, fusos e timestamps.
+O serviço consulta somente `https://api.open-meteo.com/v1/forecast`, sem chave meteorológica. Solicita temperatura atual, condição WMO, mínima/máxima do dia e probabilidade máxima de precipitação. As condições são dados de modelo meteorológico, não medição de sensor do computador. Consulte a [documentação Open-Meteo](https://open-meteo.com/en/docs).
 
-O serviço usa timestamps Unix e valida o dia no fuso enviado pelo computador. Rejeita condição desconhecida, temperatura/unidade inválida, previsão de outro dia, dados atuais com mais de três horas ou mais de quinze minutos no futuro. A probabilidade só é falada se estiver presente, em porcentagem válida. Se faltar consulta ou dado válido, informa **“Não consegui consultar o tempo agora.”** e mantém a pergunta final. Não inventa valores.
+Timestamps Unix são comparados com a data no fuso do computador. O serviço rejeita condição desconhecida, temperatura/unidade inválida, previsão de outro dia, dado atual com mais de três horas ou mais de quinze minutos no futuro. Só fala a probabilidade quando houver porcentagem válida. Se a consulta falhar, diz **“Não consegui consultar o tempo agora.”** e preserva a pergunta final; não inventa valores.
 
-O prazo da consulta é de oito segundos. Somente o resumo validado fica em cache de memória por até dez minutos, vinculado às coordenadas exatas, ao fuso e à data. Não há histórico completo de tempo salvo em arquivos. A síntese tem prazo de vinte segundos, texto até 600 caracteres e áudio em memória até 2 MiB, sem gravação automática em disco.
+A consulta tem prazo de oito segundos. O resumo validado pode ficar em cache de memória por até dez minutos, vinculado às coordenadas, ao fuso e à data. Não há histórico completo de tempo salvo em arquivos. A ferramenta `weather_current`, usada em perguntas de clima durante a conversa, força nova consulta e não usa uma previsão antiga quando essa atualização falha. Ela não reinicia a recepção. Veja [Acesso desktop e web](desktop-access.md).
 
-## Atribuição e uso do serviço
+Com dados válidos, a interface exibe fonte e licença compactas: **Dados Open-Meteo (CC BY 4.0), resumidos em português**. A [licença](https://open-meteo.com/en/licence) e os [termos da API gratuita](https://open-meteo.com/en/terms) são questões distintas: o endpoint gratuito desta implementação se destina a uso não comercial, sujeito aos limites do serviço.
 
-Quando utiliza dados válidos, o resultado inclui atribuição para a interface exibir: **Dados Open-Meteo (CC BY 4.0), resumidos em português**, com link para a fonte e licença. Isso também informa que os dados foram transformados em uma síntese textual. [Licença dos dados](https://open-meteo.com/en/licence).
+## Controle e contrato
 
-O endpoint gratuito utilizado nesta implementação é destinado a uso **não comercial**, sujeito aos limites do serviço. Uma futura oferta comercial precisa rever o plano e o endpoint apropriados; a licença dos dados e as condições de acesso à API são questões distintas. [Termos da API gratuita](https://open-meteo.com/en/terms).
+`StartupGreetingService`, em `packages/greeting/index.mjs`, recebe configuração e chave ElevenLabs do backend. `prepare({hour,timezone},{signal})` devolve texto, clima validado, MP3 limitado em base64 ou `null`, razão de indisponibilidade e atribuição. Não devolve chave, ID de voz ou coordenadas. `readWeather()` permite consultar o clima sem síntese ou captura. A síntese tem prazo de vinte segundos, texto até 600 caracteres e áudio em memória até 2 MiB.
 
-## Contrato e verificação
+Sem chave, a preparação informa `reason: requires_key`, com `audioBase64: null`; não apresenta a amostra gravada como boletim atual. Voz ausente ou falha de síntese também ficam explícitas. Se o navegador exigir gesto, **Ouvir saudação** reproduz o áudio preparado, sem nova consulta/síntese.
 
-`StartupGreetingService` está em `packages/greeting/index.mjs`. Recebe `getSettings`, `getKey` da ElevenLabs e, opcionalmente, transporte/relógio/cliente de síntese para testes. `prepare({hour,timezone},{signal})` devolve texto, estado do tempo, nome de apresentação, MP3 em base64 ou `null`, razão de indisponibilidade e atribuição quando aplicável. Chave, ID de voz e coordenadas não aparecem nesse retorno.
+O controlador limita repetição, aceita somente uma recepção por vez e propaga cancelamento ao backend. Um resultado antigo não pode tocar áudio, abrir câmera ou reconectar voz após interrupção, troca de perfil ou saída. Saudação e comentário são apresentados por som, pulsação e estados, sem transcrição no painel Conversa; mensagens digitadas continuam visíveis.
 
-Os testes em `tests/greeting.test.mjs` usam cidades/coordenadas sintéticas e cobrem horário, frase final, frescor/unidades, endpoint, falhas, cache, ausência de chave, síntese, limites e cancelamento. Não consultam clima real nem geram cobrança. A narração aprovada e o ensaio de clima estão registrados separadamente em [Validação](validation.md); login, ativação/retorno e música continuam exigindo ensaio integrado.
+Os testes com transporte e dispositivos substituídos verificam esses contratos; não comprovam palmas físicas, som ouvido, roupa corretamente descrita ou entrada real no Windows. Execute o [plano de testes](test-plan.md) no pacote de destino e registre cada evidência separadamente.

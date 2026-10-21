@@ -1,5 +1,15 @@
 # Validação do MVP
 
+## Revisão 0.5.0 — recepção, roupa e conversa contínua
+
+Fluxo solicitado: iniciar no login Windows em espera, duas palmas, música e saudação meteorológica aprovadas, uma captura para comentário gentil sobre roupa visível e início automático de comandos por voz. A continuidade renova somente após o prazo local configurado de cada conexão, sem repetir música/saudação/câmera. Interromper, parar voz, trocar perfil/configuração ou fechar deve cancelar captura, síntese, escuta e renovação.
+
+As três opções novas são explícitas e desligadas por padrão. O preset **Ativar recepção completa** prepara a configuração; **Salvar configuração** aplica com as informações de envio à OpenAI/custo visíveis. As chaves API permanecem privadas. A câmera é desligada após um JPEG limitado e antes da requisição; imagem não entra no SQLite, memória ou transcrição. Roupa fora do quadro ou falha não deve gerar elogio inventado.
+
+CI, pacote e ensaio físico da 0.5.0 ainda pendentes. Os testes novos usam áudio, câmera, Windows e OpenAI substituídos, sem capturar imagem ou consumir a conta do autor. A escrita da configuração privada e o acesso ao registro de início do Windows foram recusados neste ambiente; não afirmar que a instalação local ficou configurada. O usuário precisará aplicar o preset no aplicativo nativo.
+
+Verificação local: **388 testes, 377 aprovados e 11 falhas**, zero skips. As falhas são as operações anteriores de link/junção e movimentos dependentes delas recusadas por `EPERM` no sandbox. Nenhuma dessas verificações foi removida ou enfraquecida; o CI Windows normal deve confirmá-las. TypeScript estrito e build aprovados. Os testes novos cobrem ordem da recepção após o fim real da fala, captura/liberação antes do envio, permissão atrasada, formato/limites, opções inicialmente desligadas, preset sem apagar configuração, áudio/perfil correlacionados, interrupção, fechamento, perfil/reset e renovação somente pelo prazo local, sem repetir a recepção ou tentar em loop após erros.
+
 ## Revisão 0.4.0 — aplicativos, pastas, web e clima pela conversa
 
 O autor aprovou o núcleo da 0.3.1 antes desta revisão. A 0.4.0 preserva o desenho, a voz a 0,95×, o efeito metálico fixo e a música privada aprovada. Acrescenta descoberta e abertura de aplicativos instalados, abertura de pastas locais, pesquisa e leitura de sites públicos, e consulta meteorológica nova por texto ou voz. O [guia de acesso](desktop-access.md) distingue abertura, leitura e organização.

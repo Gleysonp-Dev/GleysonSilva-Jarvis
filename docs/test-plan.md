@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-Este plano cobre a revisão 0.3.0, incluindo núcleo orbital azul e Contexto sob demanda. Resultados dessa revisão devem ser registrados por execução/commit em [Validação](validation.md). O histórico da revisão 0.2.3 teve **229 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados no [CI 5733b37](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39166025134)**. O [CI da base 0.2.2 d72c4887](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39164458465) aprovou 221 testes e preservou a apresentação sem transcrições. Resultados históricos não comprovam a revisão nova, latência, reconhecimento facial, som audível, fechamento durante áudio ou ativação por dispositivos.
+Este plano cobre a revisão 0.5.0: recepção por duas palmas após login, comentário opcional de roupa por um quadro e entrada/renovação opcional da conversa por voz. Preserva núcleo, voz, painel limpo, contexto e ferramentas da 0.4.0. CI, pacote e ensaio integrado da 0.5.0 ainda precisam ser registrados por execução/commit em [Validação](validation.md). Os **343 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** são evidência daquela versão. Resultados históricos não comprovam a revisão nova, latência, identificação, som audível, fechamento durante áudio ou ativação por dispositivos.
 
 ## Evidências já registradas
 
@@ -11,6 +11,8 @@ Este plano cobre a revisão 0.3.0, incluindo núcleo orbital azul e Contexto sob
 | Abertura 0.2.1 | CI com 218 testes e abertura real de janela/DOM/preload/boot; captura de tela do usuário confirmou a janela no próprio computador. | Conversa com clone, microfone nativo, login e persistência DPAPI. |
 | Revisão 0.2.2 | CI com 221 testes e abertura real do pacote; ensaio visual substituído manteve voz fora do painel e texto digitado visível. | Áudio do clone e dispositivos reais; execução da nova versão pelo usuário. |
 | Revisão 0.2.3 | 229 testes, TypeScript, build, pacote e abertura nativa real aprovados no CI; handlers de fechamento e filtros testados com Electron/OS/sinais substituídos. | Encerramento durante áudio e novos filtros no equipamento do usuário. |
+| Revisão 0.3.1 | 264 testes e abertura nativa aprovados; núcleo recebeu aceite visual do autor. | Login, detecção de palmas e imagem de roupa. |
+| Revisão 0.4.0 | 343 testes e abertura nativa aprovados; pacote conferido por hash. | Recepção 0.5.0, nova chamada de imagem e renovação de voz. |
 | Texto OpenAI | Pergunta real respondida corretamente. | Benchmark, custo e latência comparável. |
 | Microfone | Captura com nível e liberação observadas. | Detector de palmas ou palavra. |
 | Câmera | Prévia real 640×480 e parada. | Reconhecimento: OpenCV e pesos ausentes. |
@@ -18,7 +20,7 @@ Este plano cobre a revisão 0.3.0, incluindo núcleo orbital azul e Contexto sob
 | Saudação/áudio | Narração aprovada a 0,95× com altura preservada e efeito metálico fixo 0,78. | Conversa nova, login ou ativação automática. |
 | Ajustes no navegador | Opções nativas de login/palavra desabilitadas; espera exige voz/chave/cidade; opções salvas preservadas. | Funcionamento do registro de login ou reconhecedor Windows. |
 
-O [registro de validação](validation.md) apresenta os limites e o histórico. **Conversa real com o clone, captura nativa, palmas, palavra, login, DPAPI e música na recepção ao vivo permanecem pendentes.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
+O [registro de validação](validation.md) apresenta os limites e o histórico, incluindo o roteiro curto aprovado pelo autor. **A nova sequência integrada com login, palmas, música, roupa e conversa contínua ainda exige ensaio físico.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
 
 ## Testes automáticos
 
@@ -47,6 +49,9 @@ Não é necessário instalar OpenCV ou baixar modelos para os testes de protocol
 | Continuidade de prévias | Um novo pedido recupera `planId` do backend, sem depender de IDs no texto; contexto limitado, isolamento de perfil e cancelamento antes de envio. | Referências não autorizam execução; planos, pasta e arquivos são revalidados pelo executor. |
 | Erros e chave | Falta de chave não abre rede; erros HTTP, transporte e ferramenta não ecoam a credencial de teste. | Credencial usada apenas no teste; não demonstra DPAPI real. |
 | Realtime | FormData/SDP, saída em texto, VAD, ferramentas e bloqueio de saída de áudio OpenAI. | Não cria uma chamada paga e não captura áudio real. |
+| Recepção 0.5.0 | Sequência, opções separadas, um único quadro, limpeza antes do envio, passagem à voz e cancelamento em cada etapa. | Dispositivos/serviços substituídos não comprovam roupa descrita nem som ouvido. |
+| Imagem OpenAI | JPEG/dimensões/tamanho limitados, detalhe baixo, sem ferramentas/histórico, cancelamento e erros sanitizados. | Não mede a interpretação visual do modelo na conta de destino. |
+| Voz contínua | Renovação somente por prazo normal enquanto desejada, sem repetição da recepção; parada/reset invalidam reconexão e erro não cria loop. | Transporte/relógio substituídos não comprovam conexão prolongada real nem custo. |
 | Fala ElevenLabs | Preset aprovado, IDs de execução/trecho, fila, cancelamento, limites e ausência de fallback de voz. | Rede e áudio substituídos; não comprova o clone ouvido em conversa. |
 | Espera/palmas | Duas transientes, intervalo, adaptação, cooldown, rejeição de envelopes sustentados e limpeza da captura. | Sinais e dispositivos sintéticos; não mede falsos positivos no ambiente real. |
 | Login/palavra Windows | Opções opt-in, caminho do pacote, protocolo do worker, idioma ausente e cancelamento. | APIs/processos substituídos; não altera um login real nem reconhece voz física. |
@@ -118,7 +123,7 @@ Teste duas pessoas, rosto não identificado, luz ruim, óculos, afastamento, ret
 2. Confira que a configuração Realtime solicita texto e que nenhuma track remota OpenAI toca. A antiga resposta marin deve ser identificada como teste histórico, nunca como aceite do clone.
 3. Interrompa durante geração do primeiro trecho, síntese, fila, reprodução e aprovação de ferramenta. Nenhum áudio atrasado ou evento `.done` de resposta cancelada deve voltar a narrar.
 4. Simule falta de chave/ID, falha ElevenLabs, limite e rede interrompida. A sessão deve bloquear ou mostrar estado de erro, sem inserir a resposta falada no painel; não tocar voz OpenAI, voz do navegador ou a amostra fixa como substituto.
-5. Troque perfil, encerre e atinja o limite da sessão. Confira cancelamento da síntese, fechamento de áudio/microfone e ausência de fala da geração anterior.
+5. Troque perfil, encerre e atinja o limite da sessão com conversa contínua desligada. Confira cancelamento da síntese, fechamento de áudio/microfone e ausência de fala da geração anterior. Com conversa contínua ligada, use o roteiro específico da 0.5.0 abaixo para a renovação normal.
 
 Registrar tempo até o primeiro som, falhas e consumo por provedor. Não substituir esse ensaio pelo teste de saudação ou pelo MP3 público.
 
@@ -140,6 +145,31 @@ Em um pacote Windows em caminho estável, habilite início ao entrar na conta, c
 Teste desativação, novo login sem lançamento, mudança/ausência do caminho portátil e falha do registro. No desenvolvimento/navegador, o controle nativo deve ficar indisponível e não alterar o sistema. Verifique pacote limpo, chaves protegidas, câmera/microfone liberados e saída sem processo órfão.
 
 Este ensaio ainda não foi realizado fisicamente; sucesso do empacotamento no CI não o substitui. Veja [Espera local](standby.md).
+
+## Recepção completa e conversa contínua — 0.5.0
+
+Use o executável novo em caminho estável, com chaves e cidade configuradas privadamente. A música precisa ter sido escolhida naquela instalação. Registre versão, dispositivos, opções e resultado; não publique imagens, chaves, ID da voz, caminho da música ou detalhes pessoais.
+
+| Ensaio | Evidência esperada |
+| --- | --- |
+| Instalação limpa | Login, espera, roupa, voz após a recepção e conversa contínua não ativados silenciosamente; opções novas começam em `false`. |
+| Salvar configuração e reabrir o nativo | Opções persistem; chaves permanecem configuradas sem redigitação e sem aparecer em histórico/eventos. Não confundir com o teste HTTP, cuja chave é temporária. |
+| Login com espera/palmas habilitados e palavra desligada | Aplicativo em espera/bandeja, microfone local armado; nenhuma música, saudação, câmera ou sessão OpenAI antes das palmas. |
+| Duas palmas e disparo concorrente | Uma única recepção, música e cumprimento pelo horário/clima; sem repetição por TV, própria narração ou um segundo gatilho durante o fluxo. Registrar falsos positivos/negativos em ambiente real. |
+| Fim da saudação | Música termina. Se roupa e conversa estiverem desligadas, nenhum dispositivo/provedor novo é iniciado. |
+| Roupa habilitada | Controle informa envio à OpenAI; um JPEG de até 640×480 e 512 KiB; tracks encerradas antes do pedido. Nenhum vídeo persistente nem imagem gravada em banco/log/arquivo. |
+| Roupa visível em luz e enquadramento habituais | Comentário breve coerente com peças/cores visíveis, narrado pelo clone aprovado, sem música ou transcrição. Não aceitar identidade ou inferências pessoais como parte do resultado. |
+| Imagem insuficiente, outra pessoa ao fundo ou rosto sem roupa visível | Limitação honesta e neutra; sem elogio inventado, identificação ou divulgação de dados do perfil. |
+| Câmera negada/ocupada, modelo incompatível, chave inválida ou rede ausente | Aviso útil, captura liberada, sem corpo bruto de erro. A etapa de voz ainda pode começar se habilitada/disponível. Não repetir a captura em loop. |
+| Conversa após a recepção habilitada | Microfone WebRTC somente após saudação/comentário; pergunta inédita respondida com a voz aprovada e núcleo pulsando, sem novas palmas ou transcrição. |
+| Conversa contínua desligada | Conexão termina no prazo configurado, sem reiniciar por conta própria. |
+| Conversa contínua ligada, prazo local configurado | Uma nova conexão por encerramento elegível, sem repetir música/saudação/imagem; novo comando responde. Registrar limites de continuidade do histórico. |
+| Falha de autenticação/rede durante negociação ou sessão | Estado de erro e microfone liberado; nenhuma cadeia indefinida de reconexões. |
+| Interromper durante permissão de câmera, captura, observação, síntese ou negociação/renovação | Toda etapa futura cancelada; nenhuma fala, câmera ou microfone reaberto por resultado tardio. Verificar também concessão tardia da permissão. |
+| Perfil/reset/configuração/saída durante o fluxo | Gerações antigas invalidadas, sem elogio, ferramenta ou sessão no perfil novo. X encerra som, captura, worker e processo. |
+| Desativar início no Windows | Registro removido e nenhum lançamento no próximo login. |
+
+A conversa contínua transmite áudio enquanto conectada, incluindo o silêncio entre comandos. Registre duração e consumo real por provedor; a opção não promete sessão infinita, memória ilimitada ou orçamento máximo. Não use sucesso de parser/tempo simulado como comprovação de conexão prolongada real.
 
 ## Acesso ampliado 0.4.0
 
@@ -185,9 +215,11 @@ Automáticos: comando, quantidade, aprovados, falhas, skips
 Microfone: acesso, captura, liberação
 Saída: provedor/voz realmente ouvidos, reprodução e interrupção
 Câmera: captura e liberação
+Roupa: opção explícita, quadro único, vídeo encerrado antes do envio, resultado e descarte
 Espera: palmas/palavra, idioma, ruído, pausa/retorno e segundo plano
 Login Windows: pacote/caminho, entrada real e desativação
 Música: não fornecida / arquivo privado testado, fim e cancelamento
+Conversa contínua: prazo configurado, quantidade de renovações, parada e ausência de loop após erro
 Identificação real: dependências/pesos, cenários e resultados
 Ações: prévia, confirmação, resultado, cancelamento e restauração
 Contexto: fontes disponíveis, horários/cache, recorte de atividade, cancelamento e perfis

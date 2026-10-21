@@ -8,7 +8,7 @@ type Callbacks = {
   transcript(role: 'user' | 'assistant', text: string, id: string, done: boolean): void;
   levels(levels: AudioLevels): void;
   error(message: string): void;
-  ended(): void;
+  ended(reason?: 'stopped' | 'expired' | 'error'): void;
 };
 type SpeechAudio = { audioBase64: string; mime: string; runId: string; utteranceId: string };
 type SpeechJob = { text: string; runId: string; responseId: string; utteranceId: string; generation: number; controller: AbortController; preparation?: Promise<SpeechAudio | null> };
@@ -108,7 +108,7 @@ export class RealtimeVoice {
       const answer = await this.bridge.realtimeSession({ sdp: offer.sdp!, profileId });
       if (this.stopped) return;
       await this.pc.setRemoteDescription({ type: 'answer', sdp: answer.sdp });
-      this.timer = setTimeout(() => { this.cb.error('A sessão atingiu o limite de tempo configurado. Inicie outra quando quiser.'); this.stop(); }, Math.min(30, Math.max(1, maxSessionMinutes || 10)) * 60000);
+      this.timer = setTimeout(() => this.stop('expired'), Math.min(30, Math.max(1, maxSessionMinutes || 10)) * 60000);
       this.measure();
     } catch (error) { if (!this.stopped) this.fail(error instanceof Error ? error.message : 'Não foi possível iniciar o microfone.'); }
   }
@@ -177,7 +177,7 @@ export class RealtimeVoice {
       this.idleState();
     }
     // All output_audio* events and remote transcripts are deliberately ignored.
-    if (type === 'error' && !['response_cancel_not_active', 'output_audio_buffer_empty'].includes(event.error?.code)) this.cb.error('A sessão de voz encontrou um erro. Consulte as configurações ou inicie outra sessão.');
+    if (type === 'error' && !['response_cancel_not_active', 'output_audio_buffer_empty'].includes(event.error?.code)) this.fail('A sessão de voz encontrou um erro. Consulte as configurações ou inicie outra sessão.');
   }
 
   private flushSpeech(response: ResponseState, flush: boolean) {
@@ -326,14 +326,14 @@ export class RealtimeVoice {
     this.cb.levels({ mic: output.rms > .02 && this.outputActive ? 0 : mic.rms, speaker: this.outputActive ? output.rms : 0, wave: this.outputActive ? output.wave : mic.wave });
     this.raf = requestAnimationFrame(this.measure);
   };
-  private fail(message: string) { this.cb.error(message); this.stop(); }
-  stop() {
+  private fail(message: string) { this.cb.error(message); this.stop('error'); }
+  stop(reason: 'stopped' | 'expired' | 'error' = 'stopped') {
     if (this.stopped) return;
     this.interrupt(); this.stopped = true;
     clearTimeout(this.timer); clearTimeout(this.reconnectTimer); clearTimeout(this.connectTimer); cancelAnimationFrame(this.raf);
     this.dc?.close(); this.pc?.close(); this.stream?.getTracks().forEach(track => track.stop());
     this.inputAnalyser?.disconnect(); this.outputAnalyser?.disconnect(); void this.context?.close().catch(() => {});
     this.speechQueue = []; this.responses.clear(); this.transcripts.clear(); this.pendingTools.clear();
-    this.cb.levels({ mic: 0, speaker: 0, wave: [] }); this.cb.connection(false); this.cb.state('idle'); this.cb.ended();
+    this.cb.levels({ mic: 0, speaker: 0, wave: [] }); this.cb.connection(false); this.cb.state('idle'); this.cb.ended(reason);
   }
 }

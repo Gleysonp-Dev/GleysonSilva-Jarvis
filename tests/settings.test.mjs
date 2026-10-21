@@ -81,3 +81,11 @@ test('enabling standby also enables its weather greeting even when an older conf
  store.save({standbyEnabled:false,startupGreeting:false});assert.equal(store.get().startupGreeting,false);
 });
 
+test('camera reception, automatic voice and continuous renewal require explicit boolean choices and persist without changing voice or keys',t=>{
+ const {store,dir,crypto}=fixture(t); const fields=['receptionOutfitEnabled','receptionVoiceEnabled','continuousVoiceEnabled'];
+ for(const key of fields){assert.equal(defaults[key],false);for(const value of ['true',0,1,null,{},[]])assert.throws(()=>store.save({[key]:value}));}
+ store.save({apiKey:'test-openai',elevenApiKey:'test-eleven',elevenVoiceId:'TestVoice',...Object.fromEntries(fields.map(key=>[key,true]))});
+ const restored=new SettingsStore(dir,crypto); for(const key of fields)assert.equal(restored.public()[key],true);
+ assert.equal(restored.getSecret(),'test-openai');assert.equal(restored.getElevenSecret(),'test-eleven');assert.equal(restored.get().elevenVoiceId,'TestVoice');
+});
+

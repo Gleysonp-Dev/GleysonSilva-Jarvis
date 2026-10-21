@@ -6,6 +6,8 @@ Prévia visual com dados de demonstração; não representa uma sessão conectad
 
 Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais que você pode revisar antes de autorizar.
 
+**Recepção 0.5.0 em verificação:** iniciar ao entrar no Windows, aguardar duas palmas, tocar música e saudação com clima, observar uma captura da roupa e continuar ouvindo comandos por voz. A opção de conversa contínua renova o prazo local de conexão sem repetir a recepção. Use **Ajustes → Início e espera → Ativar recepção completa → Salvar configuração**. O botão prepara as opções, incluindo o envio de uma captura à OpenAI e microfone conectado à API após a recepção; nada é ativado antes de salvar. Voz, trilha, chaves e cidade existentes são preservadas. Câmera e continuidade são opcionais e desligadas no pacote público. CI/pacote 0.5.0 ainda pendentes; [guia da recepção](docs/startup-greeting.md).
+
 **Revisão 0.4.0 disponível:** descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao tempo atual. As respostas mostram fontes compactas, sem transcrições de voz ou cartões automáticos. Núcleo aprovado, voz, música e Contexto são preservados. O [CI 475f3f4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343/343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. Veja [Aplicativos, pastas, web e clima](docs/desktop-access.md).
 
 O núcleo é uma implementação original em Canvas: dez curvas de intensidades diferentes formam um contorno assimétrico, com fios ciano, focos luminosos e um campo azul sobre grade plana ampla. O centro continua sem texto e deixa o fundo visível. A paleta ciano/azul permanece fixa em todos os estados; brilho e expansão respondem ao microfone e ao áudio reproduzido. Não contém código ou assets do produto de referência. O desenho respeita movimento reduzido e limita atualização e resolução para controlar o custo de renderização. A [análise do vídeo de referência](docs/research/referencia-video-nucleo.md) distingue o observado da implementação própria.
@@ -18,6 +20,7 @@ Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou
 
 | Recurso | Comportamento do código atual |
 | --- | --- |
+| Recepção completa opcional | Duas palmas → música/saudação → uma captura para comentar roupa visível → comandos por voz. Renovação no prazo local se habilitada; Interromper encerra escuta e renovação. Não repete a recepção ao renovar. |
 | Núcleo orbital aprovado | Desenho da 0.3.1 preservado: dez curvas com intensidades distintas e deformação assimétrica, focos ciano e campo azul com grade plana ampla. Paleta fixa e pulso reativo, sem texto central ou telemetria decorativa. |
 | Contexto sob demanda | Botão **Contexto** abre clima e atividade local. Abrir/atualizar não liga o microfone, não gera fala e não chama um modelo de linguagem. |
 | Clima com origem | Tempo atual e previsão de hoje, horários da observação/consulta, atribuição e indicação de cache. Funciona com cidade configurada, mesmo sem saudação automática ou chave ElevenLabs. |
@@ -135,6 +138,8 @@ O cadastro é voluntário. A pessoa confirma o perfil sugerido; reconhecimento n
 Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [ElevenLabs](docs/elevenlabs.md) e [Voz e câmera](docs/voice-and-camera.md).
 
 ## Verificação e evidências
+
+**0.5.0:** nova recepção em verificação. CI, pacote e ensaio físico permanecem pendentes. A conexão usa a chave API OpenAI já configurada, não uma sessão de login ou assinatura ChatGPT. Câmera e áudio de conversa têm envio e consumo de API próprios; veja [Validação](docs/validation.md).
 
 **0.4.0:** [CI 475f3f4 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110), **343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h48, America/New_York**. Leitura real de site público funcionou; pesquisa paga OpenAI e novos comandos por voz/Windows no destino permanecem para teste. O [registro detalhado](docs/validation.md) separa essas evidências.
 

@@ -62,7 +62,7 @@ async function setup(t, { speakImpl, callImpl, missingSpeech = false } = {}) {
   }
   const originalCreate = URL.createObjectURL, originalRevoke = URL.revokeObjectURL;
   URL.createObjectURL = () => { const value = `blob:local-${created.length}`; created.push(value); return value; }; URL.revokeObjectURL = value => revoked.push(value);
-  const spoken = [], cancelledSpeech = [], cancelledTools = [], tools = [], callbacks = { states: [], transcripts: [], levels: [], errors: [], ended: 0 };
+  const spoken = [], cancelledSpeech = [], cancelledTools = [], tools = [], callbacks = { states: [], transcripts: [], levels: [], errors: [], ended: 0, endedReasons: [] };
   const bridge = {
     realtimeSession: async () => ({ sdp: 'v=0\r\n' }),
     speak: async input => { spoken.push(input); return speakImpl ? speakImpl(input, spoken.length) : speechResult(input); },
@@ -71,7 +71,7 @@ async function setup(t, { speakImpl, callImpl, missingSpeech = false } = {}) {
     callTool: async input => { tools.push(input); return callImpl ? callImpl(input) : { ok: true, status: 'verified', summary: 'Ação verificada.' }; },
   };
   if (missingSpeech) delete bridge.speak;
-  const voice = new RealtimeVoice(bridge, { state: value => callbacks.states.push(value), connection() {}, transcript: (...args) => callbacks.transcripts.push(args), levels: value => callbacks.levels.push(value), error: message => callbacks.errors.push(message), ended: () => { callbacks.ended++; } });
+  const voice = new RealtimeVoice(bridge, { state: value => callbacks.states.push(value), connection() {}, transcript: (...args) => callbacks.transcripts.push(args), levels: value => callbacks.levels.push(value), error: message => callbacks.errors.push(message), ended: reason => { callbacks.ended++; callbacks.endedReasons.push(reason); } });
   t.after(async () => {
     voice.stop(); await tick();
     for (const [name, descriptor] of original) { if (descriptor) Object.defineProperty(globalThis, name, descriptor); else delete globalThis[name]; }
@@ -93,6 +93,31 @@ test('microphone transport never plays remote OpenAI audio or remote audio trans
   x.emit({ type: 'response.output_audio_transcript.delta', response_id: 'response_1', delta: 'Outra voz' }); await tick();
   assert.equal(x.audios.length, 0); assert.equal(x.spoken.length, 0); assert.equal(x.callbacks.transcripts.length, 0);
   assert(!x.callbacks.states.includes('speak'));
+});
+
+test('normal session expiry releases microphone and reports expired once for an explicit caller-controlled renewal', async t => {
+  const originalSet = globalThis.setTimeout, originalClear = globalThis.clearTimeout;
+  let expiry; const handle = {};
+  globalThis.setTimeout = (callback, delay, ...args) => { if (delay === 120000) { expiry = callback; return handle; } return originalSet(callback, delay, ...args); };
+  globalThis.clearTimeout = value => { if (value !== handle) originalClear(value); };
+  t.after(() => { globalThis.setTimeout = originalSet; globalThis.clearTimeout = originalClear; });
+  const x = await setup(t); assert.equal(typeof expiry, 'function'); expiry();
+  assert.deepEqual(x.callbacks.endedReasons, ['expired']); assert.equal(x.microphone.stops, 1); assert.equal(x.callbacks.errors.length, 0); assert.equal(x.peers.length, 1);
+  x.voice.stop(); assert.deepEqual(x.callbacks.endedReasons, ['expired']);
+});
+
+test('manual shutdown and connection failure expose non-renewable end reasons and never acquire a second microphone', async t => {
+  const x = await setup(t); x.voice.stop(); x.voice.stop();
+  assert.deepEqual(x.callbacks.endedReasons, ['stopped']); assert.equal(x.microphone.stops, 1); assert.equal(x.peers.length, 1);
+});
+
+test('missing voice configuration reports an error end reason instead of a normal expiry', async t => {
+  const x = await setup(t, { missingSpeech: true }); assert.deepEqual(x.callbacks.endedReasons, ['error']); assert.equal(x.peers.length, 0);
+});
+
+test('provider authentication or quota errors end with error so continuous mode cannot treat them as renewal', async t => {
+  const x = await setup(t); x.emit({ type: 'error', error: { code: 'insufficient_quota', message: 'private provider detail' } }); await tick();
+  assert.deepEqual(x.callbacks.endedReasons, ['error']); assert.equal(x.microphone.stops, 1); assert.equal(x.callbacks.errors.length, 1); assert(!x.callbacks.errors[0].includes('private provider detail'));
 });
 
 test('ordered sentence streaming prefetches only one clip, preserves .95 pitch and measures processed speech', async t => {

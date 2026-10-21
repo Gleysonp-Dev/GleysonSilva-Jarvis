@@ -1,5 +1,11 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
+**Incremento 0.5.0 em verificação:** a nova recepção combina espera por duas palmas, música/saudação, uma captura para comentar roupa e conversa contínua pela chave OpenAI existente. CI/pacote ainda pendentes; os valores da 0.4.0 abaixo são históricos. Para testar o incremento, use o pacote 0.5.0 quando sua validação estiver publicada. Não abra a versão anterior para validar funções novas.
+
+No pacote nativo, abra **Ajustes → Início e espera**, clique em **Ativar recepção completa** e depois **Salvar configuração**. O preset habilita início no login/espera/palmas/música/saudação/roupa/voz/continuidade e desliga a palavra “Jarvis” como gatilho inicial. A interface informa que a captura é enviada à OpenAI e que a escuta contínua transmite áudio e pode consumir a API. As opções só passam a valer após salvar. Não apague ou substitua chaves, voz, trilha ou cidade já configuradas. O envio de roupa, conversa automática e continuidade começam desligados para novas instalações.
+
+Não reinicie o computador como teste sem o usuário pedir. O registro nativo pode ser confirmado no app e no próximo login real; testes simulados não demonstram palmas físicas ou acesso à câmera. Minimizar preserva a espera/conversa; X encerra. [Guia da recepção](docs/startup-greeting.md), [Espera/login](docs/standby.md).
+
 Roteiro para instalar o [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main) e entregar um resultado verificável. A **0.4.0** acrescenta descoberta de aplicativos, abertura de pastas locais, leitura/pesquisa web e consulta atual de clima. O [CI 475f3f4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h48, America/New_York**. O núcleo 0.3.1 aprovado e a voz/música são preservados. Os novos comandos no equipamento do usuário ainda exigem ensaio; não há release assinada nem validação completa em instalação limpa. Veja [Aplicativos, pastas, web e clima](docs/desktop-access.md).
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.

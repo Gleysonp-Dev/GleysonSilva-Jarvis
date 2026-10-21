@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { transform } from 'esbuild';
+import { ReceptionObservation, ReceptionError } from '../packages/reception/index.mjs';
 
 const require = createRequire(import.meta.url);
 const mainURL = new URL('../apps/desktop/main.mjs', import.meta.url);
@@ -13,9 +14,9 @@ const { code } = await transform(source, { format: 'cjs', target: 'node24', defi
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
 
-async function fixture(t, { blockWake = false, resetFailure = false, lateContext = false } = {}) {
+async function fixture(t, { blockWake = false, resetFailure = false, lateContext = false, lateOutfit = false } = {}) {
   const calls = { mute: 0, destroy: 0, hide: 0, speechReset: 0, wakeStop: 0, visionClose: 0, runtimeClose: 0, trayDestroy: 0, quit: 0, cancelledRuns: [], signals: [], errors: [] };
-  const wake = deferred(), context = deferred(), ipc = new Map(), windows = [], trays = [];
+  const wake = deferred(), context = deferred(), outfit = deferred(), ipc = new Map(), windows = [], trays = [];
   const current = { profileId: 'default', standbyEnabled: true, startAtLogin: false, wakeVoiceEnabled: true, startupGreeting: true, apps: [], elevenVoiceId: 'testVoice' };
   const app = new EventEmitter();
   Object.assign(app, { isPackaged: true, setName() {}, enableSandbox() {}, requestSingleInstanceLock: () => true, whenReady: async () => {}, getPath: () => 'C:\\fake-private-data', isReady: () => true,
@@ -45,7 +46,8 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
     electron: { app, BrowserWindow: Window, Tray, Menu: { buildFromTemplate: value => value }, nativeImage: { createFromBuffer: () => ({}) }, dialog: {}, ipcMain: { handle: (name, handler) => ipc.set(name, handler) }, protocol: { registerSchemesAsPrivileged() {}, handle() {} }, safeStorage: {}, session: { defaultSession: session }, shell: { async openExternal(url) { (calls.external ??= []).push(url); } } },
     'node:fs/promises': { async mkdir() {}, readFile() { throw new Error('Unexpected file access.'); } },
     '../../packages/runtime/index.mjs': { createRuntime: options => { adapters = options.platformAdapters; return runtime; } },
-    '../../packages/openai/index.mjs': { OpenAIService: class { respond = blocking; searchWeb = async (input, options) => { calls.search = { input, options }; return { text: 'Search test', sources: [] }; }; }, OpenAIServiceError: class extends Error {} },
+    '../../packages/openai/index.mjs': { OpenAIService: class { respond = blocking; searchWeb = async (input, options) => { calls.search = { input, options }; return { text: 'Search test', sources: [] }; }; describeOutfit = async (input, options) => { calls.outfit = { input, options }; return lateOutfit ? outfit.promise : { text: 'Roupa de teste.', observedAt: Date.now() }; }; }, OpenAIServiceError: class extends Error {} },
+    '../../packages/reception/index.mjs': { ReceptionObservation, ReceptionError },
     '../../packages/web/index.mjs': { WebService: class { read = async (input, options) => { calls.website = { input, options }; return { text: 'Website test', sources: [] }; }; } },
     './settings.mjs': { SettingsStore: settings, validateSettings: value => value },
     './platform/windows.mjs': { createWindowsAdapters: () => ({}) },
@@ -65,8 +67,20 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
   const window = windows[0];
   const invoke = (name, input) => ipc.get('jarvis:' + name)({ sender: window.webContents, senderFrame: window.webContents.mainFrame }, input);
   t.after(async () => { wake.resolve(); await module.exports.requestShutdown('test_cleanup'); });
-  return { calls, app, window, trays, invoke, adapters, releaseWake: wake.resolve, resolveContext: context.resolve, shutdown: module.exports.requestShutdown };
+  return { calls, app, window, trays, invoke, adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, shutdown: module.exports.requestShutdown };
 }
+
+test('outfit IPC requires enabled choice, exposes capability and aborts before X cleanup finishes', async t => {
+  const f = await fixture(t, { lateOutfit: true });
+  const input = { imageDataUrl: 'data:image/jpeg;base64,/9j/2Q==' };
+  assert.equal((await f.invoke('boot')).capabilities.outfitObservation, true);
+  await assert.rejects(f.invoke('observeOutfit', input), /Ative/); assert.equal(f.calls.outfit, undefined);
+  f.preferences.receptionOutfitEnabled = true;
+  const pending = f.invoke('observeOutfit', input); await flush();
+  const rejected = assert.rejects(pending, /interrompida/);
+  await f.shutdown('window_closed'); await rejected; assert.equal(f.calls.outfit.options.signal.aborted, true);
+  f.resolveOutfit({ text: 'Late', observedAt: Date.now() }); await flush();
+});
 
 test('native runtime wires website, search and forced fresh weather without greeting', async t => {
   const f = await fixture(t); const signal = new AbortController().signal;
