@@ -2,9 +2,15 @@
 
 ## Atualização 0.5.3 — navegador padrão direto
 
-Código atual **0.5.3**, indicador **MVP / 05.3**. O pedido explícito “abra o navegador” abre o navegador padrão no Google sem segunda autorização. A exceção não se estende a URLs específicas ou outros aplicativos. CI/pacote desta revisão em preparação; versões anteriores abaixo são históricas. Feche a versão anterior por X/Sair antes de abrir o novo executável e preserve a configuração privada.
+Código atual **0.5.3**, indicador **MVP / 05.3**. O pedido explícito “abra o navegador” abre o navegador padrão no Google sem segunda autorização. A exceção não se estende a URLs específicas ou outros aplicativos. [CI b856f89 da 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302) aprovado: **415/415 testes, zero falhas/skips**, TypeScript, build, pacote e abertura real do Jarvis, incluindo entrada/saída de tela cheia. As versões anteriores abaixo são históricas. Feche a versão anterior por X/Sair antes de abrir o novo executável e preserve a configuração privada.
 
 O aviso de segurança do Windows para Electron é independente. Esta revisão não modifica o Firewall, cria exceções de rede, desliga alertas ou pede acesso de administrador. A autorização de rede, se necessária e desejada no equipamento, é uma decisão local separada e deve identificar o executável correto do Jarvis. A foto sozinha não confirma o processo/caminho ou a regra aplicada. [Diagnóstico](docs/desktop-access.md).
+
+## Pacote Windows 0.5.3
+
+[Pacote Windows 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302/artifacts/12316996601) baixado e conferido. EXE **104.021.514 bytes**, SHA-256 `484ef104c1647ff47ec84c43fbfa085f204faf5b9e9f3025476616e77c019398`. ZIP **104.031.894 bytes**, SHA-256 `1605ed7ba38cdc939e4d7afee52a9c4a0d8bb97564cff47cc5f69a6088399cfb`. Retenção até 18 de janeiro de 2027, horário de Nova York; artefato temporário do GitHub, sem assinatura de release.
+
+Extraia o ZIP e abra **GleysonSilva-Jarvis-0.5.3-Windows.exe**, após fechar a versão anterior. Confira **MVP / 05.3**. A nova dispensa de confirmação não exige mudar chaves ou ajustes. O usuário confirmou ter conferido o Jarvis no aviso do Windows e clicado em Permitir; este é um relato separado, sem inspeção das regras pelo agente.
 
 ## Atualização 0.5.2 — tela cheia (histórico)
 
