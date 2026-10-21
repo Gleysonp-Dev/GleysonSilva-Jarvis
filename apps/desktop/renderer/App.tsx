@@ -100,12 +100,12 @@ const toolNames: Record<string, string> = { apps_find: 'Procurar aplicativo inst
 const folderNames: Record<string, string> = { desktop: 'Área de Trabalho', documents: 'Documentos', downloads: 'Downloads', pictures: 'Imagens', music: 'Música', videos: 'Vídeos' };
 function approvalPresentation(record: JarvisEvent, apps: JarvisSettings['apps']) {
   const tool = typeof record.tool === 'string' ? record.tool : '';
-  if (!['apps_find', 'apps_launch', 'folders_open', 'web_read', 'web_search', 'weather_current'].includes(tool)) return null;
+  if (!['apps_find', 'apps_launch', 'apps_open', 'apps_focus', 'folders_open', 'web_read', 'web_search', 'weather_current'].includes(tool)) return null;
   const args = record.args && typeof record.args === 'object' && !Array.isArray(record.args) ? record.args as Record<string, unknown> : {};
   const details = record.details && typeof record.details === 'object' && !Array.isArray(record.details) ? record.details as Record<string, unknown> : {};
   const fields: Array<{ label: string; value: string }> = [];
   let concrete = '';
-  if (tool === 'apps_launch') {
+  if (['apps_launch', 'apps_open', 'apps_focus'].includes(tool)) {
     const id = sourceText(args.appId, 160);
     concrete = sourceText(details.appLabel || details.label, 160) || apps.find(app => app.id === id)?.label || id;
     if (concrete) fields.push({ label: 'Aplicativo', value: concrete });
@@ -510,10 +510,11 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     pauseStandby();
     await playAudio(new URL('./voice-demo.mp3', window.location.href).href, 'demo');
   }
-  async function playAudio(source: string, kind: 'demo' | 'greeting', objectUrl?: string, automatic = false): Promise<boolean> {
+  async function playAudio(source: string, kind: 'demo' | 'greeting', objectUrl?: string, automatic = false, onStarted?: () => void): Promise<boolean> {
     const generation = ++demoGeneration.current; setDemoStarting(true); setError('');
     setPlaybackKind(kind);
     let context: AudioContext | undefined;
+    let objectUrlOwnedBySession = false;
     try {
       const audio = new Audio(source);
       audio.defaultPlaybackRate = 0.95;
@@ -530,6 +531,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       let finish!: (completed: boolean) => void;
       const ended = new Promise<boolean>(resolve => { finish = resolve; });
       const session = { audio, context, frame: 0, objectUrl, effects, finish, timer: undefined as ReturnType<typeof setTimeout> | undefined }; demo.current = session;
+      objectUrlOwnedBySession = true;
       audio.onended = () => { if (demo.current === session) releasePlayback(true); };
       audio.onerror = () => { if (demo.current === session) { releasePlayback(false); setError(kind === 'greeting' ? 'Não foi possível reproduzir o áudio da saudação.' : 'A amostra de voz não está disponível nesta instalação. Atualize os arquivos do aplicativo e tente novamente.'); } };
       if (automatic && context.state === 'suspended' && !navigator.userActivation?.hasBeenActive) {
@@ -546,6 +548,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (generation !== demoGeneration.current || demo.current !== session) { audio.pause(); return false; }
       setDemoPlaying(true); setDemoStarting(false);
       if (kind === 'greeting') { setGreetingNeedsTap(false); music.current?.duck(0.22); }
+      onStarted?.();
       const measure = () => {
         if (demo.current !== session) return;
         const samples = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(samples);
@@ -557,6 +560,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       }; measure();
       return await ended;
     } catch (e) {
+      if (!objectUrlOwnedBySession && objectUrl) URL.revokeObjectURL(objectUrl);
       if (generation !== demoGeneration.current) return false;
       releasePlayback(false); void context?.close().catch(() => {});
       if (kind === 'greeting') { setGreetingNeedsTap(true); setNotice('O áudio não iniciou. Clique em Ouvir saudação para tentar novamente.'); }
@@ -564,7 +568,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       return false;
     }
   }
-  async function playGreeting(automatic = false) {
+  async function playGreeting(automatic = false, onStarted?: () => void) {
     const audio = greetingAudio.current;
     if (!audio || demo.current || voice.current || micTest.current || runRef.current) return false;
     pauseStandby(); greetingInFlight.current = true; beginGreetingMusic();
@@ -572,7 +576,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       const decoded = atob(audio.base64), bytes = new Uint8Array(decoded.length);
       for (let index = 0; index < decoded.length; index++) bytes[index] = decoded.charCodeAt(index);
       const objectUrl = URL.createObjectURL(new Blob([bytes], { type: audio.mime || 'audio/mpeg' }));
-      return await playAudio(objectUrl, 'greeting', objectUrl, automatic);
+      return await playAudio(objectUrl, 'greeting', objectUrl, automatic, onStarted);
     } catch (e) { stopDemo(); showError(e); return false; }
   }
   async function startGreeting(automatic = false, receptionRequested = false) {
@@ -583,6 +587,36 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     const active = () => reception.current === flow && !flow.controller.signal.aborted && settingsRef.current.profileId === flow.profileId && generation === greetingGeneration.current;
     greetingInFlight.current = true; setGreetingBusy(true); setError(''); greetingAudio.current = null; beginGreetingMusic();
     let completed = false;
+    const outfit: { prepared: { url: string } | null; preparation: Promise<{ url: string } | null> | null; finished: boolean; failed: boolean } = { prepared: null, preparation: null, finished: false, failed: false };
+    const discardPreparedOutfit = () => { if (outfit.prepared) URL.revokeObjectURL(outfit.prepared.url); outfit.prepared = null; };
+    flow.controller.signal.addEventListener('abort', discardPreparedOutfit, { once: true });
+    const prepareOutfit = () => {
+      if (outfit.preparation || !active() || !receptionRequested || !settingsRef.current.receptionOutfitEnabled) return;
+      // Prepare the next sentence while the greeting is speaking; playback still waits for its end.
+      outfit.preparation = (async () => {
+        try {
+          if (!bridge.observeOutfit) throw new Error('A observação da roupa exige a versão atualizada do aplicativo.');
+          stopCamera();
+          let imageDataUrl = await captureOutfitImage({ signal: flow.controller.signal });
+          if (!active()) return null;
+          const observationRequest = bridge.observeOutfit({ imageDataUrl });
+          imageDataUrl = '';
+          const observation = await observationRequest;
+          if (!active()) return null;
+          if (typeof observation?.text !== 'string' || !observation.text.trim() || observation.text.length > 600) throw new Error('Não foi possível observar a roupa nesta captura.');
+          const utteranceId = `outfit-${crypto.randomUUID()}`;
+          const spoken = await bridge.speak({ text: observation.text, profileId: flow.profileId, runId: flow.runId, utteranceId });
+          if (!active()) return null;
+          if (spoken.runId !== flow.runId || spoken.utteranceId !== utteranceId) throw new Error('A resposta de voz não corresponde à recepção atual.');
+          const decoded = atob(spoken.audioBase64), bytes = Uint8Array.from(decoded, char => char.charCodeAt(0));
+          outfit.prepared = { url: URL.createObjectURL(new Blob([bytes], { type: spoken.mime || 'audio/mpeg' })) };
+          return outfit.prepared;
+        } catch {
+          if (active()) outfit.failed = true;
+          return null;
+        } finally { outfit.finished = true; }
+      })();
+    };
     try {
       const result = await bridge.startupGreeting({ hour: new Date().getHours(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
       if (!active()) return;
@@ -590,36 +624,33 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (result.text) upsertMessage({ id: `greeting-${crypto.randomUUID()}`, role: 'assistant', text: result.text, done: true, origin: 'greeting' });
       if (result.audioBase64) {
         greetingAudio.current = { base64: result.audioBase64, mime: result.mime };
-        completed = await playGreeting(automatic);
-        completed = completed && Boolean(result.text?.trim()) && !result.reason && !['not_configured', 'skipped', 'cancelled', 'failed'].includes(result.weatherStatus);
+        const validGreeting = Boolean(result.text?.trim()) && !result.reason && !['not_configured', 'skipped', 'cancelled', 'failed'].includes(result.weatherStatus);
+        completed = await playGreeting(automatic, validGreeting ? prepareOutfit : undefined);
+        completed = completed && validGreeting;
         if (!active() || !completed || !receptionRequested) return;
-        if (settingsRef.current.receptionOutfitEnabled) {
-          try {
-            if (!bridge.observeOutfit) throw new Error('A observação da roupa exige a versão atualizada do aplicativo.');
-            stopCamera();
-            const imageDataUrl = await captureOutfitImage({ signal: flow.controller.signal });
-            if (!active()) return;
-            const observation = await bridge.observeOutfit({ imageDataUrl });
-            if (!active()) return;
-            if (typeof observation?.text !== 'string' || !observation.text.trim() || observation.text.length > 600) throw new Error('Não foi possível observar a roupa nesta captura.');
-            const utteranceId = `outfit-${crypto.randomUUID()}`;
-            const spoken = await bridge.speak({ text: observation.text, profileId: flow.profileId, runId: flow.runId, utteranceId });
-            if (!active()) return;
-            if (spoken.runId !== flow.runId || spoken.utteranceId !== utteranceId) throw new Error('A resposta de voz não corresponde à recepção atual.');
-            const decoded = atob(spoken.audioBase64), bytes = Uint8Array.from(decoded, char => char.charCodeAt(0));
-            const url = URL.createObjectURL(new Blob([bytes], { type: spoken.mime || 'audio/mpeg' }));
-            const spokenCompleted = await playAudio(url, 'greeting', url);
+        if (outfit.preparation) {
+          const ready = await outfit.preparation;
+          if (!active()) return;
+          if (ready && outfit.prepared === ready) {
+            // Transfer this URL to playback, which owns its release from now on.
+            outfit.prepared = null;
+            const spokenCompleted = await playAudio(ready.url, 'greeting', ready.url);
             if (active() && !spokenCompleted) { setGreetingNeedsTap(false); setNotice('Não consegui reproduzir o comentário da roupa. Você pode continuar por voz.'); }
-          } catch (error) {
-            if (!active()) return;
-            setNotice('Não consegui observar sua roupa agora. A câmera foi desligada.');
-          }
+          } else if (outfit.failed) setNotice('Não consegui observar sua roupa agora. A câmera foi desligada.');
         }
       }
       else setNotice(result.reason === 'requires_key' ? 'Configure a chave ElevenLabs em Ajustes para ouvir a saudação.' : 'Não foi possível gerar o áudio da saudação. Verifique a conexão e as permissões da chave ElevenLabs.');
     } catch (e) { if (active()) showError(e); }
     finally {
-      if (active()) {
+      const currentReception = active();
+      flow.controller.signal.removeEventListener('abort', discardPreparedOutfit);
+      discardPreparedOutfit();
+      if (currentReception && outfit.preparation && !outfit.finished) {
+        flow.controller.abort();
+        void bridge.cancelOutfit?.().catch(() => {});
+        void bridge.cancelSpeech?.({ runId: flow.runId }).catch(() => {});
+      }
+      if (currentReception) {
         reception.current = null; greetingInFlight.current = false; setGreetingBusy(false); musicPlaying.current = false; music.current?.stop();
         if (completed && receptionRequested && settingsRef.current.receptionVoiceEnabled) await startVoice(true);
         else resumeStandbySoon();
@@ -742,7 +773,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const profileMemories = snapshot.memories.filter(m => !m.profileId || m.profileId === settings.profileId);
   const activity = [...actions, ...snapshot.tasks.filter(t => !actions.some(a => a.id === t.id))].slice(0, 30);
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 05</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
+    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 05.1</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
     <main className="workspace">
       <nav className="rail" aria-label="Painéis"><button className={drawer === 'context' ? 'selected' : ''} title="Contexto" aria-label="Contexto" aria-expanded={drawer === 'context'} onClick={() => setDrawer('context')}><Icon name="context"/><span>CONTEXTO</span></button><button className={drawer === 'memory' ? 'selected' : ''} title="Memória" aria-label="Memória" onClick={() => setDrawer('memory')}><Icon name="memory"/><span>MEMÓRIA</span></button><button className={drawer === 'activity' ? 'selected' : ''} title="Atividades" aria-label="Atividades" onClick={() => setDrawer('activity')}><Icon name="activity"/><span>REGISTRO</span></button><button className={drawer === 'presence' ? 'selected' : ''} title="Presença e perfis" aria-label="Presença e perfis" onClick={() => setDrawer('presence')}><Icon name="camera"/><span>PRESENÇA</span></button><div className="rail-spacer"/><button title="Configurações" aria-label="Configurações" onClick={openSettings}><Icon name="settings"/><span>AJUSTES</span></button></nav>
       <section className="core-column" aria-label="Núcleo Jarvis">

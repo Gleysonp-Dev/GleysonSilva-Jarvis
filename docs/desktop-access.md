@@ -1,8 +1,10 @@
-# Aplicativos, pastas, web e clima — preservados na revisão 0.5.0
+# Aplicativos, pastas, web e clima — revisão 0.5.1
 
 A 0.4.0 acrescenta descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao clima. Essas ferramentas podem ser solicitadas por texto ou durante a conversa com a voz Jarvis configurada. O núcleo aprovado da 0.3.1, reprodução a 0,95×, efeito metálico 0,78, música privada e painel limpo são preservados.
 
 A 0.5.0 acrescenta a sequência opcional de **login → espera por duas palmas → música/saudação → comentário da roupa → conversa por voz**, sem alterar as confirmações destas ferramentas. A conversa pode renovar a conexão por prazo quando a opção contínua estiver habilitada; isso não autoriza ações espontâneas, repete consultas ou abre sites sozinha. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado no destino continua pendente; veja [Recepção](startup-greeting.md), [Espera e Windows](standby.md) e [OpenAI](openai.md).
+
+A 0.5.1 corrige **“Abra o navegador”**: esse pedido usa o navegador padrão do Windows sem exigir cadastro manual do executável. O CI e o ensaio físico desta revisão estão pendentes; as aprovações anteriores não comprovam a correção nova.
 
 O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. O [pacote Windows](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110/artifacts/12312007661) foi baixado e teve ZIP/EXE conferidos por hash. Os ensaios de ações/voz na máquina do usuário e busca paga na sua conta ainda devem ser registrados separadamente. Consulte [Validação](validation.md) e [Instalação assistida](../AI_INSTALL.md).
 
@@ -10,6 +12,8 @@ O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/acti
 
 | Pedido por voz ou texto | Caminho esperado |
 | --- | --- |
+| “Abra o navegador.” | `apps_open` com `appId:'browser'` pede confirmação e solicita ao Windows abrir `https://www.google.com/` no navegador padrão, sem cadastro manual. |
+| “Abra o Chrome.” | `apps_find` encontra o navegador instalado pelo nome e `apps_launch` pede confirmação para o ID observado. |
 | “Jarvis, procure o Spotify instalado neste computador.” | `apps_find` consulta o inventário do Windows e retorna nomes/IDs observados. Não abre o aplicativo. |
 | “Abra o Spotify que você encontrou.” | `apps_launch` usa um ID da descoberta feita neste perfil; a abertura exige confirmação. |
 | “Abra a pasta Downloads.” | `folders_open` resolve a pasta conhecida e mostra o destino para confirmar a abertura no Explorador. |
@@ -23,6 +27,8 @@ Os exemplos descrevem intenções. A interpretação passa pelo modelo configura
 
 ## Encontrar e abrir aplicativos
 
+**Normalmente não é necessário cadastrar os aplicativos em Ajustes.** Programas disponíveis no inventário do Windows podem ser encontrados pelo nome. Cadastros manuais permanecem úteis para programas portáteis ou fora do inventário compatível; uma ausência de descoberta não demonstra que o programa não existe no computador.
+
 A descoberta procura nomes disponíveis no inventário do Windows e entradas compatíveis de aplicativos instalados, incluindo os já cadastrados. Nem todo programa portátil, atalho personalizado ou aplicativo fora desse inventário será encontrado. Peça o nome do programa; não forneça comandos, argumentos de terminal ou caminhos de scripts.
 
 O resultado contém nomes e IDs opacos. O Jarvis precisa usar exatamente um ID retornado pela descoberta no perfil atual; não pode inventar um ID ou transformar texto livre em comando. Se houver nomes semelhantes, escolha o aplicativo antes de autorizar. Uma nova sessão do runtime pode exigir nova descoberta.
@@ -30,6 +36,10 @@ O resultado contém nomes e IDs opacos. O Jarvis precisa usar exatamente um ID r
 Ao abrir, a confirmação apresenta o nome do aplicativo. O adaptador valida o alvo novamente e informa o que foi observado. **Enviada ao Windows** significa que o pedido foi despachado, sem confirmação da janela. Somente um resultado com a evidência exigida pelo adaptador é apresentado como verificado. Conferir o aplicativo correto e a janela no equipamento continua sendo um teste separado.
 
 Os adaptadores anteriores para aplicativos cadastrados permanecem disponíveis. O navegador local de ensaio não oferece a descoberta ou abertura nativa de programas Windows.
+
+O pedido genérico **“Abra o navegador”** tem uma rota separada na 0.5.1. Após a confirmação, usa a associação de navegador padrão do Windows e abre `https://www.google.com/`; não pede caminho de EXE nem ID de aplicativo instalado. A confirmação apresenta o navegador padrão e esse destino, sem mostrar somente argumentos técnicos. O pedido enviado ao sistema permanece **Enviada ao Windows** quando a janela não tiver sido observada independentemente. Não anuncia foco ou janela confirmados a partir desse despacho; focar o navegador genérico não é uma capacidade desta rota.
+
+Para escolher Chrome, Edge ou Firefox, peça o nome: a descoberta e o lançamento verificado do inventário continuam sendo usados. Se o sistema não tiver um navegador padrão válido, a falha deve ser informada; o Jarvis não modifica a associação do Windows por conta própria.
 
 ## Abrir pastas em unidades locais
 
@@ -41,7 +51,7 @@ Essa abertura não aceita URLs, compartilhamentos UNC, caminhos de dispositivo, 
 
 ## Abrir um endereço e ler uma página são operações diferentes
 
-`browser_open` abre um endereço HTTP(S) no navegador e pede a confirmação existente dessa ação. Ele não concede ao Jarvis acesso ao login, cookies, abas ou conteúdo dessa janela.
+`browser_open` abre um endereço HTTP(S) no navegador dedicado do Jarvis, pede confirmação e verifica o carregamento. Essa rota é diferente de abrir o navegador padrão do Windows sem indicar uma URL. Ela não concede ao Jarvis acesso ao login, cookies ou abas do navegador pessoal do usuário.
 
 `web_read` faz uma leitura HTTP(S) separada de texto público, após confirmação do endereço e do envio do conteúdo necessário à IA. O leitor valida a URL, o conjunto de endereços DNS e os redirecionamentos; o transporte usa o destino público validado. Destinos privados, locais, de metadados e esquemas incompatíveis são recusados. A URL não pode conter credenciais.
 

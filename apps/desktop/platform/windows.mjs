@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const helper = fileURLToPath(new URL('./windows.ps1', import.meta.url)).replace(/([\\/])app\.asar([\\/])/i, '$1app.asar.unpacked$2');
 const AUMID = /^[A-Za-z0-9][A-Za-z0-9_.!{}-]{0,255}$/;
 const APP_ID = /^winapp-[a-f0-9]{64}$/;
+const DEFAULT_BROWSER_URL = 'https://www.google.com/';
 const ALIASES = new Map([
  ['desktop', 'desktop'], ['area de trabalho', 'desktop'],
  ['documents', 'documents'], ['documentos', 'documents'], ['meus documentos', 'documents'],
@@ -99,9 +100,22 @@ export function createWindowsAdapters({ getApps = () => [], openExternal, openPa
   applications.set(id, entry); return entry;
  }
 
+ async function openDefaultBrowser({ signal } = {}) {
+  windowsOnly(); cancelled(signal);
+  if (typeof openExternal !== 'function') throw new Error('A abertura do navegador padrão não está disponível nesta integração.');
+  // Let Windows resolve the registered HTTP(S) handler. A model-provided path,
+  // executable, command line or application registration is never involved.
+  try { await openExternal(DEFAULT_BROWSER_URL); }
+  catch { cancelled(signal); throw new Error('O Windows não conseguiu encaminhar a abertura do navegador padrão.'); }
+  cancelled(signal);
+  return { verified: false, dispatched: true, url: DEFAULT_BROWSER_URL, summary: 'A abertura foi encaminhada ao navegador padrão do Windows. A janela ainda não foi verificada.' };
+ }
+
  return {
+  openDefaultBrowser,
   // Legacy, explicitly configured integrations remain available to existing callers.
   async openApp(appId, options) {
+   if (appId === 'browser') return openDefaultBrowser(options);
    const app = getApps().find(item => item.id === appId); if (!app) throw new Error('Aplicativo não cadastrado.');
    await fsImpl.access(app.path); return run('OpenApp', { path: app.path }, options);
   },

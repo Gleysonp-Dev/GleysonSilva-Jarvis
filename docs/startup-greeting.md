@@ -1,8 +1,10 @@
-# Recepção e saudação — revisão 0.5.0
+# Recepção e saudação — revisão 0.5.1
 
 A recepção pode seguir esta sequência: **duas palmas → música e saudação com clima → comentário sobre a roupa → conversa por voz**. As duas últimas etapas são opções explícitas de Ajustes. Iniciar ao entrar no Windows e a espera também são escolhas da instalação; o pacote público não ativa captura ou login por conta própria. Veja [Espera e login](standby.md).
 
 [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado desta sequência ainda deve ser registrado em [Validação](validation.md). Os **343 testes e a abertura nativa aprovados na 0.4.0** são evidência da versão anterior, não da nova recepção.
+
+A 0.5.1 antecipa a preparação do comentário enquanto a saudação está sendo reproduzida. O CI e a medição física desta revisão ainda estão pendentes; os resultados anteriores não medem o intervalo entre as duas falas.
 
 ## Saudação e música
 
@@ -18,7 +20,9 @@ A reprodução mantém **0,95× com a altura preservada** e efeito metálico loc
 
 ## Comentário sobre a roupa
 
-Com a opção de comentário de roupa habilitada e uma chave OpenAI configurada, o aplicativo pede a câmera após terminar a saudação. Captura somente **um JPEG, até 640×480 e 512 KiB**; encerra as tracks de vídeo antes de encaminhar o quadro para a OpenAI. Não mantém um vídeo ao vivo nem salva a imagem no histórico ou em arquivo.
+Com a opção de comentário de roupa habilitada e uma chave OpenAI configurada, o aplicativo começa a preparar o comentário assim que a reprodução da saudação realmente começa. Nesse período, pede a câmera, captura somente **um JPEG, até 640×480 e 512 KiB**, encerra as tracks de vídeo antes de encaminhar o quadro à OpenAI e prepara a síntese ElevenLabs. Não mantém um vídeo ao vivo nem salva a imagem no histórico ou em arquivo. A câmera e o pedido de observação não começam durante a mera preparação da saudação ou antes da reprodução.
+
+O comentário preparado aguarda o fim da saudação e da música para tocar; as falas não se sobrepõem. Se o áudio do comentário já estiver pronto, a reprodução pode começar em seguida, sem uma pausa artificial. Se captura, modelo ou síntese ainda estiverem pendentes, resta esperar essa etapa. A antecipação não cria uma segunda captura ou geração e não promete latência zero da rede ou do dispositivo.
 
 A opção informa explicitamente que **uma imagem da câmera será enviada à OpenAI**. O serviço usa Responses com o modelo de texto configurado, `detail: 'low'` e `store:false`, sem histórico, memórias ou ferramentas. O pedido limita a resposta a um comentário breve e cordial sobre a roupa visível: cor, peça ou combinação. Não identifica a pessoa nem infere saúde, idade, origem, religião ou outros atributos pessoais.
 
@@ -48,6 +52,6 @@ Com dados válidos, a interface exibe fonte e licença compactas: **Dados Open-M
 
 Sem chave, a preparação informa `reason: requires_key`, com `audioBase64: null`; não apresenta a amostra gravada como boletim atual. Voz ausente ou falha de síntese também ficam explícitas. Se o navegador exigir gesto, **Ouvir saudação** reproduz o áudio preparado, sem nova consulta/síntese.
 
-O controlador limita repetição, aceita somente uma recepção por vez e propaga cancelamento ao backend. Um resultado antigo não pode tocar áudio, abrir câmera ou reconectar voz após interrupção, troca de perfil ou saída. Saudação e comentário são apresentados por som, pulsação e estados, sem transcrição no painel Conversa; mensagens digitadas continuam visíveis.
+O controlador limita repetição, aceita somente uma recepção por vez e propaga cancelamento ao backend. Isso inclui a captura, observação e síntese antecipadas do comentário. Um resultado antigo não pode tocar áudio, abrir câmera ou reconectar voz após interrupção, troca de perfil ou saída. Saudação e comentário são apresentados por som, pulsação e estados, sem transcrição no painel Conversa; mensagens digitadas continuam visíveis.
 
 Os testes com transporte e dispositivos substituídos verificam esses contratos; não comprovam palmas físicas, som ouvido, roupa corretamente descrita ou entrada real no Windows. Execute o [plano de testes](test-plan.md) no pacote de destino e registre cada evidência separadamente.

@@ -12,8 +12,8 @@ function nodes(tree) { if (!tree || typeof tree !== 'object') return []; if (Arr
 function text(tree) { if (typeof tree === 'string' || typeof tree === 'number') return String(tree); if (Array.isArray(tree)) return tree.map(text).join(''); return tree?.props ? text(tree.props.children) : ''; }
 function button(tree, label) { const value = nodes(tree).find(node => node.type === 'button' && (node.props['aria-label'] === label || text(node).includes(label))); assert(value, `Missing ${label}`); return value; }
 function environment(t, options = {}) {
-  const slots = [], effects = [], subscribers = new Set(), listeners = new Map(), timers = [], audios = [], detectors = [], sessions = [], calls = [], saved = [];
-  let cursor = 0;
+  const slots = [], effects = [], subscribers = new Set(), listeners = new Map(), timers = [], audios = [], detectors = [], sessions = [], calls = [], saved = [], createdUrls = [], revokedUrls = [];
+  let cursor = 0, contextCount = 0;
   const hooks = {
     useState(initial) { const index = cursor++; if (!slots[index]) slots[index] = { value: typeof initial === 'function' ? initial() : initial }; return [slots[index].value, next => { slots[index].value = typeof next === 'function' ? next(slots[index].value) : next; }]; },
     useRef(initial) { const index = cursor++; if (!slots[index]) slots[index] = { current: initial }; return slots[index]; },
@@ -25,7 +25,7 @@ function environment(t, options = {}) {
     onEvent(callback) { subscribers.add(callback); return () => subscribers.delete(callback); },
     async startupGreeting() { calls.push('greeting'); return options.greeting ? options.greeting() : { text: 'Boa tarde, senhor. Tempo atual. Em que posso ajudá-lo?', weatherStatus: 'ok', audioBase64: Buffer.from('mock-greeting').toString('base64'), mime: 'audio/mpeg' }; },
     async observeOutfit(input) { calls.push(['observe', input]); return options.observe ? options.observe(input) : { text: 'A sua camisa azul está elegante, senhor.', observedAt: Date.now() }; },
-    async speak(input) { calls.push(['speak', input]); return { ...input, audioBase64: Buffer.from('mock-outfit').toString('base64'), mime: 'audio/mpeg' }; },
+    async speak(input) { calls.push(['speak', input]); return options.speak ? options.speak(input) : { ...input, audioBase64: Buffer.from('mock-outfit').toString('base64'), mime: 'audio/mpeg' }; },
     async cancelGreeting() { calls.push('cancel-greeting'); }, async cancelOutfit() { calls.push('cancel-outfit'); }, async cancelSpeech(input) { calls.push(['cancel-speech', input]); }, async wakeStop() {},
     async saveSettings(value) { saved.push(value); Object.assign(current, value); },
   };
@@ -46,12 +46,12 @@ function environment(t, options = {}) {
   class Music { async start(input) { calls.push(['music-start', input]); } stop() { calls.push('music-stop'); } duck(value) { calls.push(['music-duck', value]); } }
   class AudioDouble {
     constructor(src) { this.src = src; audios.push(this); }
-    async play() { calls.push('audio-start'); }
+    async play() { calls.push('audio-start'); if (options.play) await options.play(this); }
     pause() {} removeAttribute() {} load() {}
-    finish() { this.onended?.(); } fail() { this.onerror?.(); }
+    finish() { calls.push('audio-end'); this.onended?.(); } fail() { this.onerror?.(); }
   }
   class Context {
-    constructor() { this.state = 'running'; this.destination = {}; }
+    constructor() { this.state = 'running'; this.destination = {}; options.context?.(++contextCount); }
     createAnalyser() { return { fftSize: 256, connect() {}, getByteTimeDomainData(samples) { samples.fill(128); } }; }
     createMediaElementSource() { return { connect() {}, disconnect() {} }; }
     async resume() {} async close() {}
@@ -60,6 +60,9 @@ function environment(t, options = {}) {
   const originals = new Map();
   const globals = { window: { jarvis: bridge, location: { href: 'http://127.0.0.1:47833/' }, addEventListener(name, callback) { listeners.set(name, callback); }, removeEventListener(name) { listeners.delete(name); } }, document: { getElementById: () => ({}), activeElement: null }, navigator: { userActivation: { hasBeenActive: true } }, Audio: AudioDouble, AudioContext: Context, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, setTimeout(callback, delay) { const timer = { callback, delay, cleared: false }; timers.push(timer); return timer; }, clearTimeout(timer) { if (timer) timer.cleared = true; } };
   for (const [key, value] of Object.entries(globals)) { originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value }); }
+  const createUrl = URL.createObjectURL, revokeUrl = URL.revokeObjectURL;
+  URL.createObjectURL = value => { const url = createUrl.call(URL, value); createdUrls.push(url); return url; };
+  URL.revokeObjectURL = value => { revokedUrls.push(value); revokeUrl.call(URL, value); };
   const compiled = { exports: {} };
   const localRequire = name => {
     if (name === 'react') return { ...React, ...hooks };
@@ -75,8 +78,8 @@ function environment(t, options = {}) {
     return require(name);
   };
   new Function('require', 'module', 'exports', code)(localRequire, compiled, compiled.exports);
-  t.after(() => { for (const slot of slots) slot?.cleanup?.(); for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; } });
-  return { current, calls, saved, bridge, audios, detectors, sessions, timers,
+  t.after(() => { for (const slot of slots) slot?.cleanup?.(); URL.createObjectURL = createUrl; URL.revokeObjectURL = revokeUrl; for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; } });
+  return { current, calls, saved, bridge, audios, detectors, sessions, timers, createdUrls, revokedUrls,
     render() { cursor = 0; const tree = compiled.exports.App({}); while (effects.length) effects.shift()(); return tree; },
     emit(event) { for (const callback of subscribers) callback(event); },
     close() { listeners.get('beforeunload')?.(); },
@@ -87,10 +90,12 @@ function environment(t, options = {}) {
   };
 }
 
-test('boot stays silent and local; two-clap reception orders music, greeting, one observation, Jarvis speech and voice commands', async t => {
+test('boot stays silent; a clap prepares one outfit comment during greeting and plays it immediately after, then starts voice', async t => {
   const app = environment(t); await app.boot();
   assert.equal(app.detectors.length, 1); assert.equal(app.audios.length, 0); assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
-  await app.clap(); assert.equal(app.audios.length, 1); assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
+  await app.clap(); assert.equal(app.audios.length, 1); assert(app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
+  assert.equal(app.calls.filter(value => Array.isArray(value) && value[0] === 'speak').length, 1);
+  assert(app.calls.indexOf('audio-start') < app.calls.indexOf('capture'));
   app.detectors[0].callbacks.onWake(); await tick(); assert.equal(app.audios.length, 1);
   app.audios[0].finish(); await tick();
   assert.equal(app.calls.filter(value => value === 'capture').length, 1); assert.equal(app.calls.filter(value => Array.isArray(value) && value[0] === 'observe').length, 1);
@@ -98,7 +103,8 @@ test('boot stays silent and local; two-clap reception orders music, greeting, on
   const speech = app.calls.find(value => Array.isArray(value) && value[0] === 'speak')[1];
   assert.match(speech.runId, /^reception-/); assert.match(speech.utteranceId, /^outfit-/); assert.equal(speech.profileId, 'principal');
   assert.equal(app.audios[1].playbackRate, 0.95); assert.equal(app.audios[1].preservesPitch, true); assert(app.calls.some(value => Array.isArray(value) && value[0] === 'effect' && value[1] === 0.78));
-  const lastMusicStop = app.calls.lastIndexOf('music-stop'), capture = app.calls.indexOf('capture'); assert(lastMusicStop >= 0 && lastMusicStop < capture);
+  const capture = app.calls.indexOf('capture'), greetingEnd = app.calls.indexOf('audio-end'); assert(capture < greetingEnd);
+  assert.equal(app.calls[greetingEnd + 1], 'music-stop');
   app.audios[1].finish(); await tick(); assert.equal(app.sessions.length, 1); assert.equal(app.sessions[0].profile, 'principal');
   const log = nodes(app.render()).find(node => node.props?.role === 'log'); assert.equal(text(log), '');
 });
@@ -121,6 +127,65 @@ test('cancel, profile reset and close ignore an outfit response that finishes la
   app.fireTimers(4000); await tick(); assert.equal(app.detectors.length, 1);
 });
 
+test('a slow outfit synthesis continues across greeting end without replaying capture or overlapping speech', async t => {
+  let deliver, request;
+  const app = environment(t, { speak: input => { request = input; return new Promise(resolve => { deliver = resolve; }); } });
+  await app.boot(); await app.clap();
+  assert(request); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0);
+  app.audios[0].finish(); await tick();
+  assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0);
+  deliver({ ...request, audioBase64: Buffer.from('ready-comment').toString('base64'), mime: 'audio/mpeg' }); await tick();
+  assert.equal(app.audios.length, 2); assert.equal(app.calls.filter(value => value === 'capture').length, 1);
+  assert.equal(app.calls.filter(value => Array.isArray(value) && value[0] === 'speak').length, 1);
+  app.audios[1].finish(); await tick(); assert.equal(app.sessions.length, 1);
+});
+
+test('closing while the next comment is prepared releases its audio without playing it', async t => {
+  const app = environment(t); await app.boot(); await app.clap();
+  assert.equal(app.audios.length, 1); assert.equal(app.createdUrls.length, 2);
+  const preparedUrl = app.createdUrls[1]; assert(!app.revokedUrls.includes(preparedUrl));
+  app.close(); await tick();
+  assert(app.revokedUrls.includes(preparedUrl)); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0);
+  assert(app.calls.includes('cancel-outfit'));
+});
+
+test('an outfit audio-context failure releases its transferred URL exactly once and still starts voice', async t => {
+  const app = environment(t, { context: index => { if (index === 2) throw new Error('Audio context unavailable'); } });
+  await app.boot(); await app.clap();
+  assert.equal(app.createdUrls.length, 2); const commentUrl = app.createdUrls[1];
+  assert(!app.revokedUrls.includes(commentUrl));
+  app.audios[0].finish(); await tick();
+  assert.equal(app.revokedUrls.filter(value => value === commentUrl).length, 1);
+  assert.equal(app.calls.filter(value => value === 'audio-start').length, 1); assert.equal(app.sessions.length, 1);
+  assert.match(text(app.render()), /Não consegui reproduzir o comentário da roupa/);
+  app.close(); await tick(); assert.equal(app.revokedUrls.filter(value => value === commentUrl).length, 1);
+  assert.equal(app.calls.filter(value => value === 'audio-start').length, 1);
+});
+
+test('closing during prefetched synthesis discards a late audio result and cannot connect voice', async t => {
+  let deliver, request;
+  const app = environment(t, { speak: input => { request = input; return new Promise(resolve => { deliver = resolve; }); } });
+  await app.boot(); await app.clap(); assert(request);
+  app.close(); deliver({ ...request, audioBase64: Buffer.from('late-comment').toString('base64'), mime: 'audio/mpeg' }); await tick();
+  assert.equal(app.createdUrls.length, 1); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0);
+  assert(app.calls.some(value => Array.isArray(value) && value[0] === 'cancel-speech' && value[1].runId === request.runId));
+});
+
+test('a wrong synthesis correlation is discarded after the greeting and never spoken', async t => {
+  const app = environment(t, { speak: async input => ({ ...input, runId: 'a-different-reception', audioBase64: Buffer.from('wrong-comment').toString('base64'), mime: 'audio/mpeg' }) });
+  await app.boot(); await app.clap(); assert.equal(app.audios.length, 1);
+  app.audios[0].finish(); await tick(); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 1);
+  assert.match(text(app.render()), /Não consegui observar sua roupa agora/);
+});
+
+test('a greeting interrupted after playing cancels in-progress camera work and never speaks a comment', async t => {
+  let aborted = false;
+  const app = environment(t, { capture: ({ signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => { aborted = true; reject(new DOMException('Cancelled', 'AbortError')); }, { once: true })) });
+  await app.boot(); await app.clap(); assert(app.calls.includes('capture'));
+  app.audios[0].fail(); await tick(); assert.equal(aborted, true);
+  assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0); assert(app.calls.includes('cancel-outfit'));
+});
+
 test('camera failure gives a short notice and proceeds to voice without an invented compliment', async t => {
   const app = environment(t, { capture: async () => { throw new Error('Permission denied'); } }); await app.boot(); await app.finishGreeting();
   assert.equal(app.sessions.length, 1); assert(!app.calls.some(value => Array.isArray(value) && ['observe', 'speak'].includes(value[0])));
@@ -132,8 +197,8 @@ test('a missing greeting cannot start the camera or voice session', async t => {
   assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
 });
 
-test('failed greeting playback cannot start camera observation or voice commands', async t => {
-  const app = environment(t); await app.boot(); await app.clap(); app.audios[0].fail(); await tick();
+test('greeting playback that fails before starting cannot start camera observation or voice commands', async t => {
+  const app = environment(t, { play: async () => { throw new Error('Playback blocked'); } }); await app.boot(); await app.clap();
   assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
 });
 

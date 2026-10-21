@@ -163,6 +163,9 @@ test('new application, folder and web approvals show concrete readable parameter
   const app = environment(t); app.render(); await flush(); app.render();
   const presentation = app.approvalPresentation({ tool: 'apps_launch', args: { appId: 'opaque-application-id' }, details: { appLabel: 'Editor de ensaio' } }, []);
   assert.match(presentation.title, /Editor de ensaio/); assert.equal(JSON.stringify(presentation).includes('opaque-application-id'), false);
+  const browser = app.approvalPresentation({ tool: 'apps_open', args: { appId: 'browser' }, details: { appId: 'browser', appLabel: 'Navegador padrão do Windows' } }, []);
+  assert.deepEqual(browser.fields, [{ label: 'Aplicativo', value: 'Navegador padrão do Windows' }]);
+  assert.match(browser.title, /Navegador padrão do Windows/);
   const folder = app.approvalPresentation({ tool: 'folders_open', args: { folder: 'downloads' }, details: { folder: 'C:\\Sandbox\\Downloads', label: 'Downloads' } }, []);
   assert.deepEqual(folder.fields, [{ label: 'Pasta', value: 'Downloads' }, { label: 'Local', value: 'C:\\Sandbox\\Downloads' }]);
   const query = app.approvalPresentation({ tool: 'web_search', args: { query: 'tempo em cidade de teste' }, details: { scope: 'Pesquisa pública' } }, []);

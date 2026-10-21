@@ -1,5 +1,15 @@
 # Validação do MVP
 
+## Correção 0.5.1 — navegador padrão e transição da roupa
+
+O autor relatou que a 0.5.0 pedia cadastro ao abrir o navegador e demorava para comentar a roupa após a saudação. A captura enviada mostra sessão de voz conectada e uma autorização legada `apps_open/browser`. O relato indica que o comentário chegou a ser gerado; não fornece medidas de tempo nem valida todos os cenários de dispositivos.
+
+A correção encaminha `apps_open/browser` ao handler HTTP(S) padrão do Windows, sem consultar executáveis cadastrados, após confirmação com nome legível. Despacho aceito permanece `unverified` quando não há prova da janela; URL específica mantém o navegador dedicado. Os testes novos cobrem ausência de cadastro, erro, cancelamento, replay/idempotência e foco não observável.
+
+Na recepção, a preparação câmera→visão→síntese começa quando a reprodução da saudação realmente inicia, após opt-in e gatilho. O áudio preparado fica retido até a saudação terminar. Cancelamento, troca de perfil e fechamento descartam o trabalho e as URLs de áudio; falhas não devem deixar câmera ativa ou reproduzir depois. Não há métrica física de latência ou garantia de ausência de espera de rede.
+
+CI/pacote 0.5.1 ainda pendentes. Verificação local final: **402 testes, 391 aprovados e 11 falhas `EPERM` conhecidas**, zero skips; não foram removidos os testes de links/junções bloqueados pelo sandbox. TypeScript e build aprovados. As APIs e o Windows usam substitutos; nenhum navegador, câmera ou chamada paga do autor foi usado nesse ensaio. A regressão de falha na construção do áudio também verifica liberação da URL preparada uma única vez e continuidade da voz sem reprodução atrasada.
+
 ## Revisão 0.5.0 — recepção, roupa e conversa contínua
 
 Fluxo solicitado: iniciar no login Windows em espera, duas palmas, música e saudação meteorológica aprovadas, uma captura para comentário gentil sobre roupa visível e início automático de comandos por voz. A continuidade renova somente após o prazo local configurado de cada conexão, sem repetir música/saudação/câmera. Interromper, parar voz, trocar perfil/configuração ou fechar deve cancelar captura, síntese, escuta e renovação.

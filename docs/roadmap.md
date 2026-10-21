@@ -1,5 +1,9 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
+## Correção de uso e espera — 0.5.1 em verificação
+
+Abrir o navegador padrão sem cadastro manual, mantendo a autorização, e antecipar câmera/análise/síntese da roupa enquanto a saudação toca. A reprodução do comentário espera o fim da saudação; nenhuma captura ou chamada extra é adicionada a uma recepção normal. Preservar configurações/voz/música, cancelamento e limpeza de recursos. CI/pacote e teste físico da 0.5.1 pendentes. A 0.5.0 abaixo é o histórico da recepção anterior.
+
 ## Recepção e conversa contínua — 0.5.0 com CI aprovado
 
 Fluxo implementado: login Windows em espera → duas palmas → música e saudação com clima → uma captura para comentar roupa visível → comandos por voz. Continuidade opcional renova a sessão após seu prazo local, sem repetir a recepção. Interromper/erro/fechamento/perfil interrompem o fluxo. As três opções novas começam desligadas; o preset de Ajustes é aplicado somente ao salvar, com informação do envio de imagem/áudio à OpenAI. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico no destino ainda está pendente. [Recepção](startup-greeting.md), [configuração e espera](standby.md), [validação](validation.md). Os resultados da 0.4.0 abaixo são históricos.

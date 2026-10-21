@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-Este plano cobre a revisão 0.5.0: recepção por duas palmas após login, comentário opcional de roupa por um quadro e entrada/renovação opcional da conversa por voz. Preserva núcleo, voz, painel limpo, contexto e ferramentas da 0.4.0. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, com os limites do ensaio físico registrados em [Validação](validation.md). Os **343 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** são evidência daquela versão. Resultados históricos não comprovam a revisão nova, latência, identificação, som audível, fechamento durante áudio ou ativação por dispositivos.
+Este plano cobre a revisão 0.5.1: correção da abertura do navegador padrão sem cadastro manual e preparação antecipada do comentário de roupa durante a saudação. Preserva recepção por duas palmas após login, entrada/renovação opcional da conversa por voz, núcleo, voz, painel limpo, contexto e ferramentas da 0.4.0. O CI e os ensaios físicos da 0.5.1 ainda estão pendentes. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, com os limites do ensaio físico registrados em [Validação](validation.md). Os **343 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** são evidência daquela versão. Resultados históricos não comprovam a revisão nova, latência, identificação, som audível, fechamento durante áudio ou ativação por dispositivos.
 
 ## Evidências já registradas
 
@@ -50,6 +50,8 @@ Não é necessário instalar OpenCV ou baixar modelos para os testes de protocol
 | Erros e chave | Falta de chave não abre rede; erros HTTP, transporte e ferramenta não ecoam a credencial de teste. | Credencial usada apenas no teste; não demonstra DPAPI real. |
 | Realtime | FormData/SDP, saída em texto, VAD, ferramentas e bloqueio de saída de áudio OpenAI. | Não cria uma chamada paga e não captura áudio real. |
 | Recepção 0.5.0 | Sequência, opções separadas, um único quadro, limpeza antes do envio, passagem à voz e cancelamento em cada etapa. | Dispositivos/serviços substituídos não comprovam roupa descrita nem som ouvido. |
+| Preparação de roupa 0.5.1 | Início somente após reprodução efetiva da saudação, captura/observação/síntese antecipadas uma vez, áudio retido até o fim da saudação e cancelamento de resultados tardios. | Relógio/captura/provedores substituídos não medem intervalo audível, permissão ou rede reais. |
+| Navegador padrão 0.5.1 | Abertura genérica sem EXE cadastrado, confirmação com nome/destino, chamada externa fixa, falha/cancelamento e resultado de despacho não verificado. | Callback Windows substituído não demonstra qual navegador ou janela abriu na máquina. |
 | Imagem OpenAI | JPEG/dimensões/tamanho limitados, detalhe baixo, sem ferramentas/histórico, cancelamento e erros sanitizados. | Não mede a interpretação visual do modelo na conta de destino. |
 | Voz contínua | Renovação somente por prazo normal enquanto desejada, sem repetição da recepção; parada/reset invalidam reconexão e erro não cria loop. | Transporte/relógio substituídos não comprovam conexão prolongada real nem custo. |
 | Fala ElevenLabs | Preset aprovado, IDs de execução/trecho, fila, cancelamento, limites e ausência de fallback de voz. | Rede e áudio substituídos; não comprova o clone ouvido em conversa. |
@@ -123,7 +125,7 @@ Teste duas pessoas, rosto não identificado, luz ruim, óculos, afastamento, ret
 2. Confira que a configuração Realtime solicita texto e que nenhuma track remota OpenAI toca. A antiga resposta marin deve ser identificada como teste histórico, nunca como aceite do clone.
 3. Interrompa durante geração do primeiro trecho, síntese, fila, reprodução e aprovação de ferramenta. Nenhum áudio atrasado ou evento `.done` de resposta cancelada deve voltar a narrar.
 4. Simule falta de chave/ID, falha ElevenLabs, limite e rede interrompida. A sessão deve bloquear ou mostrar estado de erro, sem inserir a resposta falada no painel; não tocar voz OpenAI, voz do navegador ou a amostra fixa como substituto.
-5. Troque perfil, encerre e atinja o limite da sessão com conversa contínua desligada. Confira cancelamento da síntese, fechamento de áudio/microfone e ausência de fala da geração anterior. Com conversa contínua ligada, use o roteiro específico da 0.5.0 abaixo para a renovação normal.
+5. Troque perfil, encerre e atinja o limite da sessão com conversa contínua desligada. Confira cancelamento da síntese, fechamento de áudio/microfone e ausência de fala da geração anterior. Com conversa contínua ligada, use o roteiro de recepção completa abaixo para a renovação normal.
 
 Registrar tempo até o primeiro som, falhas e consumo por provedor. Não substituir esse ensaio pelo teste de saudação ou pelo MP3 público.
 
@@ -146,7 +148,7 @@ Teste desativação, novo login sem lançamento, mudança/ausência do caminho p
 
 Este ensaio ainda não foi realizado fisicamente; sucesso do empacotamento no CI não o substitui. Veja [Espera local](standby.md).
 
-## Recepção completa e conversa contínua — 0.5.0
+## Recepção completa e conversa contínua — 0.5.1
 
 Use o executável novo em caminho estável, com chaves e cidade configuradas privadamente. A música precisa ter sido escolhida naquela instalação. Registre versão, dispositivos, opções e resultado; não publique imagens, chaves, ID da voz, caminho da música ou detalhes pessoais.
 
@@ -157,7 +159,10 @@ Use o executável novo em caminho estável, com chaves e cidade configuradas pri
 | Login com espera/palmas habilitados e palavra desligada | Aplicativo em espera/bandeja, microfone local armado; nenhuma música, saudação, câmera ou sessão OpenAI antes das palmas. |
 | Duas palmas e disparo concorrente | Uma única recepção, música e cumprimento pelo horário/clima; sem repetição por TV, própria narração ou um segundo gatilho durante o fluxo. Registrar falsos positivos/negativos em ambiente real. |
 | Fim da saudação | Música termina. Se roupa e conversa estiverem desligadas, nenhum dispositivo/provedor novo é iniciado. |
-| Roupa habilitada | Controle informa envio à OpenAI; um JPEG de até 640×480 e 512 KiB; tracks encerradas antes do pedido. Nenhum vídeo persistente nem imagem gravada em banco/log/arquivo. |
+| Roupa habilitada e saudação ainda em preparação | Controle informa envio à OpenAI; nenhuma captura ou observação antes do início efetivo da reprodução. Negação de reprodução/gesto não inicia a câmera por antecipação. |
+| Saudação começa a tocar, roupa habilitada | Uma captura JPEG de até 640×480 e 512 KiB, tracks encerradas antes do pedido; observação e síntese começam durante a saudação. Nenhum vídeo persistente nem imagem gravada em banco/log/arquivo. |
+| Comentário preparado antes do fim da saudação | Áudio permanece retido enquanto a saudação toca. Após seu fim e o da música, começa em seguida, sem fala sobreposta ou temporizador de pausa artificial. Medir o intervalo realmente ouvido. |
+| Observação/síntese ainda pendente ao fim da saudação | Aguarda somente a preparação restante; nenhuma captura, chamada ou geração duplicada. Registrar intervalo, falha e condição de rede, sem prometer zero latência. |
 | Roupa visível em luz e enquadramento habituais | Comentário breve coerente com peças/cores visíveis, narrado pelo clone aprovado, sem música ou transcrição. Não aceitar identidade ou inferências pessoais como parte do resultado. |
 | Imagem insuficiente, outra pessoa ao fundo ou rosto sem roupa visível | Limitação honesta e neutra; sem elogio inventado, identificação ou divulgação de dados do perfil. |
 | Câmera negada/ocupada, modelo incompatível, chave inválida ou rede ausente | Aviso útil, captura liberada, sem corpo bruto de erro. A etapa de voz ainda pode começar se habilitada/disponível. Não repetir a captura em loop. |
@@ -166,17 +171,22 @@ Use o executável novo em caminho estável, com chaves e cidade configuradas pri
 | Conversa contínua ligada, prazo local configurado | Uma nova conexão por encerramento elegível, sem repetir música/saudação/imagem; novo comando responde. Registrar limites de continuidade do histórico. |
 | Falha de autenticação/rede durante negociação ou sessão | Estado de erro e microfone liberado; nenhuma cadeia indefinida de reconexões. |
 | Interromper durante permissão de câmera, captura, observação, síntese ou negociação/renovação | Toda etapa futura cancelada; nenhuma fala, câmera ou microfone reaberto por resultado tardio. Verificar também concessão tardia da permissão. |
+| Interromper/reset/perfil/saída com comentário já preparado durante a saudação | Áudio antecipado descartado; nunca começa após o fim ou cancelamento da fala anterior. Câmera concedida tardiamente é encerrada, sem envio. |
 | Perfil/reset/configuração/saída durante o fluxo | Gerações antigas invalidadas, sem elogio, ferramenta ou sessão no perfil novo. X encerra som, captura, worker e processo. |
 | Desativar início no Windows | Registro removido e nenhum lançamento no próximo login. |
 
 A conversa contínua transmite áudio enquanto conectada, incluindo o silêncio entre comandos. Registre duração e consumo real por provedor; a opção não promete sessão infinita, memória ilimitada ou orçamento máximo. Não use sucesso de parser/tempo simulado como comprovação de conexão prolongada real.
 
-## Acesso ampliado 0.4.0
+## Acesso ampliado e navegador padrão — 0.5.1
 
-Use o pacote 0.4.0 e [guia de comandos](desktop-access.md). O CI aprovou 343 testes e abertura nativa; os casos abaixo exigem registrar o resultado no equipamento de destino.
+Use o pacote 0.5.1 e o [guia de comandos](desktop-access.md). Os 343 testes e abertura nativa da 0.4.0 são históricos; os casos abaixo exigem registrar o resultado da revisão atual no equipamento de destino.
 
 | Ensaio | Evidência esperada |
 | --- | --- |
+| “Abra o navegador” com campo de navegador sem cadastro e inventário vazio | Confirmação legível mostra navegador padrão e `https://www.google.com/`; após autorizar, Windows usa sua associação padrão. Não exigir caminho de EXE ou cadastro em Ajustes. |
+| Negar, cancelar ou falhar ao abrir o navegador padrão | Nenhuma chamada externa após negar/cancelar; falha não anunciada como conclusão. Despacho aceito sem observar janela permanece **Enviada ao Windows**. |
+| Pedir foco para navegador genérico | Indisponibilidade explícita; não confundir despacho de abertura com foco verificado. |
+| Pedir Chrome/Edge/Firefox pelo nome ou uma URL específica | Nome usa descoberta/ID observado; URL usa navegador dedicado com carregamento verificado. Não trocar o navegador padrão do Windows automaticamente. |
 | Procurar/abrir app instalado, incluindo nomes semelhantes | Descoberta sem lançamento; escolha clara, confirmação com nome correto e resultado distinguindo processo, janela ou só despacho. |
 | Abrir Downloads e pasta de outro volume local | Destino mostrado antes da abertura; Explorador correto. Organizar/ler arquivos fora da pasta de trabalho continua indisponível. |
 | Negar/cancelar lançamento ou consulta | Nenhum efeito novo após a decisão; sem reaproveitar autorização em nova chamada. |
@@ -194,6 +204,7 @@ Para cada modelo e dispositivo, grave pelo menos 30 solicitações repetíveis p
 | --- | --- | --- |
 | Primeiro texto | Envio do pedido | Primeiro delta visível. |
 | Primeiro áudio | Fim da fala percebido no cliente | Primeiro som efetivamente reproduzido. |
+| Passagem da saudação para roupa | Fim audível da saudação | Primeiro som audível do comentário. Registrar também início da captura, retorno do modelo e fim da síntese para separar trabalho antecipado da espera restante. |
 | Interrupção | Fala da pessoa ou clique | Fim audível da resposta anterior. |
 | Ferramenta | Pedido aceito pelo executor | Resultado verificado. Excluir espera humana da medida de execução e reportá-la separadamente. |
 | Presença | Primeiro quadro com rosto | Indicação de presença local. |
@@ -215,7 +226,7 @@ Automáticos: comando, quantidade, aprovados, falhas, skips
 Microfone: acesso, captura, liberação
 Saída: provedor/voz realmente ouvidos, reprodução e interrupção
 Câmera: captura e liberação
-Roupa: opção explícita, quadro único, vídeo encerrado antes do envio, resultado e descarte
+Roupa: opção explícita, início da reprodução da saudação, quadro único, vídeo encerrado antes do envio, áudio preparado/retido, intervalo audível, resultado e descarte
 Espera: palmas/palavra, idioma, ruído, pausa/retorno e segundo plano
 Login Windows: pacote/caminho, entrada real e desativação
 Música: não fornecida / arquivo privado testado, fim e cancelamento

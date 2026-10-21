@@ -1,5 +1,9 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
+**Correção 0.5.1 em verificação:** navegador padrão sem cadastro e comentário de roupa preparado durante a saudação. CI e pacote novos ainda pendentes; os pacotes abaixo são históricos. Para atualizar, feche o Jarvis anterior por X/Sair antes de executar a nova versão, evitando que a trava de instância apenas traga a janela antiga. Confira o indicador **MVP / 05.1**. As chaves, voz, cidade, música e opções salvas usam o mesmo diretório privado e não precisam ser cadastradas novamente. Se início no Windows já estiver ativo, o processo principal registra o caminho estável do novo executável ao abrir; não mova esse arquivo depois.
+
+Valide “Abra o navegador” com a confirmação legível e sem cadastro de EXE, um aplicativo instalado pelo nome e uma URL específica. Bata duas palmas e confirme que o comentário preparado começa após o fim da saudação sem sobreposição. Permissão negada, cancelamento, falha de reprodução e serviço lento precisam manter câmera/voz sem resultados tardios. Não declarar latência zero ou navegador realmente visível com base apenas em despacho do Windows.
+
 **Incremento 0.5.0 disponível:** a nova recepção combina espera por duas palmas, música/saudação, uma captura para comentar roupa e conversa contínua pela chave OpenAI existente. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Os valores da 0.4.0 abaixo são históricos. Para testar o incremento, use o pacote 0.5.0. Não abra a versão anterior para validar funções novas.
 
 ## Pacote Windows 0.5.0

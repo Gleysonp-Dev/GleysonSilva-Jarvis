@@ -1,4 +1,4 @@
-# Projeto GleysonSilva-Jarvis: voz e câmera — revisão 0.5.0
+# Projeto GleysonSilva-Jarvis: voz e câmera — revisão 0.5.1
 
 O núcleo mantém o ciano aprovado em todos os estados. Ouvindo e respondendo, brilho e expansão acompanham o envelope do áudio capturado e reproduzido; durante uma ferramenta, a pulsação segue a atividade do executor. Aguardar o modelo, aguardar confirmação e executar devem continuar distinguíveis pelo rótulo de estado. Com movimento reduzido, os estados continuam legíveis sem exigir animação.
 
@@ -44,7 +44,7 @@ Se a solicitação de dispositivo não aparecer, confira as permissões de câme
 
 ## Um quadro para comentar a roupa
 
-`receptionOutfitEnabled` é uma escolha independente do cadastro facial e começa em `false`. O controle informa **envio de uma imagem da câmera à OpenAI**. Com a opção habilitada, depois da saudação o controlador abre a câmera, obtém um único JPEG de até 640×480 e 512 KiB e encerra as tracks antes do pedido ao provedor. Cancelamento durante permissão/captura deve encerrar qualquer dispositivo que for concedido tardiamente.
+`receptionOutfitEnabled` é uma escolha independente do cadastro facial e começa em `false`. O controle informa **envio de uma imagem da câmera à OpenAI**. Com a opção habilitada, assim que a saudação começa de fato a tocar, o controlador abre a câmera, obtém um único JPEG de até 640×480 e 512 KiB e encerra as tracks antes do pedido ao provedor. O pedido não começa durante a preparação da saudação nem se sua reprodução não começar. Cancelamento durante permissão/captura deve encerrar qualquer dispositivo que for concedido tardiamente.
 
 A bridge expõe somente `observeOutfit` e `cancelOutfit`, com a capacidade `outfitObservation`. O principal valida configuração, formato, tamanho e execução ativa. Responses usa o modelo de texto já configurado, imagem em detalhe baixo e `store:false`; não recebe histórico, memórias ou ferramentas nessa chamada. A imagem não é salva no banco, em logs, no repositório ou em arquivo pelo aplicativo. Isso não representa uma promessa de retenção zero do provedor; consulte [OpenAI](openai.md).
 
@@ -52,7 +52,9 @@ Há no máximo uma observação pendente por perfil, uma tentativa por minuto e 
 
 O pedido é um comentário breve e cordial sobre peças, cores e combinação que estiverem visíveis. Não identifica a pessoa, não faz inferências pessoais ou sensíveis e não pode iniciar ferramentas. Imagem insuficiente, câmera indisponível ou erro deve gerar uma limitação clara, sem inventar um elogio. A conversa pode começar mesmo quando essa etapa ficar indisponível, se sua opção e os serviços necessários estiverem ativos.
 
-O comentário é narrado com a voz Jarvis aprovada, sem música e sem transcrição no dashboard. Não há análise contínua de vídeo, envio de rostos cadastrados ou dependência de Python/OpenCV para essa função. Ao terminar, a câmera permanece desligada. Testar permissão, enquadramento, tracks e resultado efetivamente ouvido é necessário no computador de destino.
+Na 0.5.1, a observação e a síntese ElevenLabs são preparadas durante a saudação. O áudio aguarda o fim da saudação e da música; não toca por cima delas. Quando já preparado, pode começar em seguida, sem pausa artificial. Se houver uma etapa pendente, permanece o tempo necessário para concluí-la. Não se repete captura ou geração para antecipar a fala, e não há promessa de um intervalo fixo sem medir o equipamento e a rede.
+
+O comentário é narrado com a voz Jarvis aprovada, sem música e sem transcrição no dashboard. Não há análise contínua de vídeo, envio de rostos cadastrados ou dependência de Python/OpenCV para essa função. Ao terminar a captura, a câmera permanece desligada. Interrupção, reset, troca de perfil e saída também cancelam a preparação antecipada e descartam áudio ou respostas atrasados. Testar permissão, enquadramento, tracks e resultado efetivamente ouvido é necessário no computador de destino.
 
 ## Câmera local e perfis
 
@@ -91,6 +93,8 @@ Os vetores continuam sendo informação biométrica sensível mesmo sem fotograf
 Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância. Similaridade de vetores não é probabilidade de identidade. O limiar e a margem entre candidatos exigem calibração; nenhum número de acerto é publicado sem uma amostra de testes documentada.
 
 ## Estado de validação
+
+O CI da revisão 0.5.1 e a medição do intervalo entre saudação e comentário estão pendentes. Testes com captura/provedores substituídos devem distinguir início da reprodução, preparação antecipada e início audível do comentário; não comprovam a latência percebida no equipamento.
 
 O [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovou **388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O pacote foi baixado e teve ZIP/EXE conferidos por hash. O ensaio físico de login, duas palmas, música/saudação, imagem e conversa contínua no equipamento de destino ainda está pendente. O [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou 343 testes e abertura nativa daquela versão; é somente histórico.
 

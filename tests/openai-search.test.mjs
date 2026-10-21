@@ -144,5 +144,6 @@ test('text and realtime instructions require user requests, opaque app IDs, fres
   const instructions = requests[0].instructions;
   assert.ok(instructions.includes(JARVIS_INSTRUCTIONS)); assert.ok(instructions.includes('unverified confirma somente o envio do comando'));
   assert.ok(JARVIS_INSTRUCTIONS.includes('apps_find')); assert.ok(JARVIS_INSTRUCTIONS.includes('apps_launch')); assert.ok(JARVIS_INSTRUCTIONS.includes('identificador opaco exato')); assert.ok(JARVIS_INSTRUCTIONS.includes('weather_current com dados novos')); assert.ok(JARVIS_INSTRUCTIONS.includes('somente quando a pessoa pedir explicitamente'));
+  assert.ok(instructions.includes('apps_open com appId=browser')); assert.ok(instructions.includes('sem cadastro manual')); assert.ok(instructions.includes('use browser_open')); assert.ok(instructions.includes('Chrome, Edge ou Firefox'));
   assert.deepEqual(requests[0].output_modalities, ['text']); assert.equal(requests[0].audio.output, undefined);
 });

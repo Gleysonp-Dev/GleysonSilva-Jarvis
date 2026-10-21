@@ -1,8 +1,10 @@
-# Espera, palmas e início no Windows — revisão 0.5.0
+# Espera, palmas e início no Windows — revisão 0.5.1
 
 O fluxo configurável é **login Windows → espera local → duas palmas → música/saudação → comentário de roupa opcional → conversa por voz opcional**. A espera não deve tocar a recepção ao abrir o aplicativo; ela aguarda um gatilho. Renovar a conversa contínua também não deve repetir a recepção.
 
 [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado no destino continua pendente. A aprovação de **343 testes e abertura nativa no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** pertence à versão anterior. Login real, palmas no ambiente de uso, câmera e conversa prolongada precisam de evidência própria em [Validação](validation.md).
+
+Na 0.5.1, captura, observação da roupa e síntese começam durante a reprodução efetiva da saudação, para reduzir a espera posterior. O comentário só toca depois da saudação e da música. CI e medição física desta revisão ainda estão pendentes.
 
 ## Configurar uma instalação
 
@@ -34,7 +36,7 @@ O worker não recebe chaves dos provedores. Eventos passam por filtros de frase,
 
 Depois de duas palmas elegíveis, a espera cede o microfone e o serviço prepara a saudação por horário com clima. A trilha escolhida acompanha somente a recepção inicial e termina com a saudação ou interrupção. A prévia privada aprovada mantém ganho de 0,35 na introdução e 0,22 durante a fala. Não há música padrão incluída no repositório ou no executável.
 
-Com a opção de roupa habilitada, a próxima etapa captura um JPEG limitado, para a câmera antes do envio e solicita um comentário breve à OpenAI. Falha ou imagem insuficiente não produz elogio inventado. O recurso não cadastra um rosto nem usa a câmera como autenticação. Veja [Recepção](startup-greeting.md) e [Voz e câmera](voice-and-camera.md).
+Com a opção de roupa habilitada, assim que a saudação começa a tocar, o controlador captura um JPEG limitado, para a câmera antes do envio, solicita um comentário breve à OpenAI e prepara seu áudio na ElevenLabs. O áudio fica reservado até a saudação e a música terminarem, sem sobreposição. Se ainda não estiver pronto, aguarda somente o restante dessa preparação. Não há captura antes de a reprodução da saudação começar nem nova tentativa para preencher o intervalo. Falha ou imagem insuficiente não produz elogio inventado. O recurso não cadastra um rosto nem usa a câmera como autenticação. Veja [Recepção](startup-greeting.md) e [Voz e câmera](voice-and-camera.md).
 
 Com conversa após a recepção habilitada, o Jarvis abre o microfone e conecta OpenAI Realtime depois das etapas anteriores. Daí em diante o áudio do microfone é enviado à OpenAI enquanto a sessão estiver ativa. A saída continua na voz ElevenLabs aprovada, 0,95× com altura preservada e efeito metálico fixo 0,78.
 
@@ -48,7 +50,7 @@ A versão portátil usa o caminho estável do executável externo. Mover ou apag
 
 ## Pausar, interromper e sair
 
-**Interromper** cancela a recepção e a intenção de reconectar a conversa, para música, fala e microfone e invalida resultados atrasados de captura/provedor. Uma nova escolha é necessária para iniciar outra conversa. Troca de perfil, reset e saída também invalidam sessões anteriores.
+**Interromper** cancela a recepção e a intenção de reconectar a conversa, para música, fala e microfone e invalida resultados atrasados de captura/provedor, inclusive a preparação antecipada da roupa. Uma nova escolha é necessária para iniciar outra conversa. Troca de perfil, reset e saída também invalidam sessões anteriores.
 
 Pausar a espera pela interface ou bandeja encerra a escuta de gatilhos. Use **minimizar** para manter o aplicativo em espera. **X encerra o aplicativo**; Sair na bandeja também deve parar áudio, câmera, captura, workers e processo, sem voz residual ou reabertura por gatilho.
 
