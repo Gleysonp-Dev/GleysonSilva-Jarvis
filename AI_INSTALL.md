@@ -1,6 +1,12 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Atualização 0.5.2 — tela cheia
+## Atualização 0.5.3 — navegador padrão direto
+
+Código atual **0.5.3**, indicador **MVP / 05.3**. O pedido explícito “abra o navegador” abre o navegador padrão no Google sem segunda autorização. A exceção não se estende a URLs específicas ou outros aplicativos. CI/pacote desta revisão em preparação; versões anteriores abaixo são históricas. Feche a versão anterior por X/Sair antes de abrir o novo executável e preserve a configuração privada.
+
+O aviso de segurança do Windows para Electron é independente. Esta revisão não modifica o Firewall, cria exceções de rede, desliga alertas ou pede acesso de administrador. A autorização de rede, se necessária e desejada no equipamento, é uma decisão local separada e deve identificar o executável correto do Jarvis. A foto sozinha não confirma o processo/caminho ou a regra aplicada. [Diagnóstico](docs/desktop-access.md).
+
+## Atualização 0.5.2 — tela cheia (histórico)
 
 Revisão atual do código: **0.5.2**, indicador **MVP / 05.2**. [CI 4e90ff5 da 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223) aprovado: **413/413 testes, zero falhas/skips**, TypeScript, build, pacote e entrada/saída de tela cheia pelo botão real no aplicativo Windows. Os pacotes anteriores abaixo são históricos e não incluem o botão novo. Feche o Jarvis anterior por X/Sair antes de executar a nova versão. Os dados privados usam o mesmo diretório; preserve chaves, voz, cidade e música existentes.
 
