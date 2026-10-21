@@ -92,7 +92,7 @@ Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância
 
 ## Estado de validação
 
-A 0.5.0 aguarda CI, pacote e ensaio integrado de login, duas palmas, música/saudação, imagem e conversa contínua. O [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou 343 testes e abertura nativa daquela versão; não valida a nova câmera externa ou renovação de sessão.
+O [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovou **388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O pacote foi baixado e teve ZIP/EXE conferidos por hash. O ensaio físico de login, duas palmas, música/saudação, imagem e conversa contínua no equipamento de destino ainda está pendente. O [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou 343 testes e abertura nativa daquela versão; é somente histórico.
 
 No ensaio real, microfone produziu nível e foi liberado; câmera exibiu prévia 640×480 e parou. Uma resposta OpenAI Realtime foi ouvida com marin, voz diferente da desejada; motivou a rota ElevenLabs atual. **A nova conversa com o clone ainda não foi confirmada integralmente.**
 

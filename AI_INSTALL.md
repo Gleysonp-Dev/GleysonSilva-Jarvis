@@ -1,6 +1,17 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-**Incremento 0.5.0 em verificação:** a nova recepção combina espera por duas palmas, música/saudação, uma captura para comentar roupa e conversa contínua pela chave OpenAI existente. CI/pacote ainda pendentes; os valores da 0.4.0 abaixo são históricos. Para testar o incremento, use o pacote 0.5.0 quando sua validação estiver publicada. Não abra a versão anterior para validar funções novas.
+**Incremento 0.5.0 disponível:** a nova recepção combina espera por duas palmas, música/saudação, uma captura para comentar roupa e conversa contínua pela chave OpenAI existente. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Os valores da 0.4.0 abaixo são históricos. Para testar o incremento, use o pacote 0.5.0. Não abra a versão anterior para validar funções novas.
+
+## Pacote Windows 0.5.0
+
+Baixe o [artefato 12313302731](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376/artifacts/12313302731), extraia o ZIP e abra **GleysonSilva-Jarvis-0.5.0-Windows.exe**. Retenção até 18 de janeiro de 2027, horário de Nova York; não é uma release assinada. ZIP e EXE foram baixados e comparados com o digest/checksum do CI.
+
+| Arquivo 0.5.0 | Tamanho | SHA-256 conferido |
+| --- | --- | --- |
+| ZIP | 104.030.309 bytes | `1f91bdc0ef50f72bf4dec9ae9c6fb98c9db27d28d91f977202dbcd795d1c578c` |
+| GleysonSilva-Jarvis-0.5.0-Windows.exe | 104.020.113 bytes | `a6fa2f1560ba240a8fef369903a2b6ba3a12cd2f2e879d93e47ce87c402ef9f9` |
+
+O [job 118982734554](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376/job/118982734554), commit `fced65256707608fbc00366b29553bab608dd9a1`, confirmou ready/window/DOM/preload/boot e packaged verdadeiros, com perfil temporário e rede/captura/login isolados, em **20 de outubro de 2026, às 21h22, America/New_York**. Não substitui palmas, câmera, som e login físicos. A configuração privada/início no Windows não pôde ser alterada por este ambiente; aplique o preset no app.
 
 No pacote nativo, abra **Ajustes → Início e espera**, clique em **Ativar recepção completa** e depois **Salvar configuração**. O preset habilita início no login/espera/palmas/música/saudação/roupa/voz/continuidade e desliga a palavra “Jarvis” como gatilho inicial. A interface informa que a captura é enviada à OpenAI e que a escuta contínua transmite áudio e pode consumir a API. As opções só passam a valer após salvar. Não apague ou substitua chaves, voz, trilha ou cidade já configuradas. O envio de roupa, conversa automática e continuidade começam desligados para novas instalações.
 
@@ -37,7 +48,7 @@ npm start
 
 Confirme janela, conversa, Contexto, Ajustes, Memória, Registro e Presença. Na 0.3.1, o núcleo usa dez curvas com intensidades distintas, deformação assimétrica, focos luminosos e campo azul sobre grade plana ampla. O centro deixa a grade visível, sem texto novo central ou anéis segmentados. A paleta ciano/azul permanece fixa em todos os estados. Compare com a [análise do vídeo fornecido pelo autor](docs/research/referencia-video-nucleo.md), sem afirmar igualdade de pixels. Sem captura ou sessão real, os indicadores não devem alegar conexão. Movimento reduzido deve congelar a geometria; o nível real do áudio continua sendo a origem do pulso no modo normal.
 
-### Pacote Windows 0.4.0
+### Pacote Windows 0.4.0 — histórico
 
 Baixe o [artefato 12312007661](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110/artifacts/12312007661), extraia o ZIP e abra **GleysonSilva-Jarvis-0.4.0-Windows.exe**. Requer autenticação GitHub para baixar, mas não Node para executar. ZIP e EXE foram baixados e conferidos com o digest/checksum do CI; o artefato tem retenção até 18 de janeiro de 2027, horário de Nova York. Preserve os dados privados e o caminho do executável usado no início automático; não habilite ou altere esse recurso como efeito da atualização.
 

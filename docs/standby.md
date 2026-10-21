@@ -2,7 +2,7 @@
 
 O fluxo configurável é **login Windows → espera local → duas palmas → música/saudação → comentário de roupa opcional → conversa por voz opcional**. A espera não deve tocar a recepção ao abrir o aplicativo; ela aguarda um gatilho. Renovar a conversa contínua também não deve repetir a recepção.
 
-A revisão 0.5.0 aguarda CI, pacote e ensaio integrado. A aprovação de **343 testes e abertura nativa no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** pertence à versão anterior. Login real, palmas no ambiente de uso, câmera e conversa prolongada precisam de evidência própria em [Validação](validation.md).
+[CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado no destino continua pendente. A aprovação de **343 testes e abertura nativa no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** pertence à versão anterior. Login real, palmas no ambiente de uso, câmera e conversa prolongada precisam de evidência própria em [Validação](validation.md).
 
 ## Configurar uma instalação
 
