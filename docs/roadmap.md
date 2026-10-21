@@ -1,14 +1,23 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
-O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão visual 0.3.1 redesenha o núcleo a partir do vídeo fornecido pelo autor, preservando o Contexto sob demanda com clima e atividade local da 0.3.0. A 0.3.1 teve **264/264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York; o aceite visual permanece pendente. A revisão anterior 0.3.0 teve **264 testes, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678)**; o usuário aprovou seu roteiro funcional curto, mas reprovou o núcleo. Esse relato não equivale a uma bateria completa de dispositivos. Resultados por execução/commit ficam em [Validação](validation.md). Não há release assinada ou validação completa em instalação limpa.
+O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). O incremento **0.4.0 está em verificação**, com CI e pacote pendentes: descoberta/abertura de aplicativos instalados, pastas locais, leitura/pesquisa web, tempo atual e fontes compactas. O núcleo 0.3.1 foi aprovado pelo autor e é preservado. Essa base teve **264/264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York. A revisão anterior 0.3.0 teve **264 testes, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678)**; o usuário aprovou seu roteiro funcional curto, mas reprovou o núcleo daquela revisão. As provas históricas não validam as novas ferramentas. Resultados por execução/commit ficam em [Validação](validation.md). Não há release assinada ou validação completa em instalação limpa.
 
-A direção atual preserva o dashboard limpo, saudação completa, efeito metálico fixo 0,78 e reprodução a 0,95× com altura preservada. A 0.3.1 compõe dez curvas de intensidades distintas, deformação assimétrica, focos luminosos e campo azul sobre grade plana ampla, com centro sem texto novo. A paleta ciano/azul é fixa nos estados. A implementação própria usa o [vídeo específico do autor como referência](research/referencia-video-nucleo.md), sem reutilizar código ou assets do projeto de referência. O novo visual precisa de aceite do usuário. Superioridade, exclusividade e vantagem de latência dependem de comparação reproduzível; não são resultados demonstrados.
+A direção atual preserva o dashboard limpo, saudação completa, efeito metálico fixo 0,78 e reprodução a 0,95× com altura preservada. O núcleo aprovado da 0.3.1 compõe dez curvas de intensidades distintas, deformação assimétrica, focos luminosos e campo azul sobre grade plana ampla, com centro sem texto novo. A paleta ciano/azul é fixa nos estados. A implementação própria usa o [vídeo específico do autor como referência](research/referencia-video-nucleo.md), sem reutilizar código ou assets do projeto de referência. Superioridade, exclusividade e vantagem de latência dependem de comparação reproduzível; não são resultados demonstrados.
 
-## Revisão visual com CI aprovado e aceite visual pendente — 0.3.1
+## Incremento em verificação — 0.4.0
+
+- Descobrir aplicativos instalados por nome e abrir somente IDs observados, com confirmação do aplicativo escolhido.
+- Abrir pastas existentes em unidades locais acessíveis, após confirmar o caminho, sem ampliar leitura/organização fora da pasta de trabalho.
+- Ler texto público HTTP(S) sem JavaScript/login/cookies e pesquisar na web hospedada OpenAI após confirmação. A busca usa chave/modelo existentes, pode consumir a conta e não inclui histórico/memórias na subconsulta.
+- Consultar o tempo atual com atualização explícita para a cidade configurada, sem iniciar saudação/TTS/música ou recorrer a previsão antiga como atual.
+- Mostrar até seis fontes compactas fora do log, sem transcrições de voz ou cartões automáticos. Separar aberturas apenas enviadas ao Windows de conclusões verificadas.
+- Concluir CI, pacote e ensaios Windows/serviços reais com versão/commit identificados. O guia [Aplicativos, pastas, web e clima](desktop-access.md) descreve pedidos, confirmações e limites.
+
+## Base visual aprovada — 0.3.1
 
 - Aproximar o desenho das curvas, focos e campo de fundo do vídeo fornecido, mantendo áudio/pulsação e movimento reduzido.
 - Preservar saudação, voz, Contexto e ferramentas; esta revisão não adiciona integrações domésticas ou outras fontes.
-- CI e abertura nativa real concluídos; [pacote Windows 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) baixado, com ZIP e EXE verificados por hash. O próximo passo é testar o **GleysonSilva-Jarvis-0.3.1-Windows.exe** no destino e obter o aceite visual do autor. O EXE 0.3.0 continua somente como revisão histórica e não valida esse desenho.
+- CI e abertura nativa real concluídos; [pacote Windows 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) baixado, com ZIP e EXE verificados por hash. O autor aprovou o núcleo. O **GleysonSilva-Jarvis-0.3.1-Windows.exe** é a base anterior e não contém as ferramentas da 0.4.0; o EXE 0.3.0 continua somente como revisão histórica do desenho rejeitado.
 
 ## Incremento implementado — 0.3.0
 
@@ -22,8 +31,8 @@ Esse primeiro incremento ainda não combina calendário, e-mail ou notícias. O 
 
 | Área | Código e observações registradas | Próximo aceite |
 | --- | --- | --- |
-| Interface e saudação | Narração aprovada; revisão 0.2.2 sem transcrições no painel, texto digitado preservado e fonte do clima compacta, verificados com serviços substituídos. O núcleo 0.3.1 ainda não tem aceite visual. | Confirmar a nova apresentação durante uma sessão real e avaliar fluidez. |
-| Núcleo 0.3.1 e Contexto | Novo núcleo de dez curvas, focos e grade plana ampla com CI e abertura nativa aprovados; Contexto da 0.3.0 preservado, com fontes e limites explícitos. O autor aprovou o roteiro funcional curto anterior, mas reprovou o núcleo anterior. | Obter aceite visual da 0.3.1; testar clima, indisponibilidade, cancelamento e troca de perfil com cenários identificados. |
+| Interface e saudação | Narração e núcleo 0.3.1 aprovados; apresentação sem transcrições preservada. Fontes compactas da 0.4.0 ficam fora do log. | Validar novos links/consultas em sessão real, preservando voz e limpeza visual. |
+| Núcleo 0.3.1 e Contexto | Núcleo de dez curvas, focos e grade plana ampla aprovado; Contexto preservado, com fontes e limites explícitos. | Testar clima, indisponibilidade, cancelamento e troca de perfil com cenários identificados. |
 | OpenAI texto | Resposta correta com conta real. | Ferramentas, limites, falhas, custo e latência em amostra maior. |
 | Entrada e saída de voz | Microfone real com nível/liberação; resposta OpenAI Realtime anterior ouvida em marin. | Nova rota de conversa com a voz ElevenLabs configurada, sem saída OpenAI alternativa. |
 | Voz Jarvis | Clone criado; amostra e recepção aprovadas a 0,95×/efeito fixo. | Respostas dinâmicas, interrupção e retomada em sessão real. |
@@ -31,8 +40,8 @@ Esse primeiro incremento ainda não combina calendário, e-mail ou notícias. O 
 | Fechamento e filtros 0.2.3 | X alterado para silenciar e destruir a janela imediatamente, com encerramento compartilhado; filtros mais conservadores testados com substitutos e CI aprovado. | Ensaio físico do fechamento durante áudio, minimizar/retorno, gatilhos e ruído. Não se sabe qual detector causou a repetição relatada. |
 | Música | Arquivo privado recebido; prévia atual com saudação ouvida/aprovada, ganho 0,35/0,22. | Testar recepção ao vivo e encerramento. Não há trilha padrão distribuída. |
 | Presença | Webcam real 640×480 e parada confirmadas. | Instalar OpenCV/pesos opcionais e ensaiar identificação voluntária. |
-| Execução | Pasta limitada, proposta, confirmação, registro e restauração condicionada. | Ensaios Windows com aplicativos e arquivos descartáveis. |
-| Distribuição | CI 0.3.1: 264/264 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados; ZIP e EXE baixados e hashes conferidos. | Ensaiar no destino, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
+| Execução | Organização em pasta limitada preservada; 0.4.0 acrescenta descoberta/abertura nativa, pastas locais e consultas web com confirmação. Abertura não amplia leitura/organização. | Ensaios Windows das novas ferramentas, resultados unverified, recusas, cancelamentos e fontes. |
+| Distribuição | CI histórico 0.3.1 aprovado com 264/264 testes, pacote/abertura real e hashes conferidos. CI/pacote da 0.4.0 pendentes. | Concluir revisão atual e ensaiar no destino, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
 
 A revisão 0.2.0 revelou bloqueio por `await app.whenReady()` no topo ESM do Electron 44.9.0, apesar do CI de empacotamento aprovado. A revisão 0.2.1 corrigiu o bootstrap e passou por 218 testes e pelo [teste nativo real no CI 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494): janela, DOM, preload e boot do pacote confirmados. O bloqueio por ACL no ambiente local é um ensaio separado; não ocorreu no CI. A captura de tela do usuário confirmou a abertura visual no próprio computador.
 
@@ -88,7 +97,7 @@ Avaliar português, sotaques, nomes, sobreposição, ruído e retomada. Preserva
 
 Criar editor de procedimentos com gatilho, escopo, etapas, condições, permissões e versão. Mostrar mudanças de plano antes de continuar; salvar correções conscientemente. Pontos de retomada precisam conferir o estado real, distinguindo compensação possível, efeito irreversível e resultado externo insuficiente.
 
-Escolher integrações pelas tarefas frequentes: arquivos, editor, navegador e informações autorizadas. O primeiro Contexto de clima/atividade está implementado; evoluir para briefing com calendário, e-mail e notícias exige conectores de leitura, consentimento, cancelamento e fonte/horário por item. Esses conectores ainda não estão implementados. Mensagens, aplicações complexas e dispositivos também exigem adaptadores próprios. eWeLink e Home Assistant não são usados pelo autor e ficam como expansão futura, sem solicitação de contas ou configuração nesta revisão. Cada adaptador deve declarar contrato, escopo, confirmação, resultado observado e cancelamento.
+Escolher integrações pelas tarefas frequentes: arquivos, editor, navegador e informações autorizadas. Contexto de clima/atividade e as consultas explícitas da 0.4.0 não equivalem a briefing conectado com calendário/e-mail/feed próprio de notícias. Esses conectores exigem consentimento, leitura limitada, cancelamento e fonte/horário por item e ainda não estão implementados. Mensagens, aplicações complexas e dispositivos também exigem adaptadores próprios. eWeLink e Home Assistant não são usados pelo autor e ficam como expansão futura, sem solicitação de contas ou configuração nesta revisão. Cada adaptador deve declarar contrato, escopo, confirmação, resultado observado e cancelamento.
 
 **Aceite:** tarefas reais concluídas com efeitos rastreáveis. Quantidade de integrações não substitui confiabilidade.
 

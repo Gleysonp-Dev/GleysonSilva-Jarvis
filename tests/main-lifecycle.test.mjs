@@ -38,17 +38,19 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
   class Tray { constructor() { trays.push(this); } setToolTip() {} on() {} setContextMenu(menu) { this.menu = menu; } destroy() { calls.trayDestroy++; } }
   const settings = class { get() { return structuredClone(current); } write(value) { Object.assign(current, value); } save(value) { Object.assign(current, value); } public() { return { ...current }; } getSecret() { return 'fake-key'; } getElevenSecret() { return 'fake-key'; } };
   const blocking = (_input, { signal }) => new Promise((resolve, reject) => { calls.signals.push(signal); signal.addEventListener('abort', () => reject(new Error('cancelled')), { once: true }); });
+  let adapters;
   const runtime = { cancel(id) { calls.cancelledRuns.push(id); }, approve() {}, async close() { calls.runtimeClose++; }, getSnapshot() { return { memories: [], tasks: [], procedures: [] }; } };
   const session = { setPermissionRequestHandler() {}, setPermissionCheckHandler() {}, setDevicePermissionHandler() {}, on() {} };
   const mocks = {
-    electron: { app, BrowserWindow: Window, Tray, Menu: { buildFromTemplate: value => value }, nativeImage: { createFromBuffer: () => ({}) }, dialog: {}, ipcMain: { handle: (name, handler) => ipc.set(name, handler) }, protocol: { registerSchemesAsPrivileged() {}, handle() {} }, safeStorage: {}, session: { defaultSession: session }, shell: {} },
+    electron: { app, BrowserWindow: Window, Tray, Menu: { buildFromTemplate: value => value }, nativeImage: { createFromBuffer: () => ({}) }, dialog: {}, ipcMain: { handle: (name, handler) => ipc.set(name, handler) }, protocol: { registerSchemesAsPrivileged() {}, handle() {} }, safeStorage: {}, session: { defaultSession: session }, shell: { async openExternal(url) { (calls.external ??= []).push(url); } } },
     'node:fs/promises': { async mkdir() {}, readFile() { throw new Error('Unexpected file access.'); } },
-    '../../packages/runtime/index.mjs': { createRuntime: () => runtime },
-    '../../packages/openai/index.mjs': { OpenAIService: class { respond = blocking; }, OpenAIServiceError: class extends Error {} },
+    '../../packages/runtime/index.mjs': { createRuntime: options => { adapters = options.platformAdapters; return runtime; } },
+    '../../packages/openai/index.mjs': { OpenAIService: class { respond = blocking; searchWeb = async (input, options) => { calls.search = { input, options }; return { text: 'Search test', sources: [] }; }; }, OpenAIServiceError: class extends Error {} },
+    '../../packages/web/index.mjs': { WebService: class { read = async (input, options) => { calls.website = { input, options }; return { text: 'Website test', sources: [] }; }; } },
     './settings.mjs': { SettingsStore: settings, validateSettings: value => value },
     './platform/windows.mjs': { createWindowsAdapters: () => ({}) },
     './vision.mjs': { VisionService: class { async handle(input) { if (input.type === 'reset' && resetFailure) throw new Error('reset failed'); return { available: false }; } close() { calls.visionClose++; } } },
-    '../../packages/greeting/index.mjs': { StartupGreetingService: class { prepare = blocking; } },
+    '../../packages/greeting/index.mjs': { StartupGreetingService: class { prepare = blocking; readWeather = async (input, options) => { calls.weather = { input, options }; return { status: 'ok' }; }; } },
     '../../packages/context/index.mjs': { ContextService: class { read(input, options) { if (!lateContext) return blocking(input, options); calls.signals.push(options.signal); return context.promise; } }, ContextError: class extends Error {} },
     '../../packages/speech/index.mjs': { SpeechService: class {}, SpeechServiceError: class extends Error {} },
     '../../packages/speech/controller.mjs': { SpeechController: class { reset() { calls.speechReset++; } }, SpeechControlError: class extends Error {} },
@@ -63,8 +65,27 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
   const window = windows[0];
   const invoke = (name, input) => ipc.get('jarvis:' + name)({ sender: window.webContents, senderFrame: window.webContents.mainFrame }, input);
   t.after(async () => { wake.resolve(); await module.exports.requestShutdown('test_cleanup'); });
-  return { calls, app, window, trays, invoke, releaseWake: wake.resolve, resolveContext: context.resolve, shutdown: module.exports.requestShutdown };
+  return { calls, app, window, trays, invoke, adapters, releaseWake: wake.resolve, resolveContext: context.resolve, shutdown: module.exports.requestShutdown };
 }
+
+test('native runtime wires website, search and forced fresh weather without greeting', async t => {
+  const f = await fixture(t); const signal = new AbortController().signal;
+  assert.equal((await f.adapters.readWebsite({ url: 'https://example.com' }, { signal })).text, 'Website test');
+  assert.equal(f.calls.website.options.signal, signal);
+  assert.equal((await f.adapters.searchWeb({ query: 'current test' }, { signal })).text, 'Search test');
+  assert.deepEqual(f.calls.search.input, { query: 'current test' });
+  await f.adapters.readWeather({ signal, refresh: false });
+  assert.deepEqual(f.calls.weather.input, {}); assert.equal(f.calls.weather.options.refresh, true); assert.equal(f.calls.weather.options.signal, signal);
+});
+
+test('explicit source clicks open general HTTP(S) links but refuse files, protocols and credentials', async t => {
+  const f = await fixture(t);
+  assert.equal(await f.invoke('openExternal', 'https://example.org/research'), true);
+  assert.equal(await f.invoke('openExternal', 'http://example.net/'), true);
+  assert.deepEqual(f.calls.external, ['https://example.org/research', 'http://example.net/']);
+  for (const value of ['file:///C:/secret.txt', 'javascript:alert(1)', 'ms-settings:privacy', 'https://user:pass@example.org/']) await assert.rejects(f.invoke('openExternal', value));
+  assert.equal(f.calls.external.length, 2);
+});
 
 test('context bridge rejects caller-selected profiles and cancels reading without affecting speech', async t => {
   const f = await fixture(t);

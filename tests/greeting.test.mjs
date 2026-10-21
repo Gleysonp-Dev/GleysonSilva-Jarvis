@@ -16,13 +16,14 @@ function forecast() {
 }
 function setup({ settings, key = '', fetchImpl, json = forecast(), now = () => new Date(NOW), speechImpl, weatherTimeoutMs, speechTimeoutMs, actualAdapter = false } = {}) {
   let currentSettings = { startupGreeting: true, weatherLocation: { ...place }, elevenVoiceId: voiceId, ...settings };
+  let keyReads = 0;
   const requests = [], speechCalls = [];
-  const service = new StartupGreetingService({ getSettings: () => currentSettings, getKey: () => key, now,
+  const service = new StartupGreetingService({ getSettings: () => currentSettings, getKey: () => { keyReads++; return key; }, now,
     fetch: fetchImpl ?? (async (url, init) => { requests.push({ url, init }); return Response.json(json); }),
     ...(actualAdapter ? {} : { elevenlabs: { synthesizeSpeech: async (...args) => { speechCalls.push(args); return speechImpl ? speechImpl(...args) : { audio, contentType: 'audio/mpeg' }; } } }),
     ...(weatherTimeoutMs ? { weatherTimeoutMs } : {}), ...(speechTimeoutMs ? { speechTimeoutMs } : {}),
   });
-  return { service, requests, speechCalls, settings: next => { currentSettings = { ...currentSettings, ...next }; } };
+  return { service, requests, speechCalls, get keyReads() { return keyReads; }, settings: next => { currentSettings = { ...currentSettings, ...next }; } };
 }
 
 test('pure greeting honors PC-hour boundaries and ends with the exact requested question', () => {
@@ -238,7 +239,7 @@ test('explicit weather has honest missing-location and network-timeout states wi
 
 test('weather input cannot supply another profile, coordinates, keys or endpoints', async () => {
   const context = setup();
-  for (const input of [null, [], { timezone: 'UTC', profileId: 'other' }, { latitude: 9 }, { url: 'http://localhost/' }, { timezone: 'invalid-zone' }]) {
+  for (const input of [null, [], { timezone: 'UTC', profileId: 'other' }, { latitude: 9 }, { url: 'http://localhost/' }, { timezone: 'invalid-zone' }, { timezone: 'UTC', refresh: true }]) {
     await assert.rejects(context.service.readWeather(input), { code: 'invalid_input' });
   }
   assert.equal(context.requests.length, 0); assert.equal(context.speechCalls.length, 0);
@@ -259,4 +260,80 @@ test('cancelled explicit weather cannot populate cache when an uncooperative fet
   await new Promise(resolve => setImmediate(resolve));
   const result = await context.service.readWeather({ timezone: 'UTC' });
   assert.equal(result.status, 'ok'); assert.equal(result.cache.hit, false); assert.equal(count, 2);
+});
+
+test('trusted refresh bypasses a still-fresh cache and replaces it only with a newly validated source response', async () => {
+  let now = new Date(NOW), calls = 0, keyReads = 0, speechCalls = 0;
+  const service = new StartupGreetingService({ getSettings: () => ({ startupGreeting: false, weatherLocation: place }),
+    getKey: () => { keyReads++; return KEY; }, elevenlabs: { synthesizeSpeech: () => { speechCalls++; throw new Error('No TTS in weather reads'); } },
+    now: () => new Date(now), fetch: async () => {
+      calls++;
+      const json = forecast(); json.current.time = now.getTime() / 1000;
+      if (calls > 1) { json.current.temperature_2m = 26.5; json.current.weather_code = 61; }
+      return Response.json(json);
+    } });
+  const initial = await service.readWeather({ timezone: 'UTC' });
+  now = new Date(NOW.getTime() + 60_000);
+  const cached = await service.readWeather({ timezone: 'UTC' });
+  assert.equal(cached.cache.hit, true); assert.equal(calls, 1); assert.equal(cached.weather.currentTemperature, 25.5);
+  const refreshed = await service.readWeather({ timezone: 'UTC' }, { refresh: true });
+  assert.equal(calls, 2); assert.equal(refreshed.status, 'ok'); assert.equal(refreshed.cache.hit, false);
+  assert.equal(refreshed.weather.currentTemperature, 26.5); assert.equal(refreshed.weather.condition, 'chuva fraca');
+  assert.equal(refreshed.weather.observedAt, now.getTime()); assert.equal(refreshed.fetchedAt, now.getTime());
+  assert.ok(refreshed.fetchedAt > initial.fetchedAt); assert.equal(refreshed.locationLabel, place.name);
+  assert.equal(refreshed.attribution.name, 'Open-Meteo');
+  const after = await service.readWeather({ timezone: 'UTC' });
+  assert.equal(after.cache.hit, true); assert.equal(after.weather.currentTemperature, 26.5); assert.equal(calls, 2);
+  assert.equal(keyReads, 0); assert.equal(speechCalls, 0);
+});
+
+test('failed, stale or invalid forced reads return unavailable rather than silently returning older cached weather', async t => {
+  for (const [name, response] of [
+    ['network', async () => { throw new Error(`private-network-${KEY}`); }],
+    ['HTTP', async () => new Response('private-provider-body', { status: 503 })],
+    ['timeout', async () => new Promise(() => {})],
+    ['stale', async () => { const json = forecast(); json.current.time -= 3 * 3600 + 1; return Response.json(json); }],
+    ['units', async () => { const json = forecast(); json.current_units.temperature_2m = '°F'; return Response.json(json); }],
+    ['daily date', async () => { const json = forecast(); json.daily.time[0] += 86400; return Response.json(json); }],
+  ]) await t.test(name, async () => {
+    let calls = 0;
+    const context = setup({ settings: { startupGreeting: false }, key: KEY, weatherTimeoutMs: 10,
+      fetchImpl: async () => ++calls === 1 ? Response.json(forecast()) : response() });
+    const initial = await context.service.readWeather({ timezone: 'UTC' });
+    assert.equal(initial.status, 'ok');
+    const failed = await context.service.readWeather({ timezone: 'UTC' }, { refresh: true });
+    assert.equal(calls, 2); assert.equal(failed.status, 'unavailable'); assert.equal(failed.locationLabel, place.name);
+    assert.equal(failed.weather, null); assert.equal(failed.fetchedAt, null); assert.equal(failed.attribution, null);
+    assert.deepEqual(failed.cache, { hit: false, expiresAt: null });
+    assert.equal(context.speechCalls.length, 0); assert.equal(context.keyReads, 0); assert.equal(JSON.stringify(failed).includes(KEY), false);
+  });
+});
+
+test('a cancelled forced read ignores the old cache and cannot overwrite it with a delayed response or start TTS', async () => {
+  let finish, entered, calls = 0;
+  const started = new Promise(resolve => { entered = resolve; });
+  const context = setup({ settings: { startupGreeting: false }, key: KEY, fetchImpl: async (_, { signal }) => {
+    calls++;
+    if (calls === 1) return Response.json(forecast());
+    assert.equal(signal.aborted, false); entered();
+    return new Promise(resolve => { finish = resolve; });
+  } });
+  await context.service.readWeather({ timezone: 'UTC' });
+  const controller = new AbortController();
+  const pending = context.service.readWeather({ timezone: 'UTC' }, { signal: controller.signal, refresh: true });
+  await started; controller.abort(); await assert.rejects(pending, { code: 'cancelled' });
+  const late = forecast(); late.current.temperature_2m = 40;
+  finish(Response.json(late)); await new Promise(resolve => setImmediate(resolve));
+  const cached = await context.service.readWeather({ timezone: 'UTC' });
+  assert.equal(cached.cache.hit, true); assert.equal(cached.weather.currentTemperature, 25.5);
+  assert.equal(calls, 2); assert.equal(context.speechCalls.length, 0); assert.equal(context.keyReads, 0);
+});
+
+test('refresh is a trusted boolean option and still needs a configured city, never a renderer field', async () => {
+  const context = setup({ settings: { startupGreeting: false, weatherLocation: null }, key: KEY });
+  const missing = await context.service.readWeather({ timezone: 'UTC' }, { refresh: true });
+  assert.equal(missing.status, 'not_configured'); assert.equal(missing.weather, null); assert.equal(missing.fetchedAt, null);
+  await assert.rejects(context.service.readWeather({ timezone: 'UTC', refresh: true }), { code: 'invalid_input' });
+  for (const refresh of ['true', 1, null]) await assert.rejects(context.service.readWeather({ timezone: 'UTC' }, { refresh }), { code: 'invalid_input' });
+  assert.equal(context.requests.length, 0); assert.equal(context.speechCalls.length, 0); assert.equal(context.keyReads, 0);
 });

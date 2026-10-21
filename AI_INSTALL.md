@@ -1,12 +1,12 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar a revisão visual **0.3.1** pelo [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main) ou pacote portátil e entregar um resultado verificável. A revisão ajusta o núcleo ao vídeo fornecido pelo autor, preservando voz, saudação, Contexto e demais funções da 0.3.0. O [CI bfcc67b9 da 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h14, America/New_York**. O aceite visual do núcleo, a instalação limpa e os ensaios completos de dispositivos permanecem pendentes. Não há release assinada.
+Roteiro para instalar o [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main) e entregar um resultado verificável. A revisão **0.4.0 está em verificação**, com CI e pacote pendentes: acrescenta descoberta de aplicativos, abertura de pastas locais, leitura/pesquisa web e consulta atual de clima. O núcleo da 0.3.1 foi aprovado pelo autor e é preservado com a voz/música configuradas. O [CI histórico bfcc67b9 da base 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h14, America/New_York**. Isso não valida as ferramentas novas. Não há release assinada nem validação completa em instalação limpa. Veja [Aplicativos, pastas, web e clima](docs/desktop-access.md).
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
 ## 1. Inspecionar o ambiente
 
-1. Leia README, package.json e instruções locais aplicáveis. Confirme branch `main`, versão e commit utilizados. Para validar o novo núcleo, use a revisão 0.3.1; o EXE 0.3.0 é a revisão anterior e não comprova a mudança visual.
+1. Leia README, package.json e instruções locais aplicáveis. Confirme branch `main`, versão e commit utilizados. Para validar as novas ferramentas, use a revisão 0.4.0; o EXE 0.3.1 é a base anterior e não contém esse incremento.
 2. Confirme Windows, Node 24 ou superior e npm; SQLite usa o runtime integrado.
 3. Não imprima variáveis de ambiente, credenciais ou arquivos privados.
 4. Use uma pasta de ensaio descartável para testar ferramentas.
@@ -31,9 +31,9 @@ npm start
 
 Confirme janela, conversa, Contexto, Ajustes, Memória, Registro e Presença. Na 0.3.1, o núcleo usa dez curvas com intensidades distintas, deformação assimétrica, focos luminosos e campo azul sobre grade plana ampla. O centro deixa a grade visível, sem texto novo central ou anéis segmentados. A paleta ciano/azul permanece fixa em todos os estados. Compare com a [análise do vídeo fornecido pelo autor](docs/research/referencia-video-nucleo.md), sem afirmar igualdade de pixels. Sem captura ou sessão real, os indicadores não devem alegar conexão. Movimento reduzido deve congelar a geometria; o nível real do áudio continua sendo a origem do pulso no modo normal.
 
-### Pacote Windows 0.3.1
+### Pacote Windows — 0.4.0 pendente; base histórica 0.3.1
 
-Baixe o [artefato Windows da execução 39519770787](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.3.1-Windows.exe**. O pacote não exige Node. Confira o `.sha256` incluído; o ZIP e o EXE foram baixados e comparados com os valores publicados. O artefato tem retenção até **18 de janeiro de 2027, horário de Nova York**; não é um link permanente de release. Se indisponível, use o código-fonte e registre o build local.
+Não há link/hash aprovado para o pacote 0.4.0 enquanto seu CI não concluir. O [artefato Windows da execução 39519770787](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) contém a **base anterior 0.3.1**. Para ensaiar essa base, baixe o ZIP autenticado no GitHub, extraia e abra **GleysonSilva-Jarvis-0.3.1-Windows.exe**; ele não comprova as novas ferramentas. O pacote não exige Node. Confira o `.sha256` incluído; o ZIP e o EXE foram baixados e comparados com os valores publicados. O artefato tem retenção até **18 de janeiro de 2027, horário de Nova York**; não é um link permanente de release. Se indisponível, use o código-fonte e registre o build local.
 
 | Arquivo 0.3.1 | Tamanho | SHA-256 conferido |
 | --- | --- | --- |
@@ -87,8 +87,14 @@ A [amostra pública em assets/voice/jarvis-demo.mp3](assets/voice/jarvis-demo.mp
 7. **Amostra fixa:** em Ajustes → Saudação, reproduzir/parar a frase gravada sem API ou microfone. Não representa clima atual nem nova conversa.
 8. **Recepção:** configurar cidade privadamente e usar Iniciar Jarvis. Conferir relógio, tempo/previsão, atribuição e áudio correspondente. Ouvir saudação repete o áudio preparado sem nova geração.
 9. **Contexto:** abrir pelo botão lateral e conferir Tempo e Atividade local, com fonte/horários. Sem cidade, conferir orientação para Ajustes; sem rede, indisponibilidade sem valores inventados. Configurada a cidade, o clima deve funcionar também com saudação automática desligada e sem chave ElevenLabs. Atualizar pode reutilizar cache válido por até dez minutos. Fechar durante consulta e trocar de perfil não devem exibir resposta antiga. Conferir ausência de captura, narração e transcrições adicionadas por essa leitura.
+10. **Aplicativos instalados — 0.4.0 Windows:** pedir uma descoberta por nome, escolher entre resultados ambíguos, negar uma abertura e autorizar outra. O ID deve vir do inventário observado no mesmo perfil. Conferir aplicativo/janela separadamente: “Enviada ao Windows” não significa janela verificada.
+11. **Pastas — 0.4.0 Windows:** pedir Downloads e uma pasta descartável existente em outro volume local, quando disponível. Revisar e confirmar o caminho. Abrir no Explorador não deve ampliar a pasta de trabalho nem permitir leitura/organização desse destino pela IA.
+12. **Web — 0.4.0:** pedir leitura de uma URL pública HTTP(S), revisar endereço/envio de dados e confirmar; conferir fonte compacta fora do log. Testar destino local/login/JavaScript indisponível sem inventar conteúdo. Pedir uma pesquisa explícita, revisar a consulta e confirmar o consumo da conta OpenAI. A subconsulta hospedada usa a chave/modelo de texto existentes, sem histórico/memórias; não habilita navegação automática.
+13. **Tempo solicitado agora — 0.4.0:** perguntar o tempo atual com cidade configurada e conferir nova consulta, observação e fontes Open-Meteo/CC BY 4.0. A ferramenta não prepara TTS, música ou microfone. Falha não deve reutilizar uma previsão antiga como atual; Contexto/saudação preservam sua própria política de cache.
 
-A atividade é um snapshot de até 100 execuções recentes do perfil, com até oito exibidas. Não é agenda nem integração Google. Google Calendar, e-mail, notícias e briefing falado combinado ainda não estão implementados; não solicite acesso a essas contas durante a instalação. eWeLink e Home Assistant também ficam como expansão futura: o autor não os utiliza e esta revisão não adiciona conectores, contas ou dispositivos. Veja [docs/context.md](docs/context.md).
+No fluxo de voz, as fontes devem continuar acessíveis como links compactos, sem transcrever a resposta ou abrir cartões. Verifique troca de perfil/reset, cancelamento e conclusão atrasada. Os ensaios Windows de descoberta/abertura exigem o app nativo; o navegador local não comprova esses adaptadores. Detalhes e exemplos em [docs/desktop-access.md](docs/desktop-access.md).
+
+A atividade é um snapshot de até 100 execuções recentes do perfil, com até oito exibidas; a contagem separa aberturas despachadas sem verificação de janela. Não é agenda nem integração Google. Google Calendar, e-mail, feed próprio de notícias e briefing combinado ainda não estão implementados; pesquisa web pública não equivale a esses conectores. Não solicite acesso a essas contas durante a instalação. eWeLink e Home Assistant também ficam como expansão futura: o autor não os utiliza e esta revisão não adiciona conectores, contas ou dispositivos. Veja [docs/context.md](docs/context.md).
 
 A geração pode consumir as contas e está sujeita a limites. Não reinicie serviços nem altere quotas para contornar recusas. Um arquivo gravado preserva o boletim do momento da síntese, não uma previsão atualizada.
 
@@ -116,9 +122,9 @@ No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua i
 
 ## 7. Distinguir baseline de novos recursos
 
-A 0.3.1 tem CI, pacote e abertura nativa real aprovados; o aceite visual e a bateria completa de dispositivos permanecem pendentes. O usuário relatou que o roteiro funcional curto da 0.3.0 funcionou e aprovou essa parte; reprovou o núcleo, que motivou a revisão visual atual. Esse relato não descreve uma bateria completa de dispositivos e cenários. Registre os resultados atuais sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
+A 0.4.0 tem CI e pacote pendentes. A base 0.3.1 tem CI, pacote e abertura nativa real aprovados, e seu núcleo recebeu aceite visual do autor. A bateria completa de dispositivos e as novas ferramentas da 0.4.0 precisam de ensaios próprios. O usuário havia aprovado o roteiro funcional curto da 0.3.0 e reprovado seu núcleo, motivando a revisão visual seguinte. Esse relato não descreve uma bateria completa de dispositivos e cenários. Registre os resultados atuais sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 
-- Revisão 0.3.1: **264/264 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York. ZIP e EXE baixados e hashes conferidos; aceite visual do autor ainda pendente.
+- Revisão histórica 0.3.1: **264/264 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York. ZIP e EXE baixados e hashes conferidos; núcleo visual aprovado pelo autor. Não comprova as ferramentas da 0.4.0.
 
 - Revisão anterior 0.3.0: **264 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678). Aceite do roteiro funcional curto informado pelo usuário; núcleo visual reprovado. Não usar esse CI ou o EXE 0.3.0 como prova da 0.3.1.
 
@@ -145,6 +151,7 @@ Versão/commit:
 Verificações: aprovadas / falhas / skips
 Superfície: Electron / navegador local / prévia / EXE
 Núcleo orbital 0.3.1: dez curvas, assimetria, focos, grade plana ampla, paleta ciano/azul fixa, áudio real e movimento reduzido
+Ferramentas 0.4.0: descoberta/abertura de aplicativos, pasta local, web/pesquisa com fontes e clima atual / não ensaiado
 Contexto: fontes, horário/cache, perfil, indisponibilidade e cancelamento
 Microfone: captura, cancelamento e liberação
 Câmera: resolução, imagem e liberação

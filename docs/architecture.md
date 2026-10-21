@@ -1,6 +1,6 @@
 # Arquitetura — Projeto GleysonSilva-Jarvis
 
-O MVP 0.3.1 separa interface, leitura de contexto, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. Esta revisão muda a apresentação do núcleo e preserva as funções da 0.3.0. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador. CI, pacote e abertura nativa real da 0.3.1 estão aprovados; conversa, gatilhos nativos e nova apresentação ainda precisam de validação real completa e aceite visual do autor.
+O MVP 0.4.0 separa interface, leitura de contexto/web, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. Esta revisão acrescenta descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao tempo atual; preserva o núcleo 0.3.1 aprovado pelo autor, voz e música. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador. CI e pacote da 0.4.0 estão pendentes; o CI aprovado da base 0.3.1 não valida o incremento. Guia de uso e limites em [Acesso desktop e web](desktop-access.md).
 
 ## Componentes e fronteiras
 
@@ -26,7 +26,10 @@ flowchart LR
     Runtime --> DB[(SQLite privado)]
     Runtime --> Files[Pasta autorizada]
     Runtime --> Apps[Adaptadores Windows]
-    Runtime --> Browser[Navegador dedicado]
+    Runtime --> Browser[Navegador do sistema]
+    Runtime --> Folders[Explorador: pasta local]
+    Runtime --> Web[Leitor de texto público / DNS validado]
+    Runtime --> Search[Pesquisa hospedada OpenAI]
     Main --> Vision[Serviço facial principal]
     Vision -->|Pipe privado| Worker[Python YuNet + SFace]
     Vision --> Protected[Cadastro protegido pelo sistema]
@@ -34,16 +37,17 @@ flowchart LR
 
 | Camada | Responsabilidade | Não recebe como autoridade |
 | --- | --- | --- |
-| Renderer | Conversa, núcleo orbital azul, cartões de contexto, captura, WebRTC, fila/reprodução de fala, palmas e aprovações. | Chave salva, Node, shell ou embeddings faciais. |
+| Renderer | Conversa, núcleo orbital azul, Contexto sob demanda, fontes compactas, captura, WebRTC, fila/reprodução de fala, palmas e aprovações. | Chave salva, Node, shell ou embeddings faciais. |
 | Preload | Expor métodos explícitos, filtrar IPC e entregar eventos. | Código arbitrário fornecido pelo modelo ou página. |
 | Processo principal | Validar origem/argumentos, guardar configuração, ligar serviços, vincular perfil e cancelar sessões. | Um perfil escolhido unilateralmente por uma ferramenta. |
 | Provider OpenAI | Responses/Realtime, streaming, memória recuperada e delegação de ferramentas. | Autoridade para ignorar a política local. |
 | Controlador de fala | Texto limitado, síntese ElevenLabs, correlação e cancelamento por geração. | Poder de executar ferramentas ou trocar silenciosamente de voz. |
 | ContextService | Clima e atividade local observados, com fonte, horário e estados parciais. | Perfil recebido da interface, autoridade para agir ou acesso a chaves de voz. |
 | Runtime | Limites de pasta, confirmação, idempotência, efeitos e registro persistente. | Instruções embutidas em arquivos, seleção de página ou texto de memória. |
+| Leitor web | Texto público HTTP(S), DNS/destino, redirecionamentos, tamanho e prazo limitados. | Cookies, login, JavaScript ou instruções encontradas na página. |
 | Worker facial | Detectar, alinhar e extrair vetores de um quadro. | Nomes, chaves, banco de tarefas ou acesso à rede. |
 
-O Electron usa `contextIsolation`, sandbox e `nodeIntegration:false`. A interface é servida pela origem própria `jarvis://app`; o processo principal aceita IPC somente do frame principal esperado. Navegações, janelas e permissões passam por regras específicas. O navegador dedicado tem uma sessão separada e não recebe a bridge do aplicativo.
+O Electron usa `contextIsolation`, sandbox e `nodeIntegration:false`. A interface é servida pela origem própria `jarvis://app`; o processo principal aceita IPC somente do frame principal esperado. Navegações, janelas e permissões passam por regras específicas. A abertura geral de URL encaminha o endereço ao navegador sem lhe conceder a bridge; o leitor web é um serviço separado e não reutiliza a sessão autenticada do navegador.
 
 ## Texto e ferramentas
 
@@ -61,9 +65,9 @@ O provider limita turnos, quantidade de ferramentas e prazo total. Repetir uma c
 
 A conversa falada começa pelo controle de voz. O renderer pede microfone, cria `RTCPeerConnection` e envia SDP ao principal. O principal negocia com chave protegida e devolve SDP. O microfone segue para a OpenAI no WebRTC; a sessão solicita saída em texto e ferramentas. Qualquer track de áudio remota inesperada é desativada/encerrada, sem reprodução.
 
-Trechos completos do texto são enfileirados para `packages/speech`, com perfil, execução e ID de trecho. O principal valida a configuração, sintetiza na ElevenLabs e retorna áudio limitado, sem chave/ID de voz. O cliente prepara/reproduz os trechos em ordem; cancelamento invalida a geração e seus resultados atrasados. Eventos `.done` não enfileiram uma nova fala. Erro de síntese mantém texto/aviso; não troca para voz OpenAI ou do navegador.
+Trechos completos do texto são enfileirados para `packages/speech`, com perfil, execução e ID de trecho. O principal valida a configuração, sintetiza na ElevenLabs e retorna áudio limitado, sem chave/ID de voz. O cliente prepara/reproduz os trechos em ordem; cancelamento invalida a geração e seus resultados atrasados. Eventos `.done` não enfileiram uma nova fala. Erro de síntese preserva texto interno e aviso, sem transcrever a resposta falada nem trocar para voz OpenAI ou do navegador.
 
-Captura e fala local possuem analisadores. Na 0.3.1, o Canvas compõe dez curvas com intensidades distintas e deformação assimétrica, fios ciano, focos luminosos e campo azul sobre grade plana ampla, visível através do centro sem texto novo. A paleta ciano/azul permanece fixa nos estados; envelopes de áudio alteram luz e pulsação, e ferramentas usam uma cadência própria. A composição é código original, ajustado ao vídeo fornecido pelo autor; a [nota de referência](research/referencia-video-nucleo.md) documenta observações e limitações. O Canvas limita resolução e reduz movimento conforme a preferência do sistema. A narração mantém reprodução fixa 0,95× com altura preservada e efeito 0,78. O teste de microfone é local, sem provedor. A conversa completa com essa saída e a nova composição ainda exigem aceite real.
+Captura e fala local possuem analisadores. O núcleo 0.3.1 aprovado pelo autor é preservado na 0.4.0: dez curvas com intensidades distintas e deformação assimétrica, fios ciano, focos luminosos e campo azul sobre grade plana ampla, visível através do centro sem texto novo. A paleta ciano/azul permanece fixa nos estados; envelopes de áudio alteram luz e pulsação, e ferramentas usam uma cadência própria. A composição é código original, ajustado ao vídeo fornecido pelo autor; a [nota de referência](research/referencia-video-nucleo.md) documenta observações e limitações. O Canvas limita resolução e reduz movimento conforme a preferência do sistema. A narração mantém reprodução fixa 0,95× com altura preservada e efeito 0,78. O teste de microfone é local, sem provedor. O aceite visual não substitui ensaios completos de conversa e dispositivos.
 
 O cliente deduplica eventos e `call_id`. Uma chamada de função é delegada à bridge; o resultado volta como `function_call_output`. Só uma continuação ainda ativa dispara `response.create`. Respostas interrompidas não podem reiniciar a tarefa quando um resultado atrasado chega.
 
@@ -81,7 +85,7 @@ O serviço de saudação usa relógio do PC, coordenadas privadas e Open-Meteo, 
 
 Detecção real, segundo plano, idioma, login e retorno não foram aprovados fisicamente. Navegador não altera login nem oferece o worker nativo. Consulte [Espera](standby.md).
 
-## Contexto sob demanda — implementado na 0.3.0 e preservado na 0.3.1
+## Contexto sob demanda — preservado na 0.4.0
 
 O painel **Contexto** chama `readContext({ timezone })` pela bridge limitada. O principal valida origem e campos, captura o perfil das configurações confiáveis e mantém uma consulta cancelável. `cancelContext()` interrompe a leitura; uma nova consulta substitui a anterior. Troca de configuração/perfil, encerramento e descarte do painel invalidam resultados atrasados. O harness local oferece o mesmo contrato, mantendo as verificações de origem e token.
 
@@ -89,9 +93,23 @@ O painel **Contexto** chama `readContext({ timezone })` pela bridge limitada. O 
 
 O clima é consultado no endpoint fixo Open-Meteo. Unidades, faixas, código meteorológico, data local e atualidade são validados. O cache em memória dura até dez minutos para as mesmas coordenadas, fuso e data; a observação atual deve ter no máximo três horas, com tolerância limitada para relógio futuro. Respostas inválidas ou fora do prazo não viram estimativas. A interface recebe valores validados, cidade, fonte/atribuição, horários e indicação de cache; a resposta de contexto não contém coordenadas, chaves ou ID de voz. Os estados são `ok`, `not_configured` e `unavailable`.
 
-A atividade local resume até cem registros recentes do perfil e apresenta até oito entradas, com ferramenta conhecida, estado e horário. Contagens referem-se ao recorte observado; argumentos, resumos livres, caminhos, memórias e procedimentos não saem nessa resposta. Uma falha de fonte preserva a outra; mudar de perfil descarta o conjunto em andamento. Esse histórico de execuções não é uma agenda.
+A atividade local resume até cem registros recentes do perfil e apresenta até oito entradas, com ferramenta conhecida, estado e horário. Contagens referem-se ao recorte observado e separam `unverified`: abertura enviada ao Windows sem verificação da janela. Argumentos, resumos livres, caminhos, memórias e procedimentos não saem nessa resposta. Uma falha de fonte preserva a outra; mudar de perfil descarta o conjunto em andamento. Esse histórico de execuções não é uma agenda.
 
 Os cartões aparecem somente no painel solicitado e não acrescentam transcrições à conversa, narração ou contexto automático ao modelo. Calendário, e-mail, notícias e briefing combinando essas fontes continuam no roadmap, sem conexão ou dados simulados apresentados como reais.
+
+## Acesso desktop, consultas e fontes — 0.4.0
+
+`apps_find` lê o inventário instalado do Windows e devolve nomes/IDs opacos. O runtime guarda os IDs descobertos por perfil; `apps_launch` aceita somente um ID previamente observado, apresenta o nome para confirmar e valida o alvo novamente no adaptador. Não converte texto do modelo em shell, argumentos livres ou executável arbitrário. Descoberta incompleta ou nomes semelhantes exigem resposta honesta e escolha do usuário.
+
+`folders_open` resolve pastas conhecidas ou um caminho absoluto existente em qualquer unidade local acessível à conta Windows. A confirmação mostra nome/caminho e a abertura é encaminhada ao Explorador. Isso não altera `workspaceRoot` nem amplia o acesso de leitura/organização. Caminhos UNC, dispositivos, relativos à unidade e fluxos alternativos são recusados. Uma abertura despachada sem evidência suficiente permanece `unverified`, separada de uma conclusão verificada.
+
+`browser_open` encaminha a URL HTTP(S) ao navegador. `web_read` é outra operação: depois de confirmar endereço e destino dos dados, `packages/web` valida esquema/credenciais, DNS público e cada redirecionamento, e fixa o transporte ao endereço validado. Lê somente texto compatível com limites de tamanho/prazo, sem cookies, login ou execução de JavaScript. Texto de página é dado não confiável, sem autoridade para outras ações.
+
+`web_search` faz uma chamada hospedada da OpenAI com a chave e o modelo de texto configurados, após confirmação. A subconsulta envia somente a pesquisa e instruções específicas, sem histórico da conversa ou memórias. Pode consumir busca/modelo da conta e falhar se a combinação não estiver disponível. O fluxo normal da conversa permanece separado dessa subconsulta. Não há pesquisa ou navegação autônoma em segundo plano.
+
+`weather_current` chama a fonte meteorológica para a cidade configurada com atualização explícita, sem preparar TTS/música ou acessar captura. Uma falha não recorre a previsão antiga como atual. Contexto e saudação conservam seu cache válido; o modelo recebe horários/fontes para responder ao pedido atual.
+
+Após leitura/pesquisa/clima, o runtime emite `sources` com `tool`, até seis `{url,title}`, `retrievedAt`, `profileId` e `runId`. O renderer exige execução observada no perfil atual, valida links HTTP(S) sem credenciais/controles, limita títulos/endereços e mostra domínio/horário em uma faixa compacta fora do log. A próxima consulta substitui as fontes; reset/perfil limpa a faixa e execuções antigas ou canceladas são descartadas. Nenhum cartão ou transcrição de voz é aberto automaticamente. Links usam `openExternal` validado no aplicativo.
 
 ## Arquivos e resultados verificáveis
 
@@ -101,7 +119,7 @@ O runtime rejeita caminhos externos, links/junções e arquivos que não satisfa
 
 Restauração é uma proposta separada, baseada no histórico dos movimentos. Arquivo alterado, destino ocupado ou identidade divergente provocam recusa. Ao reiniciar, tarefas pendentes tornam-se interrompidas e não são retomadas automaticamente.
 
-Os adaptadores Windows aceitam um conjunto pequeno de ações e aplicativos cadastrados. O fato de iniciar um processo pode ser insuficiente para confirmar a pasta ou janela exibida; nesses casos o resultado permanece não verificado. Não existe terminal livre nem automação visual universal.
+Os adaptadores Windows mantêm as integrações cadastradas e acrescentam descoberta/abertura de aplicativos instalados e abertura de pastas locais. A evidência exigida para cada ação continua sendo conferida; despachar uma abertura pode ser insuficiente para confirmar a janela exibida. Não existe terminal livre nem automação visual universal.
 
 ## Memória e persistência
 
@@ -126,7 +144,9 @@ A pessoa confirma o perfil sugerido. Reconhecimento não autentica, não libera 
 | Chaves OpenAI/ElevenLabs | Protegidas por `safeStorage` no principal; arquivo fora do checkout. | Temporárias na memória do processo local. |
 | Memórias e tarefas | SQLite privado do aplicativo. | Dados locais de ensaio, excluídos do Git. |
 | Pasta operada | Selecionada explicitamente, com fallback privado de trabalho. | `local-data/workspace`, pasta de ensaio gerada. |
-| Programas Windows | Adaptadores limitados e executáveis cadastrados. | Indisponíveis. |
+| Programas Windows | Descoberta por nome/IDs observados, abertura confirmada e integrações cadastradas. | Descoberta/abertura nativas indisponíveis. |
+| Abrir pasta local | Explorador, caminho existente e confirmação; não amplia a pasta de trabalho. | Integração Windows indisponível. |
+| Web e pesquisa | Leitor público sem sessão e busca hospedada OpenAI, após confirmação. | Mesmo contrato de consulta quando o serviço estiver disponível; não comprova aberturas nativas. |
 | Conversa | Microfone enviado à OpenAI; texto da resposta enviado à ElevenLabs. | Mesmo fluxo com ambos os provedores configurados. |
 | Teste de microfone | Análise local sem sessão paga. | Análise local sem sessão paga. |
 | Contexto | Clima Open-Meteo e atividade local sob demanda; sem captura ou síntese. | Mesmo contrato, com fontes reais configuradas ou estados de indisponibilidade. |
@@ -142,7 +162,7 @@ Testes offline cobrem contratos, streaming, cancelamento, arquivos, fala, gatilh
 
 O histórico registra 214 testes locais no 0.2.0; a abertura do pacote foi corrigida no 0.2.1 e confirmada visualmente pelo usuário. O 0.2.3 teve 229 testes e abertura nativa aprovados no CI Windows. A revisão anterior 0.3.0 teve 264 testes, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678). O usuário relatou que seu roteiro funcional curto funcionou e aprovou essa parte, reprovando o núcleo visual. Não é uma bateria completa de dispositivos, login ou identificação real.
 
-A 0.3.1 teve **264/264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/job/118960468252), em 20 de outubro de 2026, às 20h14, America/New_York. ZIP e EXE foram baixados e tiveram seus hashes conferidos; a abertura isolada confirmou janela, DOM, preload e boot com `packaged: true`. O aceite visual permanece pendente e não há release assinada. Esses resultados pertencem às respectivas versões e devem ser associados à execução/commit no [registro de validação](validation.md).
+A base 0.3.1 teve **264/264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/job/118960468252), em 20 de outubro de 2026, às 20h14, America/New_York. ZIP e EXE foram baixados e tiveram seus hashes conferidos; a abertura isolada confirmou janela, DOM, preload e boot com `packaged: true`. O núcleo recebeu aceite visual do autor. A 0.4.0 está com CI/pacote pendentes e precisa de ensaios próprios de suas ferramentas; não há release assinada. Esses resultados pertencem às respectivas versões e devem ser associados à execução/commit no [registro de validação](validation.md).
 
 As conexões de casa mostradas ou listadas no vídeo, como eWeLink e Home Assistant, não integram a arquitetura atual. O autor não as utiliza; ficam como expansão futura, condicionada a uma necessidade e a conectores realmente configurados e verificados.
 

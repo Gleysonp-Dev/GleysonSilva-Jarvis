@@ -106,10 +106,10 @@ export class StartupGreetingService {
     this.#weatherTimeoutMs = weatherTimeoutMs; this.#speechTimeoutMs = speechTimeoutMs;
   }
 
-  async #weather(location, timezone, now, signal) {
+  async #weather(location, timezone, now, signal, refresh = false) {
     const date = dateInZone(now, timezone);
     const key = JSON.stringify([location.latitude, location.longitude, timezone, date]);
-    if (this.#cache?.key === key && now.getTime() >= this.#cache.fetchedAt && now.getTime() - this.#cache.fetchedAt < CACHE_TTL
+    if (!refresh && this.#cache?.key === key && now.getTime() >= this.#cache.fetchedAt && now.getTime() - this.#cache.fetchedAt < CACHE_TTL
       && fresh(this.#cache.weather.observedAt, now.getTime())) return { weather: { ...this.#cache.weather }, fetchedAt: this.#cache.fetchedAt, cache: { hit: true, expiresAt: this.#cache.fetchedAt + CACHE_TTL } };
     const scope = deadline(signal, this.#weatherTimeoutMs);
     try {
@@ -133,9 +133,9 @@ export class StartupGreetingService {
     finally { scope.dispose(); }
   }
 
-  async #readWeather(settings, timezone, now, signal) {
+  async #readWeather(settings, timezone, now, signal, refresh = false) {
     const location = validLocation(settings.weatherLocation);
-    const result = location ? await this.#weather(location, timezone, now, signal) : null;
+    const result = location ? await this.#weather(location, timezone, now, signal, refresh) : null;
     active(signal);
     return { status: result ? 'ok' : location ? 'unavailable' : 'not_configured', timezone, locationLabel: location?.name ?? '',
       weather: result ? { ...result.weather, condition: CONDITIONS.get(result.weather.weatherCode) } : null,
@@ -143,13 +143,14 @@ export class StartupGreetingService {
       cache: result?.cache ?? { hit: false, expiresAt: null } };
   }
 
-  /** Explicit read only: independent of startup policy and never loads credentials or synthesizes audio. */
-  async readWeather(input = {}, { signal } = {}) {
+  /** Explicit read only. Trusted callers can bypass cache; renderer input remains limited to timezone. */
+  async readWeather(input = {}, { signal, refresh = false } = {}) {
     active(signal);
+    if (typeof refresh !== 'boolean') throw new StartupGreetingError('invalid_input');
     const { timezone } = validateWeatherRequest(input);
     const now = this.#now();
     if (!(now instanceof Date) || !Number.isFinite(now.getTime())) throw new StartupGreetingError('invalid_input');
-    return this.#readWeather(this.#getSettings() ?? {}, timezone, now, signal);
+    return this.#readWeather(this.#getSettings() ?? {}, timezone, now, signal, refresh);
   }
 
   async prepare({ hour, timezone } = {}, { signal } = {}) {

@@ -9,6 +9,7 @@ import { VisionService } from '../apps/desktop/vision.mjs';
 import { defaults, validateSettings } from '../apps/desktop/settings.mjs';
 import { StartupGreetingService, StartupGreetingError } from '../packages/greeting/index.mjs';
 import { ContextService, ContextError } from '../packages/context/index.mjs';
+import { WebService } from '../packages/web/index.mjs';
 import { SpeechService, SpeechServiceError } from '../packages/speech/index.mjs';
 import { SpeechController, SpeechControlError } from '../packages/speech/controller.mjs';
 import { GreetingMusicStore } from '../apps/desktop/greeting-music.mjs';
@@ -57,7 +58,12 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
       client.write(`data: ${JSON.stringify(event)}\n\n`);
     }
   };
-  runtime = createRuntime({ dataDir: path.join(dataDir, 'runtime'), workspaceRoot, onEvent(event) {
+  const web = new WebService();
+  runtime = createRuntime({ dataDir: path.join(dataDir, 'runtime'), workspaceRoot, platformAdapters: {
+    readWebsite: (input, options) => web.read(input, options),
+    searchWeb: (input, options) => provider.searchWeb(input, options),
+    readWeather: options => startupService.readWeather({}, { ...options, refresh: true }),
+  }, onEvent(event) {
     if (event.type === 'approval') approvals.set(event.approvalId, { event, generation });
     if (event.profileId !== settings.profileId) { if (event.type === 'approval') runtime.approve(event.approvalId, false); return; }
     if (event.type === 'state' && ['cancelled', 'completed', 'failed'].includes(event.state)) for (const [id, entry] of approvals) if (entry.event.runId === event.runId) approvals.delete(id);

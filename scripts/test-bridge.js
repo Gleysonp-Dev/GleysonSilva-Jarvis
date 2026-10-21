@@ -46,6 +46,14 @@
   }
   const methods = ['boot', 'readContext', 'cancelContext', 'saveSettings', 'chooseWorkspace', 'chooseApp', 'text', 'cancel', 'callTool', 'approve', 'memorySave', 'memoryDelete', 'realtimeSession', 'vision', 'openExternal', 'listModels', 'startupGreeting', 'cancelGreeting', 'speak', 'cancelSpeech', 'wakeStart', 'wakeStop', 'chooseGreetingMusic'];
   const bridge = Object.fromEntries(methods.map(method => [method, value => invoke(method, value)]));
+    bridge.openExternal = async value => {
+      if (typeof value !== 'string' || value.length > 2048 || /[\u0000-\u0020\u007f]/.test(value)) throw new Error('Link inválido.');
+      const url = new URL(value);
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Link inválido.');
+      // A click may open a normal browser tab; the server still has no native launch authority.
+      window.open(url.href, '_blank', 'noopener,noreferrer');
+      return true;
+    };
   bridge.onEvent = callback => { if (typeof callback !== 'function') throw new Error('Callback inválido.'); listeners.add(callback); return () => listeners.delete(callback); };
   Object.defineProperty(window, 'jarvis', { value: Object.freeze(bridge), configurable: false, writable: false });
   window.addEventListener('beforeunload', () => { stopped = true; streamController?.abort(); });

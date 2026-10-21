@@ -1,5 +1,17 @@
 # Validação do MVP
 
+## Revisão 0.4.0 — aplicativos, pastas, web e clima pela conversa
+
+O autor aprovou o núcleo da 0.3.1 antes desta revisão. A 0.4.0 preserva o desenho, a voz a 0,95×, o efeito metálico fixo e a música privada aprovada. Acrescenta descoberta e abertura de aplicativos instalados, abertura de pastas locais, pesquisa e leitura de sites públicos, e consulta meteorológica nova por texto ou voz. O [guia de acesso](desktop-access.md) distingue abertura, leitura e organização.
+
+Verificação local de 20 de outubro de 2026: **343 testes, 332 aprovados e 11 falhas**, zero skips. As 11 falhas são as operações anteriores de link físico/junção e movimentos dependentes delas, negadas pelo sandbox (`EPERM`); não foram removidas ou enfraquecidas. TypeScript estrito e build aprovados. O CI Windows da 0.4.0 ainda deve confirmar a suíte integral, gerar o pacote e verificar a abertura nativa.
+
+Os testes novos cobrem descoberta sem lançamento, IDs de aplicativos limitados ao perfil, aprovação imutável, execução única por ID, pasta substituída após aprovação, pedidos apenas encaminhados ao Windows, distinção entre processo e janela observada, consulta meteorológica sem saudação/credencial de voz e sem fallback antigo, busca sem histórico/memórias, fontes clicáveis, limites de dados, cancelamento, DNS fixado, redirecionamentos e destinos privados. As fronteiras OpenAI, Windows e clima usam substitutos controlados; os testes não iniciam aplicativos do usuário nem consomem sua conta.
+
+Uma leitura real de `https://example.com/` pelo transporte de produção retornou **Example Domain**, 156 caracteres e fonte correspondente. Isso confirma o leitor HTTP(S), não comprova qualquer site, acesso autenticado ou uma busca paga. A busca OpenAI foi validada com respostas controladas; disponibilidade/cobrança do modelo na conta e o roteiro falado no computador do autor permanecem para ensaio do novo pacote.
+
+Roteiro manual: pedir “Abra o Chrome”, escolher quando houver nomes semelhantes, “Abra Downloads”, “Consulte este site: [URL pública]”, “Pesquise [assunto] na internet” e “Como está o tempo agora?”. Conferir autorização, resultado real, fonte e horário. Interromper uma consulta e trocar de perfil não devem entregar fontes antigas ou iniciar ações adicionais. Uma janela apenas encaminhada ao Windows não deve ser anunciada como confirmada.
+
 ## Revisão visual 0.3.1 — referência enviada pelo autor
 
 Após testar a 0.3.0, o autor relatou que o roteiro funcionou, mas rejeitou a semelhança do núcleo com a referência. O roteiro proposto abrangia teste de microfone, recepção, conversa por voz e Contexto. Esse relato não acrescenta testes de reconhecimento facial, início no login ou resistência a falsos gatilhos.
@@ -14,7 +26,7 @@ O artefato **12310612279** foi baixado e conferido: ZIP de **104.010.427 bytes**
 
 Uma amostragem no navegador local, com o Canvas real e áudio simulado, registrou **240 quadros**, mediana de **1,8 ms** e p95 de **2,3 ms** nas chamadas de desenho, com backing de **950 × 648**. A instrumentação pertence à prévia de trabalho e não é incluída no produto. Ela não mede a apresentação final pela GPU, FPS sustentado em outra máquina ou latência da IA.
 
-O aceite visual final do autor é separado dessas verificações automáticas. Não há release assinada ou ensaio completo em instalação limpa.
+O autor aprovou posteriormente o núcleo da 0.3.1 ao pedir a ampliação dos acessos da 0.4.0. Esse aceite visual é separado das verificações automáticas. Não há release assinada ou ensaio completo em instalação limpa.
 
 ## Revisão 0.3.0 — núcleo orbital e Contexto sob demanda
 

@@ -11,6 +11,38 @@ import { ContextPanel } from './context-panel';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; done?: boolean; origin?: 'voice' | 'greeting'; source?: JarvisWeatherAttribution | string };
 type Drawer = 'settings' | 'memory' | 'activity' | 'presence' | 'context' | null;
+type ToolSources = { tool: string; sources: Array<{ url: string; title: string; hostname: string }>; retrievedAt: number; profileId: string; runId: string; runOrder?: number };
+const sourceToolNames: Record<string, string> = { web_read: 'Página', web_search: 'Pesquisa', weather_current: 'Tempo' };
+const unsafeSourceText = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/;
+function sourceText(value: unknown, limit = 160) { return typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, limit) : ''; }
+function sourceUrl(value: unknown) {
+  if (typeof value !== 'string' || !value || value.length > 2048 || unsafeSourceText.test(value) || /\s/.test(value)) return null;
+  try {
+    if (unsafeSourceText.test(decodeURIComponent(value))) return null;
+    const url = new URL(value);
+    if (!['https:', 'http:'].includes(url.protocol) || !url.hostname || url.username || url.password) return null;
+    if ([...url.searchParams.keys()].some(key => /^(?:api[_-]?key|access[_-]?token|token|auth|authorization|password|secret|credential|signature|sig)$/i.test(key))) return null;
+    return { url: url.href, hostname: url.host };
+  } catch { return null; }
+}
+function normalizeToolSources(value: unknown): ToolSources | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const event = value as Record<string, unknown>;
+  if (typeof event.tool !== 'string' || !Object.hasOwn(sourceToolNames, event.tool) || typeof event.profileId !== 'string' || !/^[a-zA-Z0-9_.:-]{1,160}$/.test(event.profileId)
+    || typeof event.runId !== 'string' || !/^[a-zA-Z0-9_.:-]{1,160}$/.test(event.runId) || !Array.isArray(event.sources)) return null;
+  const retrievedAt = typeof event.retrievedAt === 'number' ? event.retrievedAt : typeof event.retrievedAt === 'string' && /^\d{4}-\d\d-\d\dT/.test(event.retrievedAt) && event.retrievedAt.length < 100 ? Date.parse(event.retrievedAt) : NaN;
+  if (!Number.isFinite(retrievedAt) || retrievedAt < 0 || retrievedAt > Date.now() + 15 * 60_000) return null;
+  const sources: ToolSources['sources'] = [];
+  const seenUrls = new Set<string>();
+  for (const source of event.sources.slice(0, 24)) {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) continue;
+    const link = sourceUrl((source as Record<string, unknown>).url);
+    if (!link || seenUrls.has(link.url)) continue;
+    seenUrls.add(link.url); sources.push({ ...link, title: sourceText((source as Record<string, unknown>).title) || link.hostname });
+    if (sources.length === 6) break;
+  }
+  return { tool: event.tool, sources, retrievedAt, profileId: event.profileId, runId: event.runId };
+}
 const emptySnapshot: JarvisSnapshot = { memories: [], tasks: [], procedures: [] };
 const defaultSettings: JarvisSettings = { profileId: 'principal', textModel: '', realtimeModel: '', voice: '', maxSessionMinutes: 10, workspaceRoot: '', apps: [], hasKey: false };
 const states: Record<string, { label: string }> = {
@@ -63,8 +95,38 @@ function Panel({ title, eyebrow, children, onClose }: { title: string; eyebrow: 
   }, []);
   return <div className="panel-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="drawer" ref={ref} role="dialog" aria-modal="true" aria-labelledby="drawer-title"><header className="drawer-head"><div><span className="eyebrow">{eyebrow}</span><h2 id="drawer-title">{title}</h2></div><button className="icon-button" aria-label="Fechar painel" onClick={onClose}><Icon name="close"/></button></header>{children}</div></div>;
 }
-const toolNames: Record<string, string> = { apps_open: 'Abrir aplicativo', apps_focus: 'Trazer aplicativo para frente', browser_open: 'Abrir endereço no navegador', browser_read_selected: 'Ler trecho selecionado', projects_open: 'Abrir projeto no editor', workspace_list: 'Listar arquivos', workspace_preview_organize: 'Preparar organização de arquivos', workspace_apply_organize: 'Organizar arquivos', workspace_compensate: 'Restaurar arquivos movidos', memory_propose: 'Guardar memória', notes_dictate: 'Salvar ditado', notes_open_dictation: 'Abrir ditado no Bloco de Notas' };
-function humanStatus(status?: string) { return ({ pending: 'Pendente', running: 'Em andamento', executing: 'Executando', completed: 'Concluída', done: 'Concluída', failed: 'Falhou', error: 'Falhou', cancelled: 'Cancelada', denied: 'Recusada', approved: 'Autorizada', waiting: 'Aguardando', interrupted: 'Interrompida', compensating: 'Restauração em andamento', compensated: 'Restaurada', compensation_failed: 'Falha na restauração', needs_review: 'Revisão necessária', unverified: 'Sem confirmação do aplicativo', awaiting_approval: 'Aguardando decisão' } as Record<string, string>)[status || ''] || status || 'Registrada'; }
+const toolNames: Record<string, string> = { apps_find: 'Procurar aplicativo instalado', apps_launch: 'Abrir aplicativo instalado', folders_open: 'Abrir pasta', web_read: 'Ler página na web', web_search: 'Pesquisar na web', weather_current: 'Consultar tempo atual', apps_open: 'Abrir aplicativo', apps_focus: 'Trazer aplicativo para frente', browser_open: 'Abrir endereço no navegador', browser_read_selected: 'Ler trecho selecionado', projects_open: 'Abrir projeto no editor', workspace_list: 'Listar arquivos', workspace_preview_organize: 'Preparar organização de arquivos', workspace_apply_organize: 'Organizar arquivos', workspace_compensate: 'Restaurar arquivos movidos', memory_propose: 'Guardar memória', notes_dictate: 'Salvar ditado', notes_open_dictation: 'Abrir ditado no Bloco de Notas' };
+const folderNames: Record<string, string> = { desktop: 'Área de Trabalho', documents: 'Documentos', downloads: 'Downloads', pictures: 'Imagens', music: 'Música', videos: 'Vídeos' };
+function approvalPresentation(record: JarvisEvent, apps: JarvisSettings['apps']) {
+  const tool = typeof record.tool === 'string' ? record.tool : '';
+  if (!['apps_find', 'apps_launch', 'folders_open', 'web_read', 'web_search', 'weather_current'].includes(tool)) return null;
+  const args = record.args && typeof record.args === 'object' && !Array.isArray(record.args) ? record.args as Record<string, unknown> : {};
+  const details = record.details && typeof record.details === 'object' && !Array.isArray(record.details) ? record.details as Record<string, unknown> : {};
+  const fields: Array<{ label: string; value: string }> = [];
+  let concrete = '';
+  if (tool === 'apps_launch') {
+    const id = sourceText(args.appId, 160);
+    concrete = sourceText(details.appLabel || details.label, 160) || apps.find(app => app.id === id)?.label || id;
+    if (concrete) fields.push({ label: 'Aplicativo', value: concrete });
+  } else if (tool === 'folders_open') {
+    const folder = sourceText(args.folder, 160); concrete = sourceText(details.label) || folderNames[folder] || folder;
+    if (concrete) fields.push({ label: 'Pasta', value: concrete });
+    const location = sourceText(details.folder, 2048);
+    if (location && location !== concrete) fields.push({ label: 'Local', value: location });
+  } else if (tool === 'web_read') {
+    const link = sourceUrl(args.url); concrete = link?.hostname || '';
+    fields.push({ label: 'Página', value: link?.url || 'Endereço indisponível' });
+  } else if (tool === 'web_search' || tool === 'apps_find') {
+    concrete = sourceText(args.query, 1200);
+    if (concrete) fields.push({ label: 'Pesquisa', value: concrete });
+  }
+  const scope = sourceText(details.scope, 1000);
+  if (scope) fields.push({ label: 'Acesso', value: scope });
+  const destination = sourceText(details.destination, 1000);
+  if (destination) fields.push({ label: 'Envio de dados', value: destination });
+  return { title: `${toolNames[tool]}${concrete ? `: ${sourceText(concrete)}` : ''}`, fields };
+}
+function humanStatus(status?: string) { return ({ pending: 'Pendente', running: 'Em andamento', executing: 'Executando', completed: 'Concluída', done: 'Concluída', failed: 'Falhou', error: 'Falhou', cancelled: 'Cancelada', denied: 'Recusada', approved: 'Autorizada', waiting: 'Aguardando', interrupted: 'Interrompida', compensating: 'Restauração em andamento', compensated: 'Restaurada', compensation_failed: 'Falha na restauração', needs_review: 'Revisão necessária', unverified: 'Enviada ao Windows · sem verificação da janela', awaiting_approval: 'Aguardando decisão' } as Record<string, string>)[status || ''] || status || 'Registrada'; }
 function detail(record: JarvisRecord) { return record.text || record.summary || record.name || (record.source && record.destination ? `${record.source} → ${record.destination}` : toolNames[String(record.tool)] || 'Registro de tarefa'); }
 function normalizeSnapshot(snapshot: JarvisSnapshot): JarvisSnapshot { return { memories: snapshot.memories || [], procedures: snapshot.procedures || [], tasks: (snapshot.tasks || []).map(task => ({ ...task, id: task.id || String(task.runId) })) }; }
 function time(value?: string) { if (!value) return ''; const date = new Date(value); return isNaN(date.getTime()) ? '' : date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
@@ -85,6 +147,9 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const visibleMessages = messages.filter(message => !message.origin);
   const latestVisibleMessage = visibleMessages.at(-1);
   const [weatherAttribution, setWeatherAttribution] = useState<JarvisWeatherAttribution | string>();
+  const [toolSources, setToolSources] = useState<ToolSources | null>(null);
+  const sourceRuns = useRef(new Map<string, number>());
+  const sourceRunSequence = useRef(0);
   const [input, setInput] = useState('');
   const [runId, setRunId] = useState<string | null>(null);
   const runRef = useRef<string | null>(null);
@@ -185,6 +250,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (e.profileId && e.profileId !== settingsRef.current.profileId) return;
       if (e.type === 'session.reset') {
         setDrawer(current => current === 'context' ? null : current);
+        sourceRuns.current.clear(); setToolSources(null);
         pauseStandby(); music.current?.stop();
         voice.current?.stop(); voice.current = null; stopMicTest(); stopDemo(); stopCamera();
         greetingAudio.current = null; setElevenApiKey(''); setWeatherAttribution(undefined);
@@ -204,12 +270,29 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (e.type === 'standby.resume') { standbyWanted.current = true; void startStandby(); return; }
       const eventId = e.eventId || (e.type !== 'text.delta' ? e.id && `${e.type}:${e.id}:${e.status || ''}` : undefined);
       if (eventId) { if (seen.current.has(eventId)) return; if (seen.current.size > 3000) seen.current.clear(); seen.current.add(eventId); }
+      if (e.type === 'sources') {
+        const next = normalizeToolSources(e);
+        const runOrder = next ? sourceRuns.current.get(next.runId) : undefined;
+        if (!next || next.profileId !== settingsRef.current.profileId || runOrder === undefined) return;
+        setToolSources(previous => previous && ((previous.runOrder || 0) > runOrder || (previous.runOrder === runOrder && previous.retrievedAt > next.retrievedAt)) ? previous : { ...next, runOrder });
+        return;
+      }
       if (e.type === 'text.delta') {
         const id = `assistant-${e.runId || runRef.current}`;
         setMessages(previous => { const existing = previous.find(m => m.id === id); return existing ? previous.map(m => m.id === id ? { ...m, text: m.text + (e.delta || e.text || '') } : m) : [...previous, { id, role: 'assistant', text: e.delta || e.text || '' }]; });
       }
       if (e.type === 'text.done') { if (e.text) upsertMessage({ id: `assistant-${e.runId || runRef.current}`, role: 'assistant', text: e.text, done: true }); }
-      if (e.type === 'state') { setBackendState(e.state || e.status || 'idle'); if (['cancelled', 'completed', 'interrupted', 'failed'].includes(e.state || e.status || '')) { setApprovals(items => items.filter(x => x.runId !== e.runId)); void refresh(); } }
+      if (e.type === 'state') {
+        const state = e.state || e.status || 'idle';
+        if (e.profileId === settingsRef.current.profileId && typeof e.runId === 'string') {
+          if (['running', 'executing', 'awaiting_approval'].includes(state) && !sourceRuns.current.has(e.runId)) {
+            if (sourceRuns.current.size >= 512) sourceRuns.current.delete(sourceRuns.current.keys().next().value!);
+            sourceRuns.current.set(e.runId, ++sourceRunSequence.current);
+          } else if (['cancelled', 'interrupted', 'failed'].includes(state)) sourceRuns.current.delete(e.runId);
+        }
+        setBackendState(state);
+        if (['cancelled', 'completed', 'unverified', 'interrupted', 'failed'].includes(state)) { setApprovals(items => items.filter(x => x.runId !== e.runId)); void refresh(); }
+      }
       if (e.type === 'approval') {
         if (['resolved', 'approved', 'denied', 'cancelled', 'expired'].includes(e.status || '')) setApprovals(items => items.filter(x => x.approvalId !== e.approvalId));
         else setApprovals(items => items.some(x => x.approvalId === (e.approvalId || e.id)) ? items : [...items, { ...e, approvalId: e.approvalId || e.id }]);
@@ -218,7 +301,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (e.type === 'memory') void refresh();
       if (e.type === 'error') showError(e.message || e.error || 'A operação não pôde ser concluída.');
     });
-    const cleanup = () => { mounted = false; standbyWanted.current = false; clearTimeout(standbyResumeTimer.current); pauseStandby(); music.current?.stop(); unsub(); voice.current?.stop(); stopMicTest(); stopDemo(); stopCamera(); };
+    const cleanup = () => { mounted = false; sourceRuns.current.clear(); standbyWanted.current = false; clearTimeout(standbyResumeTimer.current); pauseStandby(); music.current?.stop(); unsub(); voice.current?.stop(); stopMicTest(); stopDemo(); stopCamera(); };
     window.addEventListener('beforeunload', cleanup);
     return () => { window.removeEventListener('beforeunload', cleanup); cleanup(); };
   }, []);
@@ -226,6 +309,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   useEffect(() => { historyEnd.current?.scrollIntoView({ block: 'end' }); }, [latestVisibleMessage?.id, latestVisibleMessage?.text, approvals]);
   useEffect(() => { if (drawer !== 'presence') stopCamera(); }, [drawer]);
   useEffect(() => { if (drawer === 'settings' && focusElevenKey.current) { focusElevenKey.current = false; elevenKeyInput.current?.focus(); } }, [drawer]);
+  useEffect(() => { sourceRuns.current.clear(); setToolSources(null); }, [settings.profileId]);
   useEffect(() => { if (cameraOn && video.current && camera.current) { video.current.srcObject = camera.current; void video.current.play().catch(showError); } }, [cameraOn]);
 
   function pauseStandby() {
@@ -578,7 +662,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const profileMemories = snapshot.memories.filter(m => !m.profileId || m.profileId === settings.profileId);
   const activity = [...actions, ...snapshot.tasks.filter(t => !actions.some(a => a.id === t.id))].slice(0, 30);
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 03</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
+    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 04</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
     <main className="workspace">
       <nav className="rail" aria-label="Painéis"><button className={drawer === 'context' ? 'selected' : ''} title="Contexto" aria-label="Contexto" aria-expanded={drawer === 'context'} onClick={() => setDrawer('context')}><Icon name="context"/><span>CONTEXTO</span></button><button className={drawer === 'memory' ? 'selected' : ''} title="Memória" aria-label="Memória" onClick={() => setDrawer('memory')}><Icon name="memory"/><span>MEMÓRIA</span></button><button className={drawer === 'activity' ? 'selected' : ''} title="Atividades" aria-label="Atividades" onClick={() => setDrawer('activity')}><Icon name="activity"/><span>REGISTRO</span></button><button className={drawer === 'presence' ? 'selected' : ''} title="Presença e perfis" aria-label="Presença e perfis" onClick={() => setDrawer('presence')}><Icon name="camera"/><span>PRESENÇA</span></button><div className="rail-spacer"/><button title="Configurações" aria-label="Configurações" onClick={openSettings}><Icon name="settings"/><span>AJUSTES</span></button></nav>
       <section className="core-column" aria-label="Núcleo Jarvis">
@@ -603,7 +687,11 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
           {visibleMessages.map(message => <article key={message.id} className={`message ${message.role}`}><div className="message-meta"><span>{message.role === 'user' ? 'VOCÊ' : 'J.A.R.V.I.S.'}</span>{message.done === false && <i className="stream-dot"/>}</div><p>{message.text || <span className="thinking-dots" aria-label="Preparando resposta">···</span>}</p>{message.source && <WeatherSource source={message.source} onOpen={capabilities.desktop && bridge?.openExternal ? url => { void bridge.openExternal!(url).catch(showError); } : undefined}/>}</article>)}
           <div ref={historyEnd}/>
         </div>
-        {approvals.length > 0 && <div className="approvals">{approvals.map(approval => <div className="approval-card" key={approval.approvalId}><div className="approval-title"><Icon name="shield" size={17}/><span>AÇÃO AGUARDANDO DECISÃO</span></div><strong>{approval.title || approval.summary || approval.description || approval.name || 'Autorizar ação'}</strong>{Boolean(approval.details || approval.args) && <pre>{JSON.stringify(approval.details || approval.args, null, 2)}</pre>}<p>Esta autorização vale apenas para esta ação.</p><div className="approval-buttons"><button className="quiet-button" disabled={!!deciding} onClick={() => decide(approval, false)}>Recusar</button><button className="primary-button" disabled={!!deciding} onClick={() => decide(approval, true)}><Icon name="check" size={16}/>{deciding === approval.approvalId ? 'Aplicando…' : 'Autorizar'}</button></div></div>)}</div>}
+        {toolSources?.profileId === settings.profileId && toolSources.sources.length > 0 && <aside className="tool-sources" aria-label="Fontes da última consulta"><div className="tool-sources-head"><span>FONTES · {sourceToolNames[toolSources.tool]}</span><time dateTime={new Date(toolSources.retrievedAt).toISOString()} title={new Date(toolSources.retrievedAt).toLocaleString('pt-BR')}>{new Date(toolSources.retrievedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</time><button className="icon-button" type="button" aria-label="Ocultar fontes" onClick={() => setToolSources(previous => previous ? { ...previous, sources: [] } : null)}><Icon name="close" size={12}/></button></div><ul>{toolSources.sources.map(source => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" title={`${source.title} · ${source.url}`} onClick={event => { if (bridge?.openExternal) { event.preventDefault(); void bridge.openExternal(source.url).catch(showError); } }}><span>{source.title}</span><small>{source.hostname}</small></a></li>)}</ul></aside>}
+        {approvals.length > 0 && <div className="approvals">{approvals.map(approval => {
+          const presentation = approvalPresentation(approval, settings.apps);
+          return <div className="approval-card" key={approval.approvalId}><div className="approval-title"><Icon name="shield" size={17}/><span>AÇÃO AGUARDANDO DECISÃO</span></div><strong>{presentation?.title || approval.title || approval.summary || approval.description || approval.name || 'Autorizar ação'}</strong>{presentation ? presentation.fields.length > 0 && <dl className="approval-details">{presentation.fields.map(field => <div key={field.label}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl> : Boolean(approval.details || approval.args) && <pre>{JSON.stringify(approval.details || approval.args, null, 2)}</pre>}<p>Esta autorização vale apenas para esta ação.</p><div className="approval-buttons"><button className="quiet-button" disabled={!!deciding} onClick={() => decide(approval, false)}>Recusar</button><button className="primary-button" disabled={!!deciding} onClick={() => decide(approval, true)}><Icon name="check" size={16}/>{deciding === approval.approvalId ? 'Aplicando…' : 'Autorizar'}</button></div></div>;
+        })}</div>}
         <form className="composer" onSubmit={e => { e.preventDefault(); void send(); }}><label className="sr-only" htmlFor="message-input">Mensagem para Jarvis</label><textarea id="message-input" ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }} disabled={!bridge || voiceActive} placeholder={voiceActive ? 'Conversa por voz ativa…' : 'Diga o que precisa…'} rows={2} maxLength={16000}/><div className="composer-footer"><span>{voiceActive ? 'Encerre a voz para usar texto' : 'Enter envia · Shift + Enter nova linha'}</span><button className="send-button" type="submit" aria-label="Enviar mensagem" disabled={!input.trim() || !!runId || voiceActive || demoPlaying || demoStarting || greetingBusy || !bridge}><Icon name="send" size={19}/></button></div></form>
       </section>
     </main>

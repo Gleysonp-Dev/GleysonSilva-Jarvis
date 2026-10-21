@@ -25,6 +25,7 @@ declare global {
   interface JarvisSnapshot { memories: JarvisRecord[]; tasks: JarvisRecord[]; procedures: JarvisRecord[]; }
   interface JarvisCapabilities { desktop: boolean; vision: boolean; localTest?: boolean; ephemeralBiometrics?: boolean; startup?: boolean; voiceWake?: boolean; jarvisSpeech?: boolean; }
   interface JarvisWeatherAttribution { name: string; url: string; license: string; licenseUrl: string; text: string; }
+  interface JarvisToolSource { url: string; title: string; }
   interface JarvisContext {
     generatedAt: number;
     weather: {
@@ -42,13 +43,13 @@ declare global {
       total: number;
       observedCount: number;
       limit: number;
-      counts: { running: number; awaitingApproval: number; completed: number; failed: number; cancelled: number; interrupted: number };
+      counts: { running: number; awaitingApproval: number; completed: number; unverified: number; failed: number; cancelled: number; interrupted: number };
       tasks: Array<{ runId: string; status: string; tool?: string; updatedAt?: string }>;
       truncated: boolean;
     };
     sources: Array<{ id: 'weather' | 'local_activity'; label: string; status: string; observedAt: number | null; attribution?: JarvisWeatherAttribution }>;
   }
-  interface JarvisEvent { type: string; id?: string; runId?: string; text?: string; delta?: string; state?: string; status?: string; name?: string; summary?: string; message?: string; approvalId?: string; args?: unknown; [key: string]: any; }
+  interface JarvisEvent { type: string; id?: string; profileId?: string; runId?: string; tool?: string; sources?: JarvisToolSource[]; retrievedAt?: number | string; text?: string; delta?: string; state?: string; status?: string; name?: string; summary?: string; message?: string; approvalId?: string; args?: unknown; [key: string]: any; }
   interface JarvisBridge {
     boot(): Promise<{ settings: JarvisSettings; snapshot: JarvisSnapshot; capabilities: JarvisCapabilities; startup?: { available: boolean; requested?: boolean; enabled: boolean; reason?: string } }>;
     saveSettings(settings: Partial<JarvisSettings> & { apiKey?: string; elevenApiKey?: string }): Promise<unknown>;

@@ -58,6 +58,22 @@ test('context HTTP reads configured weather without greeting, a voice key or pro
   assert.equal(again.weather.cache.hit, true); assert.equal(calls.length, 1);
 });
 
+test('voice tool bridge refreshes current weather on every request without greeting or provider credentials', async t => {
+  let count = 0;
+  const f = await fixture(t, { config: { startupGreeting: false, weatherLocation: { name: 'Cidade de teste', latitude: 0, longitude: 0 } }, fetch: async url => {
+    assert.equal(new URL(url).hostname, 'api.open-meteo.com'); count++;
+    const now = Math.floor(Date.now() / 1000);
+    return Response.json({ current: { time: now, temperature_2m: 23 + count, weather_code: 1 }, current_units: { temperature_2m: '°C' },
+      daily: { time: [now], temperature_2m_min: [20], temperature_2m_max: [29], precipitation_probability_max: [10] },
+      daily_units: { temperature_2m_min: '°C', temperature_2m_max: '°C', precipitation_probability_max: '%' } });
+  } });
+  const query = () => f.value('callTool', { id: randomUUID(), runId: randomUUID(), name: 'weather_current', args: {} });
+  assert.equal((await query()).data.weather.currentTemperature, 24);
+  assert.equal((await query()).data.weather.currentTemperature, 25);
+  assert.equal(count, 2);
+  assert.equal((await f.value('callTool', { id: randomUUID(), runId: randomUUID(), name: 'apps_find', args: { query: 'Notepad' } })).status, 'failed');
+});
+
 test('context HTTP cancellation aborts its source and cannot return a delayed result', async t => {
   let began;
   const started = new Promise(resolve => { began = resolve; });

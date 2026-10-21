@@ -3,10 +3,10 @@ import { validateWeatherRequest } from '../greeting/index.mjs';
 const SNAPSHOT_LIMIT = 100;
 const DISPLAY_LIMIT = 8;
 const PROFILE_ID = /^[a-zA-Z0-9_.:-]{1,160}$/;
-const TASK_STATUSES = new Set(['running', 'awaiting_approval', 'completed', 'failed', 'cancelled', 'interrupted']);
-const TASK_TOOLS = new Set(['apps_open', 'apps_focus', 'browser_open', 'browser_read_selected', 'projects_open', 'workspace_list',
+const TASK_STATUSES = new Set(['running', 'awaiting_approval', 'completed', 'unverified', 'failed', 'cancelled', 'interrupted']);
+const TASK_TOOLS = new Set(['apps_find', 'apps_launch', 'folders_open', 'web_read', 'web_search', 'weather_current', 'apps_open', 'apps_focus', 'browser_open', 'browser_read_selected', 'projects_open', 'workspace_list',
   'workspace_preview_organize', 'workspace_apply_organize', 'workspace_compensate', 'memory_propose', 'notes_dictate', 'notes_open_dictation']);
-const emptyCounts = () => ({ running: 0, awaitingApproval: 0, completed: 0, failed: 0, cancelled: 0, interrupted: 0 });
+const emptyCounts = () => ({ running: 0, awaitingApproval: 0, completed: 0, unverified: 0, failed: 0, cancelled: 0, interrupted: 0 });
 
 export class ContextError extends Error {
   constructor(code = 'invalid_input') {

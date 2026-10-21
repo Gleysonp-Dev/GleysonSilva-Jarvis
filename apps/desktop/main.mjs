@@ -12,6 +12,7 @@ import { createWindowsAdapters } from './platform/windows.mjs';
 import { VisionService } from './vision.mjs';
 import { StartupGreetingService } from '../../packages/greeting/index.mjs';
 import { ContextService, ContextError } from '../../packages/context/index.mjs';
+import { WebService } from '../../packages/web/index.mjs';
 import { SpeechService, SpeechServiceError } from '../../packages/speech/index.mjs';
 import { SpeechController, SpeechControlError } from '../../packages/speech/controller.mjs';
 import { configureStartup, isStandbyLaunch, WindowsWakeService } from './startup.mjs';
@@ -348,9 +349,9 @@ function registerIPC() {
     return vision.handle(input);
   });
   handle('openExternal', async value => {
-    const url = new URL(webURL(value));
-    if (url.protocol !== 'https:' || !['github.com', 'developers.openai.com', 'platform.openai.com', 'docs.opencv.org', 'www.electronjs.org', 'open-meteo.com', 'creativecommons.org'].includes(url.hostname)) invalid('Este link externo não está na lista de documentação permitida.');
-    await shell.openExternal(url.href); return true;
+    // This bridge is used by explicit clicks in the trusted local interface.
+    // Model-initiated navigation continues through the reviewed browser_open tool.
+    await shell.openExternal(webURL(value)); return true;
   });
 }
 
@@ -398,8 +399,13 @@ async function startApplication() {
   const fallbackWorkspace = path.join(userData, 'workspace');
   await mkdir(fallbackWorkspace, { recursive: true });
   let workspaceRoot = settings.get().workspaceRoot || fallbackWorkspace;
-  const windows = createWindowsAdapters({ getApps: () => settings.get().apps, openExternal: url => shell.openExternal(webURL(url)) });
-  const adapters = { ...windows, openBrowser, readBrowserSelection, openProject };
+  const windows = createWindowsAdapters({ getApps: () => settings.get().apps, openExternal: url => shell.openExternal(webURL(url)),
+    openPath: folder => shell.openPath(folder), getKnownFolder: name => app.getPath(name) });
+  const web = new WebService();
+  const adapters = { ...windows, openBrowser, readBrowserSelection, openProject,
+    readWebsite: (input, options) => web.read(input, options),
+    searchWeb: (input, options) => provider.searchWeb(input, options),
+    readWeather: options => startupService.readWeather({}, { ...options, refresh: true }) };
   try { runtime = createRuntime({ dataDir: path.join(userData, 'runtime'), workspaceRoot, platformAdapters: adapters, onEvent: runtimeEvent }); }
   catch {
     workspaceRoot = fallbackWorkspace;

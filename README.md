@@ -6,11 +6,11 @@ Prévia visual com dados de demonstração; não representa uma sessão conectad
 
 Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais que você pode revisar antes de autorizar.
 
-**Revisão visual 0.3.1 com CI e pacote Windows aprovados:** o núcleo foi redesenhado a partir do vídeo de referência enviado pelo autor. O painel **Contexto** da 0.3.0 permanece aberto somente pelo botão, com clima da Open-Meteo e execuções locais do perfil, fonte e horário. A mudança visual não acrescenta transcrições, narração ou cartões à tela principal. O aceite visual do novo núcleo pelo autor ainda está pendente.
+**Revisão 0.4.0 em verificação:** descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao tempo atual. As respostas de consulta mostram fontes compactas, sem transcrições de voz ou cartões automáticos. O núcleo da 0.3.1 foi aprovado pelo autor e é preservado, assim como voz, música e Contexto sob demanda. O CI e o pacote da 0.4.0 ainda estão pendentes. Veja [Aplicativos, pastas, web e clima](docs/desktop-access.md).
 
 O núcleo é uma implementação original em Canvas: dez curvas de intensidades diferentes formam um contorno assimétrico, com fios ciano, focos luminosos e um campo azul sobre grade plana ampla. O centro continua sem texto e deixa o fundo visível. A paleta ciano/azul permanece fixa em todos os estados; brilho e expansão respondem ao microfone e ao áudio reproduzido. Não contém código ou assets do produto de referência. O desenho respeita movimento reduzido e limita atualização e resolução para controlar o custo de renderização. A [análise do vídeo de referência](docs/research/referencia-video-nucleo.md) distingue o observado da implementação própria.
 
-**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. O [CI da 0.3.1, commit bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), aprovou **264 testes, zero falhas/skips**, TypeScript, compilação, pacote e abertura nativa real em **20 de outubro de 2026, às 20h14, America/New_York**. O usuário havia aprovado o roteiro funcional curto da revisão anterior 0.3.0, mas reprovou seu núcleo visual; isso motivou a 0.3.1. O novo visual, a instalação limpa e todos os dispositivos ainda exigem ensaios próprios. Não há release assinada.
+**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. O [CI da base 0.3.1, commit bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), aprovou **264 testes, zero falhas/skips**, TypeScript, compilação, pacote e abertura nativa real em **20 de outubro de 2026, às 20h14, America/New_York**. O usuário aprovou o núcleo da 0.3.1 após a revisão visual. Esse aceite e o CI anterior não validam as novas ferramentas da 0.4.0, a instalação limpa ou todos os dispositivos. Não há release assinada.
 
 Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou transcrições no painel **Conversa**. Mensagens digitadas e suas respostas permanecem visíveis. A voz aprovada mantém reprodução a **0,95×**, altura preservada e efeito metálico fixo **0,78**. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
 
@@ -18,10 +18,15 @@ Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou
 
 | Recurso | Comportamento do código atual |
 | --- | --- |
-| Núcleo orbital 0.3.1 | Dez curvas com intensidades distintas e deformação assimétrica, focos ciano e campo azul com grade plana ampla. Paleta fixa e pulso reativo, sem texto central ou telemetria decorativa. Aceite visual pendente. |
+| Núcleo orbital aprovado | Desenho da 0.3.1 preservado: dez curvas com intensidades distintas e deformação assimétrica, focos ciano e campo azul com grade plana ampla. Paleta fixa e pulso reativo, sem texto central ou telemetria decorativa. |
 | Contexto sob demanda | Botão **Contexto** abre clima e atividade local. Abrir/atualizar não liga o microfone, não gera fala e não chama um modelo de linguagem. |
 | Clima com origem | Tempo atual e previsão de hoje, horários da observação/consulta, atribuição e indicação de cache. Funciona com cidade configurada, mesmo sem saudação automática ou chave ElevenLabs. |
-| Atividade do perfil | Contagem por estado sobre um snapshot de até 100 execuções recentes e lista de até oito; é registro local, sem eventos de agenda. |
+| Atividade do perfil | Contagem por estado sobre um snapshot de até 100 execuções recentes e lista de até oito. Aberturas enviadas ao Windows sem evidência da janela ficam identificadas separadamente. É registro local, sem eventos de agenda. |
+| Aplicativos instalados | Descoberta por nome no inventário Windows e abertura, após confirmação, de um ID observado no perfil. Não aceita comandos livres ou IDs inventados. |
+| Pastas locais | Abertura no Explorador de pastas conhecidas ou caminhos absolutos em unidades locais acessíveis, com confirmação. Abrir não concede leitura/organização fora da pasta de trabalho. |
+| Página e pesquisa web | Leitura explícita de texto público HTTP(S), sem JavaScript/login/cookies, e pesquisa hospedada OpenAI com a chave/modelo configurados. Ambas exigem confirmação e devolvem fontes; a busca pode consumir a conta. |
+| Tempo solicitado agora | `weather_current` consulta a cidade configurada com atualização explícita, sem iniciar saudação, música ou síntese. Falha não usa uma previsão antiga como atual. |
+| Fontes compactas | Até seis links, título/domínio e horário, fora do log de mensagens. Sem cartões automáticos ou transcrição da resposta falada; perfil/reset limpa a faixa. |
 | Texto com OpenAI | Responses com streaming, histórico limitado e ferramentas. |
 | Conversa com a voz Jarvis | Microfone via OpenAI Realtime; respostas em texto são sintetizadas pela ElevenLabs com a voz configurada. A saída de áudio OpenAI é desativada. O novo fluxo completo ainda precisa de teste real. |
 | Saudação e clima | **Iniciar Jarvis** prepara cumprimento pelo relógio do PC, tempo atual, previsão de hoje e “Em que posso ajudá-lo agora, senhor?”. Narração por áudio/pulsação e atribuição Open-Meteo compacta, sem transcrição no painel. |
@@ -34,10 +39,10 @@ Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou
 | Câmera | Prévia por clique, independente dos modelos faciais. |
 | Reconhecimento facial | Opcional: Python, YuNet/SFace, cadastro voluntário e consistência temporal. Sugere um perfil; não autoriza ações. |
 | Arquivos | Prévia no primeiro nível da pasta autorizada, agrupamento por extensão, filtro por mês, confirmação, movimentos registrados e restauração condicionada. |
-| Aplicativos | Adaptadores limitados para Calculadora, Bloco de Notas, VS Code e navegador, com executáveis cadastrados. |
+| Adaptadores anteriores | Calculadora, Bloco de Notas, VS Code e navegador permanecem disponíveis. `browser_open` abre endereços; abrir uma página não comprova leitura do conteúdo. |
 | Persistência | SQLite para memórias, tarefas, procedimentos e efeitos; reiniciar não repete automaticamente ações interrompidas. |
 
-Google Calendar, agenda, e-mail e notícias ainda não estão integrados. A primeira etapa do briefing é o painel de fontes sob demanda; um resumo falado com essas integrações pertence à próxima fase. Controle visual universal de aplicativos, terminal irrestrito, casa conectada, editor completo de automações e atualização automática também continuam fora do escopo. eWeLink e Home Assistant aparecem no vídeo de referência, mas não foram adicionados; não fazem parte do uso atual do autor e ficam como expansão futura. Não há benchmark que demonstre exclusividade, superioridade geral ou resposta instantânea.
+Google Calendar, agenda, e-mail e um feed próprio de notícias ainda não estão integrados; a pesquisa web explícita pode consultar informações públicas atuais, com fontes. Um briefing combinado com essas contas pertence à próxima fase. Controle visual universal de aplicativos, terminal irrestrito, casa conectada, editor completo de automações e atualização automática também continuam fora do escopo. eWeLink e Home Assistant aparecem no vídeo de referência, mas não foram adicionados; não fazem parte do uso atual do autor e ficam como expansão futura. Não há benchmark que demonstre exclusividade, superioridade geral ou resposta instantânea.
 
 ## Começar pelo código-fonte
 
@@ -52,7 +57,7 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-Baixe o [pacote Windows 0.3.1 do CI](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.3.1-Windows.exe** para ensaiar o novo núcleo. O pacote portátil não exige Node. ZIP e EXE foram baixados e tiveram a integridade conferida; o SHA-256 do EXE é `aba928ffc4132cabf96e41d4f089e9f1f4c677875de0577b76506ae8607949f2`. O artefato fica retido até **18 de janeiro de 2027, horário de Nova York**; não é um link permanente nem uma release assinada. O [teste nativo da 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/job/118960468252) confirmou janela, DOM, preload e boot com rede/captura/login isolados. Confira tamanhos, hashes e limites em [Instalação assistida](AI_INSTALL.md) e [Validação](docs/validation.md).
+O pacote da **0.4.0 ainda está em preparação**; não há link ou hash aprovado dessa revisão. O [pacote Windows 0.3.1 do CI](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) permanece como **base anterior**, sem as novas ferramentas de acesso. Para ensaiar essa base, baixe o ZIP autenticado no GitHub, extraia e abra **GleysonSilva-Jarvis-0.3.1-Windows.exe**. Ele não exige Node. ZIP e EXE tiveram a integridade conferida; o SHA-256 do EXE é `aba928ffc4132cabf96e41d4f089e9f1f4c677875de0577b76506ae8607949f2`. O artefato fica retido até **18 de janeiro de 2027, horário de Nova York**; não é um link permanente nem uma release assinada. O [teste nativo da base 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/job/118960468252) confirmou janela, DOM, preload e boot com rede/captura/login isolados. Confira tamanhos, hashes e limites em [Instalação assistida](AI_INSTALL.md) e [Validação](docs/validation.md).
 
 O [artefato 0.3.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731) permanece somente como referência histórica da revisão anterior, sem o novo núcleo.
 
@@ -90,6 +95,8 @@ O GitHub contém a documentação e a [amostra de voz autorizada](assets/voice/j
 
 ### Primeira ação
 
+Na 0.4.0, experimente primeiro “procure o Bloco de Notas instalado” e escolha o resultado antes de abrir. “Abra Downloads” mostra o destino para confirmar; “leia esta página” e “pesquise na web” mostram endereço/consulta e destino dos dados. A pesquisa usa a conta OpenAI configurada e pode gerar consumo adicional. Consulte [exemplos e limites do acesso](docs/desktop-access.md). Nenhuma dessas aberturas amplia a permissão de organizar arquivos.
+
 Escolha uma pasta de ensaio com arquivos descartáveis. Peça uma prévia de organização, revise a proposta e, se necessário, corrija “somente os modificados neste mês” antes de autorizar.
 
 O registro distingue resultado verificado, falha, cancelamento e resultado não verificado. Interromper evita os próximos passos; não desfaz efeitos concluídos. A restauração é uma nova proposta e recusa conflitos ou arquivos alterados.
@@ -121,6 +128,7 @@ O cadastro é voluntário. A pessoa confirma o perfil sugerido; reconhecimento n
 - Teste local de microfone, palmas, palavra nativa e visão são processamento local. A espera mantém acesso ao microfone enquanto ativada; pode ser pausada.
 - A consulta de clima envia as coordenadas configuradas à Open-Meteo. A fonte e a licença acompanham o resultado.
 - Contexto lê apenas clima e metadados de execuções do perfil. Não envia essa leitura à OpenAI/ElevenLabs, não acessa contas Google e não narra automaticamente o resultado.
+- A leitura web consulta somente texto público; a pesquisa hospedada usa OpenAI. A subconsulta de pesquisa não inclui histórico ou memórias, enquanto a conversa normal conserva seu contexto limitado. O texto retornado é dado não confiável e não autoriza ações.
 - Não publique chaves, banco, cidade privada, identificador da voz, rostos, gravação de referência, música privada ou arquivos de ensaio. Um MP3 autorizado não inclui um modelo exportável da voz.
 - A pasta selecionada limita o executor. O modelo não recebe terminal livre nem pode inventar autoridade para ferramentas.
 
@@ -132,7 +140,9 @@ Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [Elev
 npm run verify
 ```
 
-**0.3.1:** [CI bfcc67b9 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York: **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. O ZIP e o EXE foram baixados e seus SHA-256 conferidos. Esses resultados são da execução atual, sem depender do CI anterior. O núcleo novo ainda precisa de aprovação visual; esse ensaio isolado não comprova conversa, dispositivos, login ou instalação limpa.
+**0.4.0:** novas ferramentas e fontes compactas em verificação. CI, pacote e ensaios reais dessa revisão permanecem pendentes; não transferir o resultado da base para essas funções.
+
+**0.3.1:** [CI bfcc67b9 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York: **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. O ZIP e o EXE foram baixados e seus SHA-256 conferidos. O autor aprovou o núcleo visual. Esse ensaio isolado e o aceite não comprovam as novas ferramentas da 0.4.0, conversa completa, dispositivos, login ou instalação limpa.
 
 **0.3.0:** [CI b032bd3 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678): **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. Inspeção visual usou dados simulados identificados; a consulta meteorológica ao vivo ficou indisponível por falha de resolução de rede. Posteriormente, o usuário relatou funcionamento no roteiro funcional curto e aprovou essa parte, reprovando o núcleo visual. O relato não discrimina todos os dispositivos, provedores e cenários, nem comprova a 0.3.1. Os resultados históricos abaixo permanecem vinculados às revisões correspondentes.
 
@@ -163,6 +173,7 @@ packages/openai/       Responses, Realtime e erros
 packages/speech/       síntese da conversa, correlação e cancelamento
 packages/greeting/     cumprimento, clima e narração de abertura
 packages/context/      leitura sob demanda do clima e das execuções locais
+packages/web/          leitura limitada de texto público HTTP(S) e validação de destinos
 packages/elevenlabs/    transporte, clonagem autorizada e TTS
 services/vision/       worker facial Python opcional
 tests/                 testes automáticos com rede/hardware substituídos
