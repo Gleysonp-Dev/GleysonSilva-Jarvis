@@ -1,6 +1,8 @@
-# Contexto sob demanda — revisão 0.3.0
+# Contexto sob demanda — revisão visual 0.3.1
 
 Contexto é o primeiro passo do briefing com fontes reais: um painel de leitura aberto pelo botão **Contexto** na barra lateral. O dashboard permanece sem cartões automáticos, boletins escritos ou transcrições. Abrir o painel não liga microfone/câmera, não produz áudio e não chama OpenAI ou ElevenLabs.
+
+A 0.3.1 altera o desenho do núcleo e preserva o comportamento do painel implementado na 0.3.0. CI e pacote da revisão visual estão em andamento, sem aprovação registrada para esta revisão.
 
 ## Usar
 
@@ -44,7 +46,7 @@ A atividade é lida exclusivamente para o perfil ativo. Clima e atividade são c
 
 ## Núcleo orbital
 
-O núcleo da 0.3.0 é um desenho original em Canvas inspirado na estética orbital das demonstrações públicas de Lucas Victor. Não reutiliza seus assets ou código. Filamentos e realces azuis contornam um centro vazio; não há texto central, grade ou anel mecânico segmentado.
+O núcleo da 0.3.1 é um desenho original em Canvas revisto a partir do vídeo específico fornecido pelo autor. Usa dez curvas de intensidades distintas, deformação assimétrica, fios ciano e focos luminosos sobre um campo azul com grade plana ampla. O centro não contém texto novo nem objeto sólido e deixa o fundo visível; não há anel mecânico segmentado. A paleta ciano/azul permanece fixa em todos os estados. A [nota de referência visual](research/referencia-video-nucleo.md) registra os quadros examinados e os limites da comparação. Não há reutilização dos assets ou do código do produto de referência.
 
 O microfone e o áudio reproduzido controlam brilho e expansão, com suavização de ataque/liberação. Execução e preparação têm cadências próprias, sempre na mesma cor. O desenho limita atualização a 30 fps nos estados ativos e 15 fps em espera; resolução adaptativa e redução de DPI controlam o custo. Com movimento reduzido, a geometria permanece estática. RAF, observador de tamanho e listener de preferência são liberados no encerramento do componente.
 
@@ -52,6 +54,8 @@ A voz aprovada permanece com velocidade **0,95×**, altura preservada e efeito m
 
 ## Próxima fase e validação
 
-Google Calendar, agenda, e-mail, notícias e resumo falado combinado **ainda não estão implementados**. Exigem conectores, autorização e testes próprios antes de aparecer como fontes. Não apresentar dados fictícios dessas integrações nem solicitar permissões como parte desta revisão.
+Google Calendar, agenda, e-mail, notícias e resumo falado combinado **ainda não estão implementados**. Exigem conectores, autorização e testes próprios antes de aparecer como fontes. eWeLink e Home Assistant, mostrados ou listados no vídeo, não fazem parte do uso atual do autor e permanecem como expansão futura. Nenhum desses conectores foi adicionado à 0.3.1. Não apresentar dados fictícios dessas integrações nem solicitar permissões como parte desta revisão.
 
-A 0.3.0 teve **264 testes**, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678). A inspeção visual usa serviços substituídos e dados simulados identificados. Uma consulta real à fonte meteorológica ficou indisponível por resolução de rede; não há nova confirmação do tempo real no equipamento do usuário. Registrar separadamente esses resultados, uso do áudio e ensaio físico. Detalhes em [Validação](validation.md) e instalação em [AI_INSTALL.md](../AI_INSTALL.md).
+A revisão anterior 0.3.0 teve **264 testes**, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678). A inspeção visual usou serviços substituídos e dados simulados identificados. Uma consulta real à fonte meteorológica ficou indisponível por resolução de rede. Posteriormente, o usuário relatou funcionamento no roteiro funcional curto e aprovou a parte funcional da 0.3.0, mas reprovou o núcleo. Esse relato não discrimina todos os dados meteorológicos, dispositivos ou cenários e não valida a nova composição.
+
+A 0.3.1 está com CI e pacote em andamento; o aceite visual ainda está pendente. Registrar separadamente esses resultados, uso do áudio e ensaio físico. Detalhes em [Validação](validation.md) e instalação em [AI_INSTALL.md](../AI_INSTALL.md).

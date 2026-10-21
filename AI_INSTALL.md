@@ -1,12 +1,12 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar a revisão **0.3.0 pelo [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main)** ou pacote portátil e entregar um resultado verificável. Ela acrescenta núcleo orbital azul original e Contexto sob demanda com clima e atividade local. O [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Não há release assinada ou validação completa em instalação limpa.
+Roteiro para instalar o [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main) e entregar um resultado verificável. A revisão visual **0.3.1 está com CI e pacote em andamento**: ajusta o núcleo ao vídeo fornecido pelo autor, preservando voz, saudação, Contexto e demais funções da 0.3.0. O pacote 0.3.0 indicado abaixo é a revisão anterior e não contém o novo visual. O [CI b032bd3 da 0.3.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real; esse resultado não valida a 0.3.1. Não há release assinada ou validação completa em instalação limpa.
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
 ## 1. Inspecionar o ambiente
 
-1. Leia README, package.json e instruções locais aplicáveis. Confirme branch `main`, versão 0.3.0 e commit utilizado; não execute por engano um EXE 0.2.3 para validar estes recursos.
+1. Leia README, package.json e instruções locais aplicáveis. Confirme branch `main`, versão e commit utilizados. Para validar o novo núcleo, use a revisão 0.3.1; o EXE 0.3.0 é a revisão anterior e não comprova a mudança visual.
 2. Confirme Windows, Node 24 ou superior e npm; SQLite usa o runtime integrado.
 3. Não imprima variáveis de ambiente, credenciais ou arquivos privados.
 4. Use uma pasta de ensaio descartável para testar ferramentas.
@@ -29,11 +29,11 @@ Com lockfile válido, `npm ci` pode substituir `npm install` para reproduzir as 
 npm start
 ```
 
-Confirme janela, conversa, Contexto, Ajustes, Memória, Registro e Presença. O núcleo orbital azul deve manter centro vazio e cor constante, sem texto central ou anéis segmentados. Sem captura ou sessão real, os indicadores não devem alegar conexão. Movimento reduzido deve congelar a geometria; o nível real do áudio continua sendo a origem do pulso no modo normal.
+Confirme janela, conversa, Contexto, Ajustes, Memória, Registro e Presença. Na 0.3.1, o núcleo usa dez curvas com intensidades distintas, deformação assimétrica, focos luminosos e campo azul sobre grade plana ampla. O centro deixa a grade visível, sem texto novo central ou anéis segmentados. A paleta ciano/azul permanece fixa em todos os estados. Compare com a [análise do vídeo fornecido pelo autor](docs/research/referencia-video-nucleo.md), sem afirmar igualdade de pixels. Sem captura ou sessão real, os indicadores não devem alegar conexão. Movimento reduzido deve congelar a geometria; o nível real do áudio continua sendo a origem do pulso no modo normal.
 
-### Pacote Windows 0.3.0
+### Pacote Windows 0.3.0 — revisão anterior
 
-Baixe o [artefato Windows da execução 39513420678](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.3.0-Windows.exe**. O pacote não exige Node. Confira o `.sha256` incluído; o SHA-256 do EXE é `01bd3300aacdffe787945475a1373224321c8d462d328e12f7ef35c452b72421`. O artefato tem retenção até 18 de janeiro de 2027; não é um link permanente de release. Se indisponível, use o código-fonte e registre o build local.
+Para ensaiar a revisão anterior, baixe o [artefato Windows da execução 39513420678](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.3.0-Windows.exe**. Ele não inclui o novo núcleo 0.3.1; o pacote dessa revisão ainda está em preparação. O pacote 0.3.0 não exige Node. Confira o `.sha256` incluído; o SHA-256 do EXE é `01bd3300aacdffe787945475a1373224321c8d462d328e12f7ef35c452b72421`. O artefato tem retenção até 18 de janeiro de 2027; não é um link permanente de release. Se indisponível, use o código-fonte e registre o build local.
 
 O [CI da 0.3.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/job/118939722750) executou o aplicativo real e confirmou janela, DOM, preload e boot, com `packaged: true`, às 23:14:59 UTC de 20 de outubro de 2026. O ensaio usa perfil temporário, identificação exclusiva, rede desativada e captura/início no login desligados. Registre separadamente o ensaio da 0.3.0 no equipamento de destino. Um PID ou lockfile sozinho não comprova sucesso.
 
@@ -81,7 +81,7 @@ A [amostra pública em assets/voice/jarvis-demo.mp3](assets/voice/jarvis-demo.mp
 8. **Recepção:** configurar cidade privadamente e usar Iniciar Jarvis. Conferir relógio, tempo/previsão, atribuição e áudio correspondente. Ouvir saudação repete o áudio preparado sem nova geração.
 9. **Contexto:** abrir pelo botão lateral e conferir Tempo e Atividade local, com fonte/horários. Sem cidade, conferir orientação para Ajustes; sem rede, indisponibilidade sem valores inventados. Configurada a cidade, o clima deve funcionar também com saudação automática desligada e sem chave ElevenLabs. Atualizar pode reutilizar cache válido por até dez minutos. Fechar durante consulta e trocar de perfil não devem exibir resposta antiga. Conferir ausência de captura, narração e transcrições adicionadas por essa leitura.
 
-A atividade é um snapshot de até 100 execuções recentes do perfil, com até oito exibidas. Não é agenda nem integração Google. Google Calendar, e-mail, notícias e briefing falado combinado ainda não estão implementados; não solicite acesso a essas contas durante a instalação. Veja [docs/context.md](docs/context.md).
+A atividade é um snapshot de até 100 execuções recentes do perfil, com até oito exibidas. Não é agenda nem integração Google. Google Calendar, e-mail, notícias e briefing falado combinado ainda não estão implementados; não solicite acesso a essas contas durante a instalação. eWeLink e Home Assistant também ficam como expansão futura: o autor não os utiliza e esta revisão não adiciona conectores, contas ou dispositivos. Veja [docs/context.md](docs/context.md).
 
 A geração pode consumir as contas e está sujeita a limites. Não reinicie serviços nem altere quotas para contornar recusas. Um arquivo gravado preserva o boletim do momento da síntese, não uma previsão atualizada.
 
@@ -109,7 +109,9 @@ No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua i
 
 ## 7. Distinguir baseline de novos recursos
 
-A 0.3.0 está em verificação. Registre os resultados atuais de núcleo/Contexto, TypeScript, testes, build e pacote sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
+A 0.3.1 está em verificação, com CI e pacote em andamento. O usuário relatou que o roteiro funcional curto da 0.3.0 funcionou e aprovou essa parte; reprovou o núcleo, que motivou a revisão visual atual. Esse relato não descreve uma bateria completa de dispositivos e cenários. Registre os resultados atuais do núcleo, TypeScript, testes, build e pacote sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
+
+- Revisão anterior 0.3.0: **264 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678). Aceite do roteiro funcional curto informado pelo usuário; núcleo visual reprovado. Não usar esse CI ou o EXE 0.3.0 como prova da 0.3.1.
 
 - CI do commit ba0680: 147 testes, compilação e artefato portátil Windows aprovados.
 - Falha nativa do EXE 0.2.0 confirmada pelo usuário: processo sem janela, por bloqueio da inicialização ESM. Correção 0.2.1 aprovada em abertura real no CI e abertura visual no computador do usuário confirmada por captura de tela. O bloqueio local por ACL foi um ensaio separado.
@@ -133,7 +135,7 @@ Ambiente e Node:
 Versão/commit:
 Verificações: aprovadas / falhas / skips
 Superfície: Electron / navegador local / prévia / EXE
-Núcleo orbital: centro vazio, cor constante, áudio real e movimento reduzido
+Núcleo orbital 0.3.1: dez curvas, assimetria, focos, grade plana ampla, paleta ciano/azul fixa, áudio real e movimento reduzido
 Contexto: fontes, horário/cache, perfil, indisponibilidade e cancelamento
 Microfone: captura, cancelamento e liberação
 Câmera: resolução, imagem e liberação

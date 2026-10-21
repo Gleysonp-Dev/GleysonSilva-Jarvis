@@ -1,12 +1,18 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
-O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). O incremento 0.3.0 implementa núcleo orbital azul e Contexto sob demanda com clima e atividade local. Seus resultados de validação devem ser consultados por execução/commit em [Validação](validation.md). No histórico, a revisão **0.2.3 teve 229 testes, TypeScript, build, pacote e abertura nativa aprovados no CI Windows**. A base 0.2.2 preserva o painel sem transcrições; a base 0.2.1 corrigiu a falha sem janela do 0.2.0 e o usuário confirmou sua abertura visual por captura de tela. Dispositivos, fechamento durante áudio e filtros ainda exigem ensaio físico. Não há release assinada ou validação completa em instalação limpa.
+O [código-fonte é público](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis). A revisão visual 0.3.1 redesenha o núcleo a partir do vídeo fornecido pelo autor, preservando o Contexto sob demanda com clima e atividade local da 0.3.0. CI e pacote da 0.3.1 estão em andamento, sem aprovação registrada. A revisão anterior 0.3.0 teve **264 testes, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678)**; o usuário aprovou seu roteiro funcional curto, mas reprovou o núcleo. Esse relato não equivale a uma bateria completa de dispositivos. Resultados por execução/commit ficam em [Validação](validation.md). Não há release assinada ou validação completa em instalação limpa.
 
-A direção atual preserva o dashboard limpo, saudação completa, efeito metálico fixo 0,78 e reprodução a 0,95× com altura preservada. O núcleo mecânico ciano anterior foi substituído no 0.3.0 por arte orbital original azul, inspirada nas referências públicas, sem reutilizar código ou assets do projeto de referência. O novo visual precisa de aceite do usuário. Superioridade, exclusividade e vantagem de latência dependem de comparação reproduzível; não são resultados demonstrados.
+A direção atual preserva o dashboard limpo, saudação completa, efeito metálico fixo 0,78 e reprodução a 0,95× com altura preservada. A 0.3.1 compõe dez curvas de intensidades distintas, deformação assimétrica, focos luminosos e campo azul sobre grade plana ampla, com centro sem texto novo. A paleta ciano/azul é fixa nos estados. A implementação própria usa o [vídeo específico do autor como referência](research/referencia-video-nucleo.md), sem reutilizar código ou assets do projeto de referência. O novo visual precisa de aceite do usuário. Superioridade, exclusividade e vantagem de latência dependem de comparação reproduzível; não são resultados demonstrados.
+
+## Revisão visual em verificação — 0.3.1
+
+- Aproximar o desenho das curvas, focos e campo de fundo do vídeo fornecido, mantendo áudio/pulsação e movimento reduzido.
+- Preservar saudação, voz, Contexto e ferramentas; esta revisão não adiciona integrações domésticas ou outras fontes.
+- Concluir testes, CI, pacote e abertura nativa identificados pela versão/commit, depois obter aceite visual do autor. O EXE 0.3.0 continua identificado como revisão anterior e não valida esse desenho.
 
 ## Incremento implementado — 0.3.0
 
-- Núcleo orbital de filamentos e partículas, matiz azul constante e pulsação ligada a escuta, fala e execução. Redução de movimento e limite de resolução preservam acessibilidade e recursos.
+- Primeira composição orbital de filamentos e partículas azuis, com pulsação ligada a escuta, fala e execução; o núcleo visual foi reprovado pelo autor e é substituído na 0.3.1. Redução de movimento e limite de resolução são preservados.
 - Painel **Contexto** sob demanda: clima validado com fonte, horário e cache; atividade de execução do perfil em recorte de até cem registros, com até oito entradas visíveis. Nenhuma transcrição, captura ou síntese é iniciada por essa consulta.
 - Leitura independente da saudação, cancelamento e descarte de respostas após troca de perfil/configuração. Fonte ausente ou indisponível aparece com seu estado real.
 
@@ -16,8 +22,8 @@ Esse primeiro incremento ainda não combina calendário, e-mail ou notícias. O 
 
 | Área | Código e observações registradas | Próximo aceite |
 | --- | --- | --- |
-| Interface e saudação | Visual e narração aprovados; revisão 0.2.2 sem transcrições no painel, texto digitado preservado e fonte do clima compacta, verificados com serviços substituídos. | Confirmar a nova apresentação durante uma sessão real e avaliar fluidez. |
-| Núcleo e Contexto 0.3.0 | Composição orbital azul e painel de clima/atividade implementados, com fontes e limites explícitos. | Aceite visual do núcleo, clima no local configurado, indisponibilidade, cancelamento e troca de perfil em uso real. |
+| Interface e saudação | Narração aprovada; revisão 0.2.2 sem transcrições no painel, texto digitado preservado e fonte do clima compacta, verificados com serviços substituídos. O núcleo 0.3.1 ainda não tem aceite visual. | Confirmar a nova apresentação durante uma sessão real e avaliar fluidez. |
+| Núcleo 0.3.1 e Contexto | Novo núcleo de dez curvas, focos e grade plana ampla em verificação; Contexto da 0.3.0 preservado, com fontes e limites explícitos. O autor aprovou o roteiro funcional curto anterior, mas reprovou o núcleo anterior. | Concluir CI/pacote 0.3.1 e aceite visual; testar clima, indisponibilidade, cancelamento e troca de perfil com cenários identificados. |
 | OpenAI texto | Resposta correta com conta real. | Ferramentas, limites, falhas, custo e latência em amostra maior. |
 | Entrada e saída de voz | Microfone real com nível/liberação; resposta OpenAI Realtime anterior ouvida em marin. | Nova rota de conversa com a voz ElevenLabs configurada, sem saída OpenAI alternativa. |
 | Voz Jarvis | Clone criado; amostra e recepção aprovadas a 0,95×/efeito fixo. | Respostas dinâmicas, interrupção e retomada em sessão real. |
@@ -26,7 +32,7 @@ Esse primeiro incremento ainda não combina calendário, e-mail ou notícias. O 
 | Música | Arquivo privado recebido; prévia atual com saudação ouvida/aprovada, ganho 0,35/0,22. | Testar recepção ao vivo e encerramento. Não há trilha padrão distribuída. |
 | Presença | Webcam real 640×480 e parada confirmadas. | Instalar OpenCV/pesos opcionais e ensaiar identificação voluntária. |
 | Execução | Pasta limitada, proposta, confirmação, registro e restauração condicionada. | Ensaios Windows com aplicativos e arquivos descartáveis. |
-| Distribuição | CI 0.2.3: 229 testes, TypeScript, build, pacote e abertura real de janela/DOM/preload/boot aprovados; abertura visual do 0.2.1 confirmada pelo usuário. | Ensaiar a versão atual no destino, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
+| Distribuição | CI 0.3.0: 264 testes, TypeScript, build, pacote e abertura nativa real aprovados. A 0.3.1 está em preparação; não herda esse aceite. | Concluir artefato atual, ensaiar no destino, instalação limpa, recursos nativos, microfone, proteção das chaves e assinatura. |
 
 A revisão 0.2.0 revelou bloqueio por `await app.whenReady()` no topo ESM do Electron 44.9.0, apesar do CI de empacotamento aprovado. A revisão 0.2.1 corrigiu o bootstrap e passou por 218 testes e pelo [teste nativo real no CI 8a074e7](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39162376494): janela, DOM, preload e boot do pacote confirmados. O bloqueio por ACL no ambiente local é um ensaio separado; não ocorreu no CI. A captura de tela do usuário confirmou a abertura visual no próprio computador.
 
@@ -82,7 +88,7 @@ Avaliar português, sotaques, nomes, sobreposição, ruído e retomada. Preserva
 
 Criar editor de procedimentos com gatilho, escopo, etapas, condições, permissões e versão. Mostrar mudanças de plano antes de continuar; salvar correções conscientemente. Pontos de retomada precisam conferir o estado real, distinguindo compensação possível, efeito irreversível e resultado externo insuficiente.
 
-Escolher integrações pelas tarefas frequentes: arquivos, editor, navegador e informações autorizadas. O primeiro Contexto de clima/atividade está implementado; evoluir para briefing com calendário, e-mail e notícias exige conectores de leitura, consentimento, cancelamento e fonte/horário por item. Esses conectores ainda não estão implementados. Mensagens, aplicações complexas e dispositivos também exigem adaptadores próprios. Cada adaptador deve declarar contrato, escopo, confirmação, resultado observado e cancelamento.
+Escolher integrações pelas tarefas frequentes: arquivos, editor, navegador e informações autorizadas. O primeiro Contexto de clima/atividade está implementado; evoluir para briefing com calendário, e-mail e notícias exige conectores de leitura, consentimento, cancelamento e fonte/horário por item. Esses conectores ainda não estão implementados. Mensagens, aplicações complexas e dispositivos também exigem adaptadores próprios. eWeLink e Home Assistant não são usados pelo autor e ficam como expansão futura, sem solicitação de contas ou configuração nesta revisão. Cada adaptador deve declarar contrato, escopo, confirmação, resultado observado e cancelamento.
 
 **Aceite:** tarefas reais concluídas com efeitos rastreáveis. Quantidade de integrações não substitui confiabilidade.
 
@@ -94,7 +100,7 @@ Instalar modelos somente quando desejado. Calibrar limiar, margem e consistênci
 
 ## Decisões preservadas
 
-- Núcleo orbital original azul, uma cor constante, pulsação pelo áudio e nome estável; cartões somente sob demanda.
+- Núcleo orbital original com fios ciano e campo azul, paleta fixa em todos os estados, pulsação pelo áudio e centro sem texto novo; cartões somente sob demanda.
 - OpenAI para interpretação/geração; ElevenLabs para a voz Jarvis configurada.
 - Espera local e login opcionais; nenhuma trilha musical inventada.
 - Presença local voluntária, sem autoridade automática.

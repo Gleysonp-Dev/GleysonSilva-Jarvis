@@ -1,5 +1,15 @@
 # Validação do MVP
 
+## Revisão visual 0.3.1 — referência enviada pelo autor
+
+Após testar a 0.3.0, o autor relatou que o roteiro funcionou, mas rejeitou a semelhança do núcleo com a referência. O roteiro proposto abrangia teste de microfone, recepção, conversa por voz e Contexto. Esse relato não acrescenta testes de reconhecimento facial, início no login ou resistência a falsos gatilhos.
+
+O vídeo fornecido, de aproximadamente 49,92 segundos, orientou a reconstrução visual: hierarquia entre fios discretos e dominantes, assimetria, focos na trajetória, campo azul e grade de fundo. A comparação usa especialmente o quadro de aproximadamente cinco segundos no estado de espera. Perspectiva, reflexos e compressão da filmagem impedem certificar igualdade de pixels ou medir com precisão a animação original. O [registro da referência](research/referencia-video-nucleo.md) distingue o núcleo e as integrações mostradas.
+
+Verificação local da 0.3.1: **quatro testes do HUD aprovados**, zero falhas/skips, TypeScript e compilação aprovados. Os testes cobrem reação ao áudio, paleta fixa, limites de atualização/resolução, movimento reduzido e limpeza. A inspeção visual usa o renderizador real com áudio simulado e uma bridge de demonstração; não utiliza o microfone, chaves ou APIs do autor. A voz e o restante dos serviços funcionais permanecem na base anterior.
+
+O CI, o pacote e sua abertura nativa ainda estão em andamento para esta revisão. O aceite visual final do autor é separado dessas verificações automáticas.
+
 ## Revisão 0.3.0 — núcleo orbital e Contexto sob demanda
 
 Em 20 de outubro de 2026, a revisão acrescenta o núcleo orbital azul original e um painel de leitura com clima e atividade local. Não conecta agenda/e-mail/notícias nem gera um briefing falado combinado.

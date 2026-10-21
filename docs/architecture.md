@@ -1,6 +1,6 @@
 # Arquitetura — Projeto GleysonSilva-Jarvis
 
-O MVP 0.3.0 separa interface, leitura de contexto, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador. Conversa, gatilhos nativos e nova apresentação ainda precisam de validação real completa.
+O MVP 0.3.1 separa interface, leitura de contexto, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. Esta revisão muda a apresentação do núcleo e preserva as funções da 0.3.0. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador. CI e pacote da 0.3.1 estão em andamento; conversa, gatilhos nativos e nova apresentação ainda precisam de validação real completa.
 
 ## Componentes e fronteiras
 
@@ -63,7 +63,7 @@ A conversa falada começa pelo controle de voz. O renderer pede microfone, cria 
 
 Trechos completos do texto são enfileirados para `packages/speech`, com perfil, execução e ID de trecho. O principal valida a configuração, sintetiza na ElevenLabs e retorna áudio limitado, sem chave/ID de voz. O cliente prepara/reproduz os trechos em ordem; cancelamento invalida a geração e seus resultados atrasados. Eventos `.done` não enfileiram uma nova fala. Erro de síntese mantém texto/aviso; não troca para voz OpenAI ou do navegador.
 
-Captura e fala local possuem analisadores. No 0.3.0, o núcleo mecânico ciano dá lugar a uma composição orbital original de filamentos e partículas azuis, com centro vazio. O matiz permanece azul nos estados; envelopes de áudio alteram luz e pulsação, e ferramentas usam uma cadência própria. O Canvas limita resolução e reduz movimento conforme a preferência do sistema. A narração mantém reprodução fixa 0,95× com altura preservada e efeito 0,78. O teste de microfone é local, sem provedor. A conversa completa com essa saída e a nova composição ainda exigem aceite real.
+Captura e fala local possuem analisadores. Na 0.3.1, o Canvas compõe dez curvas com intensidades distintas e deformação assimétrica, fios ciano, focos luminosos e campo azul sobre grade plana ampla, visível através do centro sem texto novo. A paleta ciano/azul permanece fixa nos estados; envelopes de áudio alteram luz e pulsação, e ferramentas usam uma cadência própria. A composição é código original, ajustado ao vídeo fornecido pelo autor; a [nota de referência](research/referencia-video-nucleo.md) documenta observações e limitações. O Canvas limita resolução e reduz movimento conforme a preferência do sistema. A narração mantém reprodução fixa 0,95× com altura preservada e efeito 0,78. O teste de microfone é local, sem provedor. A conversa completa com essa saída e a nova composição ainda exigem aceite real.
 
 O cliente deduplica eventos e `call_id`. Uma chamada de função é delegada à bridge; o resultado volta como `function_call_output`. Só uma continuação ainda ativa dispara `response.create`. Respostas interrompidas não podem reiniciar a tarefa quando um resultado atrasado chega.
 
@@ -81,7 +81,7 @@ O serviço de saudação usa relógio do PC, coordenadas privadas e Open-Meteo, 
 
 Detecção real, segundo plano, idioma, login e retorno não foram aprovados fisicamente. Navegador não altera login nem oferece o worker nativo. Consulte [Espera](standby.md).
 
-## Contexto sob demanda — 0.3.0
+## Contexto sob demanda — implementado na 0.3.0 e preservado na 0.3.1
 
 O painel **Contexto** chama `readContext({ timezone })` pela bridge limitada. O principal valida origem e campos, captura o perfil das configurações confiáveis e mantém uma consulta cancelável. `cancelContext()` interrompe a leitura; uma nova consulta substitui a anterior. Troca de configuração/perfil, encerramento e descarte do painel invalidam resultados atrasados. O harness local oferece o mesmo contrato, mantendo as verificações de origem e token.
 
@@ -140,6 +140,8 @@ Chaves permanentes não chegam ao bundle nem retornam em `boot()`. Texto, memór
 
 Testes offline cobrem contratos, streaming, cancelamento, arquivos, fala, gatilhos e protocolo facial com backends/dispositivos substituídos. O ensaio real anterior confirmou texto OpenAI, captura/liberação de microfone, webcam 640×480 e saída OpenAI marin ouvida. Esta última motivou a nova rota de voz, ainda sem aceite real completo. OpenCV e pesos faciais permanecem ausentes.
 
-O histórico registra 214 testes locais no 0.2.0; a abertura do pacote foi corrigida no 0.2.1 e confirmada visualmente pelo usuário. O 0.2.3 teve 229 testes e abertura nativa aprovados no CI Windows. Esses resultados pertencem às respectivas versões. Resultados e limitações da revisão 0.3.0 devem ser associados à execução/commit no [registro de validação](validation.md); não equivalem a ensaio de dispositivos, login ou identificação real.
+O histórico registra 214 testes locais no 0.2.0; a abertura do pacote foi corrigida no 0.2.1 e confirmada visualmente pelo usuário. O 0.2.3 teve 229 testes e abertura nativa aprovados no CI Windows. A revisão anterior 0.3.0 teve 264 testes, TypeScript, build, pacote e abertura nativa real aprovados no [CI b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678). O usuário relatou que seu roteiro funcional curto funcionou e aprovou essa parte, reprovando o núcleo visual. Não é uma bateria completa de dispositivos, login ou identificação real. A 0.3.1 está com CI/pacote em andamento e aceite visual pendente. Esses resultados pertencem às respectivas versões e devem ser associados à execução/commit no [registro de validação](validation.md).
+
+As conexões de casa mostradas ou listadas no vídeo, como eWeLink e Home Assistant, não integram a arquitetura atual. O autor não as utiliza; ficam como expansão futura, condicionada a uma necessidade e a conectores realmente configurados e verificados.
 
 O [plano de testes](test-plan.md) define ensaios separados com conta, microfone, som audível, webcam, pessoas voluntárias, arquivos descartáveis e instalação limpa. O [roadmap](roadmap.md) usa essas evidências como critério para ampliar capacidades.

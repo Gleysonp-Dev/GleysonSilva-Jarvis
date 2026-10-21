@@ -4,11 +4,11 @@
 
 Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais que você pode revisar antes de autorizar.
 
-**Revisão 0.3.0 com CI Windows aprovado:** novo núcleo de filamentos luminosos e painel **Contexto**, aberto somente pelo botão. O painel reúne clima da Open-Meteo e execuções locais do perfil com fonte e horário; não acrescenta transcrições, narração ou cartões à tela principal.
+**Revisão visual 0.3.1 em preparação:** o núcleo foi redesenhado a partir do vídeo de referência enviado pelo autor. O painel **Contexto** da 0.3.0 permanece aberto somente pelo botão, com clima da Open-Meteo e execuções locais do perfil, fonte e horário. A mudança visual não acrescenta transcrições, narração ou cartões à tela principal. CI e pacote da 0.3.1 estão em andamento; ainda não há aprovação desta revisão.
 
-O núcleo é uma implementação original em Canvas, inspirada na estética orbital das demonstrações públicas de Lucas Victor. Não contém código ou assets do produto dele. O centro fica vazio, sem faixa de texto nem anéis mecânicos. A mesma cor azul acompanha todos os estados; brilho e expansão respondem ao microfone e ao áudio reproduzido. O desenho respeita movimento reduzido e limita atualização e resolução para controlar o custo de renderização.
+O núcleo é uma implementação original em Canvas: dez curvas de intensidades diferentes formam um contorno assimétrico, com fios ciano, focos luminosos e um campo azul sobre grade plana ampla. O centro continua sem texto e deixa o fundo visível. A paleta ciano/azul permanece fixa em todos os estados; brilho e expansão respondem ao microfone e ao áudio reproduzido. Não contém código ou assets do produto de referência. O desenho respeita movimento reduzido e limita atualização e resolução para controlar o custo de renderização. A [análise do vídeo de referência](docs/research/referencia-video-nucleo.md) distingue o observado da implementação própria.
 
-**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. O [CI da 0.3.0, commit b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678), aprovou **264 testes, zero falhas/skips**, TypeScript, compilação, pacote e abertura nativa real. Não há release assinada nem validação completa em instalação limpa ou no hardware do usuário.
+**Código-fonte:** [Gleysonp-Dev/GleysonSilva-Jarvis](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis), branch `main`. O [CI da revisão anterior 0.3.0, commit b032bd3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678), aprovou **264 testes, zero falhas/skips**, TypeScript, compilação, pacote e abertura nativa real. O usuário relatou que o roteiro funcional curto da 0.3.0 funcionou e aprovou essa parte, mas reprovou o núcleo visual; isso motivou a 0.3.1. Esse relato não substitui a validação completa em instalação limpa e de todos os dispositivos. Não há release assinada.
 
 Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou transcrições no painel **Conversa**. Mensagens digitadas e suas respostas permanecem visíveis. A voz aprovada mantém reprodução a **0,95×**, altura preservada e efeito metálico fixo **0,78**. Memórias são preferências explícitas por perfil, revisáveis e apagáveis; não são retreinamento do modelo.
 
@@ -16,7 +16,7 @@ Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou
 
 | Recurso | Comportamento do código atual |
 | --- | --- |
-| Núcleo orbital | Filamentos azuis originais, centro vazio e pulso reativo; sem texto central, grade ou telemetria decorativa. |
+| Núcleo orbital 0.3.1 | Dez curvas com intensidades distintas e deformação assimétrica, focos ciano e campo azul com grade plana ampla. Paleta fixa e pulso reativo, sem texto central ou telemetria decorativa. Aceite visual pendente. |
 | Contexto sob demanda | Botão **Contexto** abre clima e atividade local. Abrir/atualizar não liga o microfone, não gera fala e não chama um modelo de linguagem. |
 | Clima com origem | Tempo atual e previsão de hoje, horários da observação/consulta, atribuição e indicação de cache. Funciona com cidade configurada, mesmo sem saudação automática ou chave ElevenLabs. |
 | Atividade do perfil | Contagem por estado sobre um snapshot de até 100 execuções recentes e lista de até oito; é registro local, sem eventos de agenda. |
@@ -35,7 +35,7 @@ Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou
 | Aplicativos | Adaptadores limitados para Calculadora, Bloco de Notas, VS Code e navegador, com executáveis cadastrados. |
 | Persistência | SQLite para memórias, tarefas, procedimentos e efeitos; reiniciar não repete automaticamente ações interrompidas. |
 
-Google Calendar, agenda, e-mail e notícias ainda não estão integrados. A primeira etapa do briefing é o painel de fontes sob demanda; um resumo falado com essas integrações pertence à próxima fase. Controle visual universal de aplicativos, terminal irrestrito, casa conectada, editor completo de automações e atualização automática também continuam fora do escopo. Não há benchmark que demonstre exclusividade, superioridade geral ou resposta instantânea.
+Google Calendar, agenda, e-mail e notícias ainda não estão integrados. A primeira etapa do briefing é o painel de fontes sob demanda; um resumo falado com essas integrações pertence à próxima fase. Controle visual universal de aplicativos, terminal irrestrito, casa conectada, editor completo de automações e atualização automática também continuam fora do escopo. eWeLink e Home Assistant aparecem no vídeo de referência, mas não foram adicionados; não fazem parte do uso atual do autor e ficam como expansão futura. Não há benchmark que demonstre exclusividade, superioridade geral ou resposta instantânea.
 
 ## Começar pelo código-fonte
 
@@ -50,7 +50,7 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-Também está disponível o [pacote Windows 0.3.0 do CI](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731). Entre no GitHub, baixe o ZIP, extraia e abra **GleysonSilva-Jarvis-0.3.0-Windows.exe**. O pacote portátil não exige Node; o código-fonte continua sendo a alternativa pública para instalação assistida. O artefato de CI tem prazo de retenção e não é uma release assinada. Seu teste nativo confirmou janela, DOM, preload e boot com rede/captura/login isolados. Confira a integridade e os limites em [Validação](docs/validation.md).
+O [pacote Windows 0.3.0 do CI](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731) continua disponível como **revisão anterior**, sem o novo núcleo da 0.3.1. Para ensaiar essa revisão anterior, entre no GitHub, baixe o ZIP, extraia e abra **GleysonSilva-Jarvis-0.3.0-Windows.exe**. O pacote portátil não exige Node; o código-fonte continua sendo a alternativa pública para instalação assistida. O artefato de CI tem prazo de retenção e não é uma release assinada. Seu teste nativo confirmou janela, DOM, preload e boot com rede/captura/login isolados. O pacote da 0.3.1 ainda está em preparação. Confira a integridade e os limites em [Validação](docs/validation.md).
 
 ### Configuração e primeira conversa
 
@@ -128,7 +128,9 @@ Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [Elev
 npm run verify
 ```
 
-**0.3.0:** [CI b032bd3 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678): **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. Inspeção visual usou dados simulados identificados; a consulta meteorológica ao vivo ficou indisponível por falha de resolução de rede. Isso não confirma clima, voz ou dispositivos no equipamento de destino. Os resultados históricos abaixo permanecem vinculados às revisões correspondentes.
+**0.3.1:** revisão visual em verificação, com CI e pacote em andamento. Não herda o aceite dos testes ou do pacote anterior; o núcleo novo ainda precisa de aprovação visual.
+
+**0.3.0:** [CI b032bd3 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678): **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. Inspeção visual usou dados simulados identificados; a consulta meteorológica ao vivo ficou indisponível por falha de resolução de rede. Posteriormente, o usuário relatou funcionamento no roteiro funcional curto e aprovou essa parte, reprovando o núcleo visual. O relato não discrimina todos os dispositivos, provedores e cenários, nem comprova a 0.3.1. Os resultados históricos abaixo permanecem vinculados às revisões correspondentes.
 
 O [CI da base 0.2.0, commit 63cf001](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39159266409), aprovou **214 testes**, TypeScript, build e empacotamento Windows. O [CI do volume aprovado, e0d8ddaa](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39160538917), também concluiu testes, TypeScript, build e empacotamento com sucesso; seu artefato inclui o ajuste. A baseline ba0680 havia aprovado 147 testes.
 

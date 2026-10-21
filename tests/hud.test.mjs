@@ -16,13 +16,14 @@ function fixture(t, { mode = 'idle', reducedMotion = false, width = 800, height 
   let raf, observer, cancelled, disconnected = false;
   const listeners = new Set();
   const media = { matches: reducedMotion, addEventListener: (_, fn) => listeners.add(fn), removeEventListener: (_, fn) => listeners.delete(fn) };
-  const calls = { clears: 0, scales: [], points: [], colors: [], text: 0 };
+  const calls = { clears: 0, scales: [], points: [], filamentPoints: [], colors: [], text: 0 };
+  let path = [];
   const ctx = {
-    setTransform() {}, clearRect() { calls.clears++; calls.points = []; }, save() {}, restore() {}, translate() {},
-    scale(x, y) { calls.scales.push([x, y]); }, beginPath() {},
-    moveTo(x, y) { calls.points.push([x, y]); }, lineTo(x, y) { calls.points.push([x, y]); },
+    setTransform() {}, clearRect() { calls.clears++; calls.points = []; calls.filamentPoints = []; }, save() {}, restore() {}, translate() {},
+    scale(x, y) { calls.scales.push([x, y]); }, beginPath() { path = []; },
+    moveTo(x, y) { calls.points.push([x, y]); path.push([x, y]); }, lineTo(x, y) { calls.points.push([x, y]); path.push([x, y]); },
     createRadialGradient() { return { addColorStop(_, color) { calls.colors.push(color); } }; },
-    fillRect() {}, stroke() { calls.colors.push(this.strokeStyle); }, arc() {}, fill() { calls.colors.push(this.fillStyle); },
+    fillRect() {}, stroke() { if (typeof this.strokeStyle === 'string') calls.colors.push(this.strokeStyle); if (this.lineWidth >= 1) calls.filamentPoints.push(...path); }, arc() {}, fill() { calls.colors.push(this.fillStyle); },
     fillText() { calls.text++; },
   };
   install('matchMedia', () => media);
@@ -38,7 +39,7 @@ function fixture(t, { mode = 'idle', reducedMotion = false, width = 800, height 
   return { state, canvas, calls, dispose, listeners, media, tick: ms => raf(ms), get cancelled() { return cancelled; }, get disconnected() { return disconnected; } };
 }
 
-test('orbital HUD follows microphone and speaker levels while keeping a single blue hue and an empty centre', t => {
+test('orbital HUD follows microphone and speaker levels with a fixed blue palette and an open centre', t => {
   const hud = fixture(t, { mode: 'listen' });
   hud.tick(0);
   const quietScale = hud.calls.scales.at(-1)[0];
@@ -49,8 +50,8 @@ test('orbital HUD follows microphone and speaker levels while keeping a single b
   hud.tick(440);
   assert(hud.calls.scales.at(-1)[0] > quietScale * 1.03);
   assert.equal(hud.calls.text, 0);
-  assert(hud.calls.points.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y) && Math.hypot(x, y) > 140));
-  assert(hud.calls.colors.every(color => /^rgba\(70,190,255,/.test(color)));
+  assert(hud.calls.filamentPoints.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y) && Math.hypot(x, y) > 140));
+  assert(hud.calls.colors.every(color => /^rgba\((36,213,255|16,79,255),/.test(color)));
   hud.dispose();
 });
 

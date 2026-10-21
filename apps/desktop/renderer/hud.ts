@@ -9,8 +9,9 @@ export function createHud(canvas: HTMLCanvasElement, sample: () => HudFrame) {
   const ctx = context;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const tau = Math.PI * 2;
-  // One blue hue throughout every state; only opacity, light and scale respond.
-  const light = (alpha: number) => `rgba(70,190,255,${Math.max(0, Math.min(1, alpha))})`;
+  // A fixed blue/cyan light palette throughout every state; no state selects a hue.
+  const light = (alpha: number) => `rgba(36,213,255,${Math.max(0, Math.min(1, alpha))})`;
+  const blue = (alpha: number) => `rgba(16,79,255,${Math.max(0, Math.min(1, alpha))})`;
   const pointCount = 192;
   const maxBackingPixels = 2_400_000;
   let width = 0, height = 0, dpi = 1;
@@ -19,6 +20,8 @@ export function createHud(canvas: HTMLCanvasElement, sample: () => HudFrame) {
   let lastDraw: number | undefined;
   let disposed = false;
   const waveform = new Float32Array(48);
+  const curves = Array.from({ length: 10 }, () => new Float32Array(pointCount * 2));
+  const curveStrength = [.92, .34, .72, .19, .4, .82, .23, .55, .16, .63];
 
   function finiteLevel(value: number) {
     return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
@@ -68,81 +71,134 @@ export function createHud(canvas: HTMLCanvasElement, sample: () => HudFrame) {
     const luminosity = 1 + energy * .95;
     ctx.save();
     ctx.translate(width / 2, height / 2);
-    ctx.scale(radius / 250 * expansion, radius / 250 * expansion);
+    ctx.scale(radius / 250, radius / 250);
     ctx.globalCompositeOperation = 'lighter';
 
-    // An annular haze keeps the centre dark and gives the thin filaments depth.
-    const halo = ctx.createRadialGradient(0, 0, 116, 0, 0, 300);
-    halo.addColorStop(0, light(0));
-    halo.addColorStop(.28, light(.016 * luminosity));
-    halo.addColorStop(.47, light(.075 * luminosity));
-    halo.addColorStop(.62, light(.05 * luminosity));
-    halo.addColorStop(.85, light(.009 * luminosity));
-    halo.addColorStop(1, light(0));
+    // A translucent blue field lights the open centre without covering it with a solid disc.
+    const field = ctx.createRadialGradient(-12, -54, 0, 0, -10, 322);
+    field.addColorStop(0, blue(.3 * luminosity));
+    field.addColorStop(.4, blue(.25 * luminosity));
+    field.addColorStop(.66, blue(.14 * luminosity));
+    field.addColorStop(.87, blue(.035 * luminosity));
+    field.addColorStop(1, blue(0));
+    ctx.fillStyle = field;
+    ctx.fillRect(-330, -340, 660, 660);
+
+    // A faint local grid shows through the illuminated space, with no labels or numbers.
+    const grid = ctx.createRadialGradient(0, -20, 0, 0, 0, 505);
+    grid.addColorStop(0, light(.055));
+    grid.addColorStop(.64, light(.035));
+    grid.addColorStop(1, light(0));
+    ctx.strokeStyle = grid; ctx.lineWidth = .55;
+    const gridX = Math.max(360, Math.ceil(width * 125 / radius / 36) * 36);
+    const gridY = Math.max(360, Math.ceil(height * 125 / radius / 36) * 36);
+    ctx.beginPath();
+    for (let value = -gridX; value <= gridX; value += 36) {
+      ctx.moveTo(value, -gridY); ctx.lineTo(value, gridY);
+    }
+    for (let value = -gridY; value <= gridY; value += 36) {
+      ctx.moveTo(-gridX, value); ctx.lineTo(gridX, value);
+    }
+    ctx.stroke();
+    ctx.scale(expansion, expansion);
+
+    // Broad annular bloom behind the varying contours.
+    const halo = ctx.createRadialGradient(0, 0, 118, 0, 0, 295);
+    halo.addColorStop(0, blue(0));
+    halo.addColorStop(.22, blue(.017 * luminosity));
+    halo.addColorStop(.43, blue(.116 * luminosity));
+    halo.addColorStop(.62, blue(.082 * luminosity));
+    halo.addColorStop(.85, blue(.014 * luminosity));
+    halo.addColorStop(1, blue(0));
     ctx.fillStyle = halo;
     ctx.fillRect(-300, -300, 600, 600);
 
-    function filament(seed: number, start = 0, length = tau, detail = pointCount) {
-      const phase = seed * 1.738;
-      const rotation = time * (.025 + (seed % 4) * .007) * (seed % 2 ? -1 : 1);
-      const centreRadius = 199 + Math.sin(seed * 2.31) * 9;
-      ctx.beginPath();
-      for (let step = 0; step <= detail; step++) {
-        const angle = start + step / detail * length;
-        const turn = angle + rotation;
-        const waveIndex = Math.floor((angle / tau % 1 + 1) % 1 * waveform.length);
-        const audioRipple = waveform[waveIndex] * 15 * motion;
-        // Different winding counts cross continuously, without rigid concentric rings.
-        const winding = Math.sin(angle * 3 + phase + time * .19) * (12 + seed % 4 * 2);
-        const fine = Math.sin(angle * 7 - phase * .6 - time * .12) * 3.8;
-        const radial = centreRadius + winding + fine + audioRipple;
-        const x = Math.cos(turn) * radial;
-        const y = Math.sin(turn) * radial * (.92 + .035 * Math.sin(phase));
-        const twist = Math.sin(angle * 2 + phase + time * .08) * 5.5;
-        const px = x + Math.sin(turn) * twist;
-        const py = y + Math.cos(turn) * twist;
-        if (!step) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    // Unequal independent envelopes: a few vivid curves, with dimmer folds behind them.
+    // Their broad asymmetry evolves continuously; no commercial source or asset is used.
+    for (let i = 0; i < curves.length; i++) {
+      const points = curves[i], phase = .73 + i * 1.927;
+      const rotation = time * (i % 2 ? -.041 - i * .002 : .052 + i * .003);
+      const displaced = i === 0 || i === 5 || i === 9;
+      const squeezeX = displaced ? 1 + .075 * Math.sin(phase + time * .16) : 1;
+      const squeezeY = displaced ? 1 - .075 * Math.cos(phase * 1.2 - time * .13) : 1;
+      const offsetX = Math.sin(phase * 2 + time * .14) * (displaced ? 13 : 4);
+      const offsetY = Math.cos(phase + time * .1) * (displaced ? 11 : 4);
+      for (let step = 0; step < pointCount; step++) {
+        const angle = step / pointCount * tau;
+        const turn = angle + rotation + .055 * Math.sin(angle * 2 + phase + time * .18);
+        const wavePosition = step / pointCount * waveform.length;
+        const waveIndex = Math.floor(wavePosition), blend = wavePosition - waveIndex;
+        const waveAt = (index: number) => waveform[(index + waveform.length) % waveform.length];
+        const wave = ((waveAt(waveIndex - 1) + waveAt(waveIndex) * 2 + waveAt(waveIndex + 1)) * (1 - blend)
+          + (waveAt(waveIndex) + waveAt(waveIndex + 1) * 2 + waveAt(waveIndex + 2)) * blend) / 4;
+        const broad = Math.sin(angle * 2 + phase + time * .31) * (14 + i % 4 * 3.7)
+          + Math.sin(angle * (i % 3 === 0 ? 4 : 3) - phase * .73 - time * .23) * (5 + i % 5 * 2)
+          + Math.cos(angle + phase * .8 - time * .17) * (7 + i % 3 * 2.3);
+        const fold = Math.sin(angle * 5 + phase * .53 + time * .14) * 2;
+        const deformation = broad * (1 + energy * motion * .36) + fold + wave * 7 * motion;
+        const radial = Math.max(161, 195 + Math.sin(phase * 2.3) * 7 + deformation);
+        const twist = Math.sin(angle * 2 + phase + time * .22) * 4;
+        points[step * 2] = Math.cos(turn) * radial * squeezeX + Math.sin(turn) * twist + offsetX;
+        points[step * 2 + 1] = Math.sin(turn) * radial * (.96 + .025 * Math.sin(phase)) * squeezeY + Math.cos(turn) * twist + offsetY;
       }
     }
 
-    // Soft secondary paths make a light cloud, with no hard mechanical outline.
-    ctx.lineWidth = 3.6;
-    for (let i = 0; i < 7; i++) {
-      filament(i * 1.13 + 2.4);
-      ctx.strokeStyle = light((.055 + i % 3 * .012) * luminosity);
-      ctx.shadowColor = light(.7); ctx.shadowBlur = i < 3 ? 12 : 0;
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = 1.05;
-    for (let i = 0; i < 16; i++) {
-      filament(i);
-      ctx.strokeStyle = light((.38 + i % 4 * .045) * luminosity);
-      ctx.stroke();
+    function pointOn(points: Float32Array, position: number) {
+      const wrapped = ((position % 1) + 1) % 1 * pointCount;
+      const index = Math.floor(wrapped), next = (index + 1) % pointCount, mix = wrapped - index;
+      return [points[index * 2] * (1 - mix) + points[next * 2] * mix,
+        points[index * 2 + 1] * (1 - mix) + points[next * 2 + 1] * mix];
     }
 
-    // Travelling highlights follow the same filaments; they are not activity meters.
-    ctx.lineCap = 'round';
-    for (let i = 0; i < 5; i++) {
-      const seed = i * 3.21 + .6;
-      const start = i * 1.39 + time * (i % 2 ? -.07 : .06);
-      filament(seed, start, .9 + .24 * Math.sin(i * 2), 48);
-      ctx.lineWidth = i % 2 ? 1.15 : 1.45;
-      ctx.strokeStyle = light((.69 + .12 * Math.sin(i * 1.3)) * luminosity);
-      ctx.shadowColor = light(.85); ctx.shadowBlur = 12 + energy * 6;
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-
-    // Sparse motes remain around the orbital envelope, leaving its centre empty.
-    for (let i = 0; i < 32; i++) {
-      const angle = i * 2.39996 + time * (.008 + i % 3 * .003);
-      const distance = 184 + (Math.sin(i * 7.13) * .5 + .5) * 64;
-      const opacity = (.12 + .22 * (.5 + .5 * Math.sin(i * 3.2 + time * .4))) * luminosity;
-      ctx.fillStyle = light(opacity);
+    function filament(points: Float32Array, start = 0, length = 1) {
       ctx.beginPath();
-      ctx.arc(Math.cos(angle) * distance, Math.sin(angle) * distance * .94, i % 7 ? .55 : 1.05, 0, tau);
-      ctx.fill();
+      const count = Math.max(8, Math.ceil(pointCount * length));
+      for (let step = 0; step <= count; step++) {
+        const [x, y] = pointOn(points, start + step / count * length);
+        if (!step) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+    }
+
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // Cobalt diffusion, a soft luminous body and a thin cyan thread share each contour.
+    for (const [lineWidth, alpha, blur] of [[28, .031, 30], [6.4, .11, 16], [1.25, .44, 0]]) {
+      ctx.lineWidth = lineWidth;
+      ctx.shadowColor = blue(.95); ctx.shadowBlur = blur + (blur ? energy * 5 : 0);
+      for (let i = 0; i < curves.length; i++) {
+        filament(curves[i]);
+        const strength = curveStrength[i] * (.88 + .12 * Math.sin(i * 1.8 + time * .26));
+        const vivid = !blur && (i === 0 || i === 5 || i === 9);
+        ctx.lineWidth = vivid ? 1.5 : lineWidth;
+        ctx.strokeStyle = (blur ? blue : light)(alpha * (vivid ? 1.55 : 1) * strength * luminosity);
+        ctx.stroke();
+      }
+    }
+    ctx.shadowBlur = 0;
+
+    // Moving light runs along the organic curves instead of orbiting outside them.
+    for (const i of [0, 2, 5, 7, 9]) {
+      const head = i * .173 + time * (i % 2 ? -.019 : .023);
+      for (let segment = 0; segment < 3; segment++) {
+        filament(curves[i], head + segment * .055, .058);
+        ctx.lineWidth = 1.55 + (2 - segment) * .18;
+        ctx.strokeStyle = light((.18 + segment * .17) * curveStrength[i] * luminosity);
+        ctx.shadowColor = light(.9); ctx.shadowBlur = 12 + energy * 5;
+        ctx.stroke();
+      }
+    }
+    ctx.shadowBlur = 0;
+
+    for (let i = 0; i < 3; i++) {
+      const [x, y] = pointOn(curves[[0, 5, 9][i]], .48 + i * .317 + time * (i % 2 ? -.025 : .027));
+      const glowRadius = 34 + energy * motion * 10;
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+      glow.addColorStop(0, light(.9 * luminosity));
+      glow.addColorStop(.07, light(.61 * luminosity));
+      glow.addColorStop(.19, blue(.4 * luminosity));
+      glow.addColorStop(.46, blue(.15 * luminosity));
+      glow.addColorStop(1, blue(0));
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - glowRadius, y - glowRadius, glowRadius * 2, glowRadius * 2);
     }
     ctx.restore();
   }
