@@ -12,7 +12,7 @@ Na prévia e no teste local pelo navegador, o botão usa a API de tela cheia do 
 
 ## Verificação
 
-Os testes de fronteira cobrem origem/validação, entrada/saída, mudanças externas, teclas, repetição de tecla, erro, respostas atrasadas e limpeza de listeners. O ensaio do pacote Windows deve clicar no botão real para entrar e sair, verificando o estado nativo e o estado acessível do botão. CI e pacote desta revisão ainda estão em preparação. Não equivale a teste com todos os monitores, resoluções ou dispositivos de áudio.
+Os testes de fronteira cobrem origem/validação, entrada/saída, mudanças externas, teclas, repetição de tecla, erro, respostas atrasadas e limpeza de listeners. O ensaio do pacote Windows deve clicar no botão real para entrar e sair, verificando o estado nativo e o estado acessível do botão. [CI 4e90ff5 da 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223) aprovado: **413/413 testes, zero falhas/skips**, TypeScript, build, pacote e entrada/saída de tela cheia pelo botão real no aplicativo Windows. O ensaio nativo usou perfil temporário e captura/rede/login isolados. Não equivale a teste com todos os monitores, resoluções ou dispositivos de áudio.
 
 Roteiro no computador de destino: confirme **MVP / 05.2**, clique no ícone, pressione Esc, pressione F11 duas vezes e repita durante uma conversa. O áudio deve continuar sem reiniciar. Verifique também Ajustes e o núcleo no tamanho do seu monitor.
 

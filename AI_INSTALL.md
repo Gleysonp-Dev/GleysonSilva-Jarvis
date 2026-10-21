@@ -2,13 +2,19 @@
 
 ## Atualização 0.5.2 — tela cheia
 
-Revisão atual do código: **0.5.2**, indicador **MVP / 05.2**. CI e pacote desta revisão em preparação; os pacotes abaixo são históricos e não incluem o botão novo. Feche o Jarvis anterior por X/Sair antes de executar a nova versão. Os dados privados usam o mesmo diretório; preserve chaves, voz, cidade e música existentes.
+Revisão atual do código: **0.5.2**, indicador **MVP / 05.2**. [CI 4e90ff5 da 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223) aprovado: **413/413 testes, zero falhas/skips**, TypeScript, build, pacote e entrada/saída de tela cheia pelo botão real no aplicativo Windows. Os pacotes anteriores abaixo são históricos e não incluem o botão novo. Feche o Jarvis anterior por X/Sair antes de executar a nova versão. Os dados privados usam o mesmo diretório; preserve chaves, voz, cidade e música existentes.
 
 O botão de expandir no canto superior direito e **F11** alternam a tela cheia; **Esc** sai. Valide o retorno à janela durante uma conversa, sem repetir a recepção ou interromper o áudio. A opção vale para a janela atual e não altera a inicialização com o Windows. No navegador, depende do suporte à API de tela cheia. [Detalhes](docs/fullscreen.md).
 
-**Correção 0.5.1 disponível:** navegador padrão sem cadastro e comentário de roupa preparado durante a saudação. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Os pacotes anteriores abaixo são históricos. Para atualizar, feche o Jarvis anterior por X/Sair antes de executar a nova versão, evitando que a trava de instância apenas traga a janela antiga. Confira o indicador **MVP / 05.1**. As chaves, voz, cidade, música e opções salvas usam o mesmo diretório privado e não precisam ser cadastradas novamente. Se início no Windows já estiver ativo, o processo principal registra o caminho estável do novo executável ao abrir; não mova esse arquivo depois.
+## Pacote Windows 0.5.2
 
-## Pacote Windows 0.5.1
+[Pacote Windows 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223/artifacts/12315892272) baixado e conferido. EXE **104.021.454 bytes**, SHA-256 `2c991916429b4ddd462a21fd2d277ce8fdb28f3ccd6294829911fef6c545cf49`. ZIP **104.031.845 bytes**, SHA-256 `efcfa48a2dc208301842a09562732da4886dc2553934d764742e1dfa77d3bd4b`. Retenção até 18 de janeiro de 2027, horário de Nova York; artefato temporário do GitHub, sem assinatura de release.
+
+Extraia o ZIP e abra **GleysonSilva-Jarvis-0.5.2-Windows.exe**, após fechar a versão anterior. Confira **MVP / 05.2**. A verificação nativa confirmou janela, DOM, preload, boot, entrada/saída de tela cheia e pacote reais com perfil temporário, sem acessar credenciais ou dispositivos do autor.
+
+**Base anterior 0.5.1 — histórico:** navegador padrão sem cadastro e comentário de roupa preparado durante a saudação. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Os pacotes anteriores abaixo são históricos. Para atualizar, feche o Jarvis anterior por X/Sair antes de executar a nova versão, evitando que a trava de instância apenas traga a janela antiga. Confira o indicador **MVP / 05.1**. As chaves, voz, cidade, música e opções salvas usam o mesmo diretório privado e não precisam ser cadastradas novamente. Se início no Windows já estiver ativo, o processo principal registra o caminho estável do novo executável ao abrir; não mova esse arquivo depois.
+
+## Pacote Windows 0.5.1 — histórico
 
 [Pacote Windows 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939/artifacts/12314447101) baixado e conferido. EXE **104.019.548 bytes**, SHA-256 `ec560e6a0f97d30da134622aa5b9bec512b557d9b335752fb3638eae0c18d3c1`. ZIP **104.029.768 bytes**, SHA-256 `7734d02e37adfd51843f21f25e0e443684b6c3b0664332db44713295b97484f1`. Retenção até 18 de janeiro de 2027, horário de Nova York; artefato GitHub temporário, sem assinatura de release.
 
