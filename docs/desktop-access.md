@@ -2,7 +2,7 @@
 
 A 0.4.0 acrescenta descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao clima. Essas ferramentas podem ser solicitadas por texto ou durante a conversa com a voz Jarvis configurada. O núcleo aprovado da 0.3.1, reprodução a 0,95×, efeito metálico 0,78, música privada e painel limpo são preservados.
 
-O CI e o pacote da 0.4.0 ainda estão em verificação. Implementação, testes com substitutos e abertura do pacote anterior não comprovam estas ações no computador do usuário. Consulte [Validação](validation.md) e [Instalação assistida](../AI_INSTALL.md) antes de registrar um aceite.
+O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. O [pacote Windows](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110/artifacts/12312007661) foi baixado e teve ZIP/EXE conferidos por hash. Os ensaios de ações/voz na máquina do usuário e busca paga na sua conta ainda devem ser registrados separadamente. Consulte [Validação](validation.md) e [Instalação assistida](../AI_INSTALL.md).
 
 ## Exemplos de pedidos
 
@@ -12,7 +12,7 @@ O CI e o pacote da 0.4.0 ainda estão em verificação. Implementação, testes 
 | “Abra o Spotify que você encontrou.” | `apps_launch` usa um ID da descoberta feita neste perfil; a abertura exige confirmação. |
 | “Abra a pasta Downloads.” | `folders_open` resolve a pasta conhecida e mostra o destino para confirmar a abertura no Explorador. |
 | “Abra a pasta D:\Projetos.” | `folders_open` confere o caminho absoluto local existente e pede confirmação. A unidade e a pasta precisam existir e estar acessíveis à conta Windows. |
-| “Abra https://example.org no navegador.” | `browser_open` encaminha o endereço HTTP(S) ao navegador. Abrir o endereço não comprova que o conteúdo foi carregado ou lido. |
+| “Abra https://example.org no navegador.” | `browser_open` abre o endereço HTTP(S) no navegador dedicado e verifica o carregamento. Isso não comprova leitura do conteúdo pelo assistente. |
 | “Leia o texto desta página: https://example.org.” | `web_read` pede confirmação e consulta o texto público do endereço, sem usar uma sessão autenticada. |
 | “Pesquise na web as novidades sobre um assunto.” | `web_search` pede confirmação e faz uma busca hospedada na OpenAI, retornando texto e fontes. |
 | “Como está o tempo agora na minha cidade configurada?” | `weather_current` solicita uma consulta atual à Open-Meteo e retorna condição, previsão de hoje e horários. |
@@ -53,7 +53,7 @@ O texto recebido é dado não confiável. Instruções contidas na página não 
 
 É uma chamada paga do provedor e pode somar consumo de busca/modelo à conversa. A solicitação isolada de pesquisa envia a consulta e instruções de busca; não inclui histórico da conversa ou memórias do perfil. O fluxo normal da conversa que interpreta a resposta conserva seus próprios limites de contexto. O Jarvis apresenta a consulta antes da confirmação; não pesquisa em segundo plano por conta própria.
 
-A resposta precisa trazer texto utilizável e fontes da pesquisa efetivamente realizada. Falha, limite ou ferramenta indisponível não devem ser tratados como pesquisa concluída nem substituídos por links inventados.
+A resposta precisa trazer texto utilizável e comprovação de que a ferramenta de pesquisa completou. As fontes vêm das anotações de citação do provedor, com até seis links únicos. Uma pesquisa pode legitimamente retornar sem citações; o Jarvis não deve inventá-las ou apresentar texto sem fonte como fato confirmado. Falha, limite ou ferramenta indisponível não devem ser tratados como pesquisa concluída.
 
 ## Tempo atual sem reiniciar a saudação
 

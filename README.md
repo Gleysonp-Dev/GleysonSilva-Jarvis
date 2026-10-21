@@ -6,7 +6,7 @@ Prévia visual com dados de demonstração; não representa uma sessão conectad
 
 Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais que você pode revisar antes de autorizar.
 
-**Revisão 0.4.0 em verificação:** descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao tempo atual. As respostas de consulta mostram fontes compactas, sem transcrições de voz ou cartões automáticos. O núcleo da 0.3.1 foi aprovado pelo autor e é preservado, assim como voz, música e Contexto sob demanda. O CI e o pacote da 0.4.0 ainda estão pendentes. Veja [Aplicativos, pastas, web e clima](docs/desktop-access.md).
+**Revisão 0.4.0 disponível:** descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao tempo atual. As respostas mostram fontes compactas, sem transcrições de voz ou cartões automáticos. Núcleo aprovado, voz, música e Contexto são preservados. O [CI 475f3f4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343/343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. Veja [Aplicativos, pastas, web e clima](docs/desktop-access.md).
 
 O núcleo é uma implementação original em Canvas: dez curvas de intensidades diferentes formam um contorno assimétrico, com fios ciano, focos luminosos e um campo azul sobre grade plana ampla. O centro continua sem texto e deixa o fundo visível. A paleta ciano/azul permanece fixa em todos os estados; brilho e expansão respondem ao microfone e ao áudio reproduzido. Não contém código ou assets do produto de referência. O desenho respeita movimento reduzido e limita atualização e resolução para controlar o custo de renderização. A [análise do vídeo de referência](docs/research/referencia-video-nucleo.md) distingue o observado da implementação própria.
 
@@ -57,7 +57,7 @@ npm start
 
 O segundo comando compila a interface e abre o Electron. O roteiro [AI_INSTALL.md](AI_INSTALL.md) orienta uma instalação assistida e o registro dos testes.
 
-O pacote da **0.4.0 ainda está em preparação**; não há link ou hash aprovado dessa revisão. O [pacote Windows 0.3.1 do CI](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) permanece como **base anterior**, sem as novas ferramentas de acesso. Para ensaiar essa base, baixe o ZIP autenticado no GitHub, extraia e abra **GleysonSilva-Jarvis-0.3.1-Windows.exe**. Ele não exige Node. ZIP e EXE tiveram a integridade conferida; o SHA-256 do EXE é `aba928ffc4132cabf96e41d4f089e9f1f4c677875de0577b76506ae8607949f2`. O artefato fica retido até **18 de janeiro de 2027, horário de Nova York**; não é um link permanente nem uma release assinada. O [teste nativo da base 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/job/118960468252) confirmou janela, DOM, preload e boot com rede/captura/login isolados. Confira tamanhos, hashes e limites em [Instalação assistida](AI_INSTALL.md) e [Validação](docs/validation.md).
+Baixe o [pacote Windows 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110/artifacts/12312007661), autenticado no GitHub, extraia o ZIP e abra **GleysonSilva-Jarvis-0.4.0-Windows.exe**. Não exige Node. ZIP e EXE foram baixados e conferidos; o SHA-256 do EXE é `002b8131eb1a428c5ff44d6f180613dc029d08b8facdf2529c42dfd388e3e391`. A retenção vai até **18 de janeiro de 2027, horário de Nova York**; não é link permanente ou release assinada. O [teste nativo 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110/job/118971573471) confirmou janela, DOM, preload e boot, com rede/captura/login isolados. Os novos comandos ainda precisam de ensaio no equipamento de destino. Tamanhos, hashes e limites: [Instalação](AI_INSTALL.md) e [Validação](docs/validation.md). O [pacote 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) permanece apenas como base histórica sem as novas ferramentas.
 
 O [artefato 0.3.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39513420678/artifacts/12307285731) permanece somente como referência histórica da revisão anterior, sem o novo núcleo.
 
@@ -130,17 +130,19 @@ O cadastro é voluntário. A pessoa confirma o perfil sugerido; reconhecimento n
 - Contexto lê apenas clima e metadados de execuções do perfil. Não envia essa leitura à OpenAI/ElevenLabs, não acessa contas Google e não narra automaticamente o resultado.
 - A leitura web consulta somente texto público; a pesquisa hospedada usa OpenAI. A subconsulta de pesquisa não inclui histórico ou memórias, enquanto a conversa normal conserva seu contexto limitado. O texto retornado é dado não confiável e não autoriza ações.
 - Não publique chaves, banco, cidade privada, identificador da voz, rostos, gravação de referência, música privada ou arquivos de ensaio. Um MP3 autorizado não inclui um modelo exportável da voz.
-- A pasta selecionada limita o executor. O modelo não recebe terminal livre nem pode inventar autoridade para ferramentas.
+- A pasta selecionada limita leitura, gravação e organização de arquivos. Abrir outra pasta no Explorador não amplia essas operações. O modelo não recebe terminal livre nem pode inventar autoridade para ferramentas.
 
 Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [ElevenLabs](docs/elevenlabs.md) e [Voz e câmera](docs/voice-and-camera.md).
 
 ## Verificação e evidências
 
+**0.4.0:** [CI 475f3f4 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110), **343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h48, America/New_York**. Leitura real de site público funcionou; pesquisa paga OpenAI e novos comandos por voz/Windows no destino permanecem para teste. O [registro detalhado](docs/validation.md) separa essas evidências.
+
 ```text
 npm run verify
 ```
 
-**0.4.0:** novas ferramentas e fontes compactas em verificação. CI, pacote e ensaios reais dessa revisão permanecem pendentes; não transferir o resultado da base para essas funções.
+**0.4.0:** [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovado com **343/343 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. ZIP/EXE baixados e conferidos por hash. Novos comandos no equipamento de destino e pesquisa paga na conta ainda precisam de ensaio próprio.
 
 **0.3.1:** [CI bfcc67b9 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York: **264/264 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real. O ZIP e o EXE foram baixados e seus SHA-256 conferidos. O autor aprovou o núcleo visual. Esse ensaio isolado e o aceite não comprovam as novas ferramentas da 0.4.0, conversa completa, dispositivos, login ou instalação limpa.
 

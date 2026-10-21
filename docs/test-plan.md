@@ -141,6 +141,21 @@ Teste desativação, novo login sem lançamento, mudança/ausência do caminho p
 
 Este ensaio ainda não foi realizado fisicamente; sucesso do empacotamento no CI não o substitui. Veja [Espera local](standby.md).
 
+## Acesso ampliado 0.4.0
+
+Use o pacote 0.4.0 e [guia de comandos](desktop-access.md). O CI aprovou 343 testes e abertura nativa; os casos abaixo exigem registrar o resultado no equipamento de destino.
+
+| Ensaio | Evidência esperada |
+| --- | --- |
+| Procurar/abrir app instalado, incluindo nomes semelhantes | Descoberta sem lançamento; escolha clara, confirmação com nome correto e resultado distinguindo processo, janela ou só despacho. |
+| Abrir Downloads e pasta de outro volume local | Destino mostrado antes da abertura; Explorador correto. Organizar/ler arquivos fora da pasta de trabalho continua indisponível. |
+| Negar/cancelar lançamento ou consulta | Nenhum efeito novo após a decisão; sem reaproveitar autorização em nova chamada. |
+| Ler site público e pesquisar assunto atual | Confirmação com URL/consulta, texto pertinente e fontes clicáveis reais; falha de conta/rede sem resultado inventado. |
+| Fonte sem citação, página JavaScript/login ou destino privado | Limitação explícita; nenhuma credencial do navegador compartilhada e nenhum site privado lido pela ferramenta pública. |
+| Pedir tempo duas vezes sem saudação | Fonte consultada novamente, cidade e horário corretos, previsão atual; indisponibilidade sem usar previsão antiga. |
+| Voz durante ferramentas | Voz Jarvis aprovada, pulsação, interrupção; sem transcrição no painel. |
+| Troca de perfil com consulta pendente | Consulta antiga cancelada, sem links ou respostas no novo perfil. |
+
 ## Medição comparável
 
 Para cada modelo e dispositivo, grave pelo menos 30 solicitações repetíveis por cenário e mantenha o mesmo protocolo entre versões. Separe ensaio frio de aquecido e registre falhas junto com os tempos; não exclua silenciosamente tentativas lentas.

@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: OpenAI
 
-O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrada falada e geração de texto. Na revisão 0.2.0, a resposta audível vem da ElevenLabs com a voz configurada; o áudio de saída OpenAI fica desativado. Esse novo fluxo completo ainda está em validação real.
+O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrada falada e geração de texto. A resposta audível vem da ElevenLabs com a voz configurada; o áudio de saída OpenAI fica desativado. A revisão 0.4.0 acrescenta pesquisa web, leitura de páginas, clima atual e acesso ampliado a aplicativos/pastas pela conversa, preservando a voz aprovada.
 
 O modelo solicita ferramentas; o executor local valida argumentos, verifica a pasta autorizada, apresenta a confirmação necessária e registra o resultado. Uma resposta gerada não prova que uma ação aconteceu.
 
@@ -37,6 +37,16 @@ Na sessão de voz, o microfone transmite áudio à OpenAI enquanto a conexão es
 A espera por palmas ou pela palavra nativa é processamento local e não abre uma sessão OpenAI. Ela mantém o microfone ativo enquanto habilitada, cede ao uso de conversa/teste e pausa durante a recepção. Veja [Espera local](standby.md).
 
 As requisições Responses definem `store:false`. Isso evita depender da recuperação de respostas armazenadas para a continuação da tarefa e **não significa retenção zero** para todas as finalidades do provedor. Consulte os [controles de dados oficiais](https://developers.openai.com/api/docs/guides/your-data).
+
+## Pesquisa, páginas e ferramentas da 0.4.0
+
+O mesmo conjunto de ferramentas locais é exposto por function calling ao texto e ao Realtime. `apps_find` encontra IDs observados e `apps_launch` solicita a abertura; `folders_open` abre pastas locais após confirmação. `weather_current` consulta novamente a cidade configurada, independentemente da saudação ou chave de voz. Nenhum desses nomes concede terminal livre ou leitura geral de arquivos. Um resultado `unverified` significa apenas solicitação enviada ao Windows; `observed: process` comprova processo, sem afirmar janela visível.
+
+`web_search` encapsula uma segunda chamada Responses com o modelo de texto configurado, `tools:[{type:'web_search',external_web_access:true,search_context_size:'medium'}]`, `tool_choice:'required'` e `store:false`. Essa subconsulta envia somente a pesquisa e instruções, sem histórico/memórias; não inclui outras ferramentas locais. Tem limite de 60 segundos, JSON de 1 MiB, saída de 1.500 tokens e texto de 20.000 caracteres. Usa a mesma chave e pode somar cobrança de busca/modelo à conversa. O modelo/conta precisam permitir a ferramenta.
+
+O retorno exige resposta completa, chamada de busca concluída e texto utilizável. Até seis fontes únicas vêm de `output_text.annotations` do tipo `url_citation`; não são criadas a partir de links inventados no texto. Pesquisa sem citações preserva lista vazia. Os links HTTP(S) aparecem clicáveis em uma faixa compacta, inclusive em conversa falada, sem transcrever a fala. Ver [documentação oficial de web search](https://developers.openai.com/api/docs/guides/tools-web-search) e [guia do Jarvis](desktop-access.md).
+
+`web_read` consulta texto de um site público pelo leitor local, sem usar cookies/login ou JavaScript. A leitura não usa chave OpenAI diretamente, mas seu texto pode ser enviado na continuação da conversa para interpretação. Páginas e resultados são dados não confiáveis, sem autoridade para iniciar ações. Abrir uma URL, ler seu texto e pesquisá-la são operações distintas, com confirmação do pedido aplicável.
 
 ## Memória e aprendizagem
 

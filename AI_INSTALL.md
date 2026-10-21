@@ -1,6 +1,6 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-Roteiro para instalar o [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main) e entregar um resultado verificável. A revisão **0.4.0 está em verificação**, com CI e pacote pendentes: acrescenta descoberta de aplicativos, abertura de pastas locais, leitura/pesquisa web e consulta atual de clima. O núcleo da 0.3.1 foi aprovado pelo autor e é preservado com a voz/música configuradas. O [CI histórico bfcc67b9 da base 0.3.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787) aprovou **264 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h14, America/New_York**. Isso não valida as ferramentas novas. Não há release assinada nem validação completa em instalação limpa. Veja [Aplicativos, pastas, web e clima](docs/desktop-access.md).
+Roteiro para instalar o [código-fonte público, branch main](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/tree/main) e entregar um resultado verificável. A **0.4.0** acrescenta descoberta de aplicativos, abertura de pastas locais, leitura/pesquisa web e consulta atual de clima. O [CI 475f3f4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h48, America/New_York**. O núcleo 0.3.1 aprovado e a voz/música são preservados. Os novos comandos no equipamento do usuário ainda exigem ensaio; não há release assinada nem validação completa em instalação limpa. Veja [Aplicativos, pastas, web e clima](docs/desktop-access.md).
 
 Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows são evidências distintas. Preserve configurações existentes e informe cada resultado separadamente.
 
@@ -31,9 +31,20 @@ npm start
 
 Confirme janela, conversa, Contexto, Ajustes, Memória, Registro e Presença. Na 0.3.1, o núcleo usa dez curvas com intensidades distintas, deformação assimétrica, focos luminosos e campo azul sobre grade plana ampla. O centro deixa a grade visível, sem texto novo central ou anéis segmentados. A paleta ciano/azul permanece fixa em todos os estados. Compare com a [análise do vídeo fornecido pelo autor](docs/research/referencia-video-nucleo.md), sem afirmar igualdade de pixels. Sem captura ou sessão real, os indicadores não devem alegar conexão. Movimento reduzido deve congelar a geometria; o nível real do áudio continua sendo a origem do pulso no modo normal.
 
-### Pacote Windows — 0.4.0 pendente; base histórica 0.3.1
+### Pacote Windows 0.4.0
 
-Não há link/hash aprovado para o pacote 0.4.0 enquanto seu CI não concluir. O [artefato Windows da execução 39519770787](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) contém a **base anterior 0.3.1**. Para ensaiar essa base, baixe o ZIP autenticado no GitHub, extraia e abra **GleysonSilva-Jarvis-0.3.1-Windows.exe**; ele não comprova as novas ferramentas. O pacote não exige Node. Confira o `.sha256` incluído; o ZIP e o EXE foram baixados e comparados com os valores publicados. O artefato tem retenção até **18 de janeiro de 2027, horário de Nova York**; não é um link permanente de release. Se indisponível, use o código-fonte e registre o build local.
+Baixe o [artefato 12312007661](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110/artifacts/12312007661), extraia o ZIP e abra **GleysonSilva-Jarvis-0.4.0-Windows.exe**. Requer autenticação GitHub para baixar, mas não Node para executar. ZIP e EXE foram baixados e conferidos com o digest/checksum do CI; o artefato tem retenção até 18 de janeiro de 2027, horário de Nova York. Preserve os dados privados e o caminho do executável usado no início automático; não habilite ou altere esse recurso como efeito da atualização.
+
+| Arquivo 0.4.0 | Tamanho | SHA-256 conferido |
+| --- | --- | --- |
+| ZIP do artefato | 104.026.982 bytes | `46e0fb0e12d2cbb26902a84e03b25aaf49fc0868bdfd9d5b45fbab8d6bcbd4e4` |
+| GleysonSilva-Jarvis-0.4.0-Windows.exe | 104.016.733 bytes | `002b8131eb1a428c5ff44d6f180613dc029d08b8facdf2529c42dfd388e3e391` |
+
+O [job 118971573471](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110/job/118971573471), commit `475f3f4f9e1326baf79bf308199610741670e0b0`, aprovou ready/window/DOM/preload/boot e packaged verdadeiros com perfil temporário e rede/captura/login isolados. Isso não substitui o ensaio das ferramentas por voz, apps instalados ou acesso da conta à busca paga. Use o [roteiro 0.4.0](docs/desktop-access.md).
+
+### Base histórica 0.3.1
+
+O [artefato Windows da execução 39519770787](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787/artifacts/12310612279) contém a **base anterior 0.3.1**, sem as novas ferramentas. Seus valores abaixo são somente históricos.
 
 | Arquivo 0.3.1 | Tamanho | SHA-256 conferido |
 | --- | --- | --- |
@@ -122,7 +133,7 @@ No ensaio registrado, houve prévia 640×480 e parada; reconhecimento continua i
 
 ## 7. Distinguir baseline de novos recursos
 
-A 0.4.0 tem CI e pacote pendentes. A base 0.3.1 tem CI, pacote e abertura nativa real aprovados, e seu núcleo recebeu aceite visual do autor. A bateria completa de dispositivos e as novas ferramentas da 0.4.0 precisam de ensaios próprios. O usuário havia aprovado o roteiro funcional curto da 0.3.0 e reprovado seu núcleo, motivando a revisão visual seguinte. Esse relato não descreve uma bateria completa de dispositivos e cenários. Registre os resultados atuais sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
+A 0.4.0 tem [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovado com **343/343 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. A base 0.3.1 tem CI, pacote e abertura nativa real aprovados, e seu núcleo recebeu aceite visual do autor. A bateria completa de dispositivos e as novas ferramentas da 0.4.0 precisam de ensaios próprios. O usuário havia aprovado o roteiro funcional curto da 0.3.0 e reprovado seu núcleo, motivando a revisão visual seguinte. Esse relato não descreve uma bateria completa de dispositivos e cenários. Registre os resultados atuais sem substituir pendências por resultados históricos. A baseline real e os limites estão em [docs/validation.md](docs/validation.md):
 
 - Revisão histórica 0.3.1: **264/264 testes aprovados, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real aprovados no [CI bfcc67b9](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39519770787), em 20 de outubro de 2026, às 20h14, America/New_York. ZIP e EXE baixados e hashes conferidos; núcleo visual aprovado pelo autor. Não comprova as ferramentas da 0.4.0.
 
