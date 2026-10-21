@@ -4,7 +4,7 @@ O MVP 0.5.1 separa interface, leitura de contexto/web, comunicação com modelos
 
 O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343/343 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real daquela versão. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, com os limites do ensaio físico registrados em [Validação](validation.md). Guia de comandos preservados em [Acesso desktop e web](desktop-access.md).
 
-O CI da 0.5.1 e seus ensaios físicos de navegador e intervalo entre falas ainda estão pendentes. As contagens anteriores pertencem aos respectivos commits.
+[CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Os ensaios físicos de navegador e intervalo entre falas continuam pendentes. As contagens anteriores pertencem aos respectivos commits.
 
 ## Componentes e fronteiras
 

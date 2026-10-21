@@ -4,7 +4,7 @@ O fluxo configurável é **login Windows → espera local → duas palmas → m�
 
 [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado no destino continua pendente. A aprovação de **343 testes e abertura nativa no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** pertence à versão anterior. Login real, palmas no ambiente de uso, câmera e conversa prolongada precisam de evidência própria em [Validação](validation.md).
 
-Na 0.5.1, captura, observação da roupa e síntese começam durante a reprodução efetiva da saudação, para reduzir a espera posterior. O comentário só toca depois da saudação e da música. CI e medição física desta revisão ainda estão pendentes.
+Na 0.5.1, captura, observação da roupa e síntese começam durante a reprodução efetiva da saudação, para reduzir a espera posterior. O comentário só toca depois da saudação e da música. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. A medição física desta revisão continua pendente.
 
 ## Configurar uma instalação
 

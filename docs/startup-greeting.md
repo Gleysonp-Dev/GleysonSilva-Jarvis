@@ -4,7 +4,7 @@ A recepção pode seguir esta sequência: **duas palmas → música e saudação
 
 [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado desta sequência ainda deve ser registrado em [Validação](validation.md). Os **343 testes e a abertura nativa aprovados na 0.4.0** são evidência da versão anterior, não da nova recepção.
 
-A 0.5.1 antecipa a preparação do comentário enquanto a saudação está sendo reproduzida. O CI e a medição física desta revisão ainda estão pendentes; os resultados anteriores não medem o intervalo entre as duas falas.
+A 0.5.1 antecipa a preparação do comentário enquanto a saudação está sendo reproduzida. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. A medição física desta revisão ainda está pendente; os resultados anteriores não medem o intervalo entre as duas falas.
 
 ## Saudação e música
 

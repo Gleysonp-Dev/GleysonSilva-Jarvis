@@ -1,8 +1,8 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
-## Correção de uso e espera — 0.5.1 em verificação
+## Correção de uso e espera — 0.5.1 com CI aprovado
 
-Abrir o navegador padrão sem cadastro manual, mantendo a autorização, e antecipar câmera/análise/síntese da roupa enquanto a saudação toca. A reprodução do comentário espera o fim da saudação; nenhuma captura ou chamada extra é adicionada a uma recepção normal. Preservar configurações/voz/música, cancelamento e limpeza de recursos. CI/pacote e teste físico da 0.5.1 pendentes. A 0.5.0 abaixo é o histórico da recepção anterior.
+Abrir o navegador padrão sem cadastro manual, mantendo a autorização, e antecipar câmera/análise/síntese da roupa enquanto a saudação toca. A reprodução do comentário espera o fim da saudação; nenhuma captura ou chamada extra é adicionada a uma recepção normal. Preservar configurações/voz/música, cancelamento e limpeza de recursos. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Teste físico da correção no destino ainda pendente. A 0.5.0 abaixo é o histórico da recepção anterior.
 
 ## Recepção e conversa contínua — 0.5.0 com CI aprovado
 

@@ -94,7 +94,7 @@ Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância
 
 ## Estado de validação
 
-O CI da revisão 0.5.1 e a medição do intervalo entre saudação e comentário estão pendentes. Testes com captura/provedores substituídos devem distinguir início da reprodução, preparação antecipada e início audível do comentário; não comprovam a latência percebida no equipamento.
+[CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. A medição física do intervalo entre saudação e comentário continua pendente. Testes com captura/provedores substituídos devem distinguir início da reprodução, preparação antecipada e início audível do comentário; não comprovam a latência percebida no equipamento.
 
 O [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovou **388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O pacote foi baixado e teve ZIP/EXE conferidos por hash. O ensaio físico de login, duas palmas, música/saudação, imagem e conversa contínua no equipamento de destino ainda está pendente. O [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou 343 testes e abertura nativa daquela versão; é somente histórico.
 
