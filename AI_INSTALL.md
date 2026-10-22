@@ -4,11 +4,26 @@
 
 Código **0.6.0**, indicador **MVP / 06.0**. A ponte MCP é opcional e começa desligada. Expõe somente estado, clima atual configurado, navegador padrão no Google, site HTTP(S) solicitado e narração de texto pela voz Jarvis. Não conecta o microfone ao Dot nem transfere identidade, memória ou sessão do Ultron.
 
-[CI 2adf71d da 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovado: **491/491 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa do Jarvis com tela cheia. O plugin privado foi instalado e habilitado pela CLI oficial, conferido na listagem e validado por handshake MCP 0.6.0, cinco ferramentas e status NOT_RUNNING com a ponte indisponível. Isso não recarregou esta conversa nem habilitou a ponte no Jarvis ou chamou o Dot. Os artefatos históricos abaixo não incluem esta integração. Preserve configurações privadas e feche a versão anterior antes de testar o código novo; não apague chaves, voz, cidade ou música. O teste real pelo Ultron é uma etapa própria, ainda não confirmada.
+[CI 2adf71d da 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovado: **491/491 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa do Jarvis com tela cheia. O plugin privado foi instalado e habilitado pela CLI oficial e conferido por handshake MCP 0.6.0. Depois da ativação feita pelo usuário na interface, as cinco ferramentas ficaram disponíveis nesta conversa no turno seguinte, sem reiniciar o host. O status confirmou conexão real com cidade e voz configuradas; uma abertura de site retornou despacho `unverified`, sem confirmação da janela. Não houve chamada ao Dot pessoal nem teste de voz ou clima ao vivo pela ponte. Os artefatos históricos abaixo não incluem esta integração. Preserve configurações privadas e feche a versão anterior antes de testar o código novo; não apague chaves, voz, cidade ou música. O teste real pelo Ultron é uma etapa própria, ainda não confirmada.
 
 Além do Jarvis, o servidor STDIO exige Node.js 24 no computador Windows e um cliente local compatível. Leia [Integração privada Ultron → Jarvis](docs/ultron.md): revise o pacote, configure um marketplace privado e instale pela interface suportada. Preparar o catálogo não instala o plugin. No Jarvis, habilite **Ajustes → Conexão privada com Ultron → Permitir que Ultron use o Jarvis neste computador** e salve somente quando for testar. Nenhum arquivo privado de descoberta ou credencial deve entrar no pacote.
 
 O Ultron pode precisar criar uma tarefa local no computador conectado. O PC deve estar online com o ChatGPT aberto; instalação em Codex não comprova disponibilidade na conversa principal do Dot. Confirme as cinco ferramentas na tarefa antes de prometer o fluxo. Não use cookies, automação de login ou uma API pessoal não documentada como alternativa.
+
+## Pacotes 0.6.0 conferidos
+
+Baixe o [Windows 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109/artifacts/12459041061) e, para a conexão privada opcional, o [plugin Jarvis · Ultron 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109/artifacts/12458926386). Ambos foram baixados e conferidos. O artefato do plugin é um ZIP externo que contém o pacote de instalação interno; os hashes distinguem esses dois arquivos.
+
+| Arquivo conferido | Tamanho em bytes | SHA-256 |
+| --- | ---: | --- |
+| ZIP do artefato Windows | 104.043.224 | `f49603974e28b7e7f7d9636791a0b034ae666a8ef625a64f1a4872c0525272c0` |
+| GleysonSilva-Jarvis-0.6.0-Windows.exe | 104.032.287 | `83f88d0aff0eb522788522502b35e8b0d1f8ca6800a317a87837052848160c06` |
+| ZIP externo do artefato do plugin | 9.523 | `c48a5a62760c4c93f8e434cd79e55961ce23b5f9cdf0b1ef91ee598aa73c3653` |
+| Jarvis-Ultron-0.6.0.zip, pacote interno | 9.627 | `410dc12dccc1f8a47ae11a805fced2018e33bbf93014c6b1dd536c4010b7ee6a` |
+
+Retenção dos artefatos até **20 de janeiro de 2027, às 15h54, America/New_York**. São downloads temporários do GitHub Actions, que podem exigir login; não são uma release assinada ou um link permanente. A conferência limitou a extração às duas entradas esperadas em cada artefato externo e às seis entradas do ZIP interno do plugin.
+
+Feche o Jarvis anterior por **X/Sair**, extraia o artefato Windows e abra **GleysonSilva-Jarvis-0.6.0-Windows.exe**. Confira **MVP / 06.0** e preserve os ajustes privados. A instalação do plugin já foi verificada na máquina de validação; em outro computador, siga o [guia privado](docs/ultron.md). Para ativar, use o controle em **Ajustes → Conexão privada com Ultron** e salve. Na máquina de validação, o usuário já confirmou a ativação na interface. O MCP real retornou `connected: true`, versão 0.6.0 e disponibilidade das cinco ferramentas; o pedido de abrir um site foi despachado sem comprovação da janela. Voz, clima ao vivo pela ponte e teste feito pelo Dot pessoal continuam pendentes.
 
 ## Base 0.5.3 — navegador padrão direto (histórico)
 
