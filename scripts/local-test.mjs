@@ -10,7 +10,6 @@ import { defaults, validateSettings } from '../apps/desktop/settings.mjs';
 import { StartupGreetingService, StartupGreetingError } from '../packages/greeting/index.mjs';
 import { ContextService, ContextError } from '../packages/context/index.mjs';
 import { WebService } from '../packages/web/index.mjs';
-import { ReceptionObservation, ReceptionError } from '../packages/reception/index.mjs';
 import { SpeechService, SpeechServiceError } from '../packages/speech/index.mjs';
 import { SpeechController, SpeechControlError } from '../packages/speech/controller.mjs';
 import { GreetingMusicStore } from '../apps/desktop/greeting-music.mjs';
@@ -76,7 +75,6 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     if (run && run.generation === generation && !run.controller.signal.aborted) emit({ ...event, profileId: run.profileId });
   } });
   const startupService = new StartupGreetingService({ getSettings: () => settings, getKey: () => elevenKey || process.env.ELEVENLABS_API_KEY || '', fetch: fetchImpl });
-  const reception = new ReceptionObservation({ getSettings: () => settings, describe: (input, options) => provider.describeOutfit(input, options) });
   const contextService = new ContextService({ weather: startupService, getProfileId: () => settings.profileId, getSnapshot: profileId => runtime.getSnapshot(profileId) });
   const speech = new SpeechController({ service: new SpeechService({ getSettings: () => settings, getKey: () => elevenKey || process.env.ELEVENLABS_API_KEY || '', fetch: fetchImpl }), getProfile: () => settings.profileId });
   const musicStore = new GreetingMusicStore({ dataDir });
@@ -91,7 +89,6 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
   async function reset(reason) {
     generation++;
     speech.reset();
-    reception.reset();
     for (const [runId, run] of runs) { run.controller.abort(); runtime.cancel(runId); }
     for (const controller of connections) controller.abort();
     for (const [id] of approvals) runtime.approve(id, false);
@@ -117,7 +114,7 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
       const controller = contextFlight; controller?.abort(); contextFlight = undefined;
       return { cancelled: Boolean(controller) };
     },
-    async boot() { const status = await vision.handle({ type: 'status' }); return { settings: publicSettings(), snapshot: runtime.getSnapshot(settings.profileId), capabilities: { desktop: false, vision: status.available === true, localTest: true, ephemeralBiometrics: true, jarvisSpeech: true, outfitObservation: true, startup: false, voiceWake: false } }; },
+    async boot() { const status = await vision.handle({ type: 'status' }); return { settings: publicSettings(), snapshot: runtime.getSnapshot(settings.profileId), capabilities: { desktop: false, vision: status.available === true, localTest: true, ephemeralBiometrics: true, jarvisSpeech: true, startup: false, voiceWake: false } }; },
     async saveSettings(input) {
       object(input, ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey', 'startAtLogin', 'standbyEnabled', 'wakeClapEnabled', 'wakeVoiceEnabled', 'greetingMusicEnabled', 'receptionOutfitEnabled', 'receptionVoiceEnabled', 'continuousVoiceEnabled']);
       let valid;
@@ -136,8 +133,6 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
     async wakeStart() { return { available: false, running: false, state: 'unavailable', reason: 'requires_native_windows' }; },
     async wakeStop() { return { available: false, running: false, state: 'unavailable', reason: 'requires_native_windows' }; },
     async speak(input) { return speech.speak(input); },
-    async observeOutfit(input) { return reception.observe(input); },
-    async cancelOutfit(input) { if (input != null) object(input, []); return reception.cancel(); },
     async cancelSpeech(input) { object(input, ['runId']); return speech.cancel(input); },
     async text(input) {
       object(input, ['text', 'history', 'profileId', 'runId']);
@@ -269,7 +264,7 @@ export async function createLocalTestServer({ port = 47832, dataDir = path.join(
       if (asset[0] === 'index.html') content = Buffer.from(content.toString('utf8').replace('</head>', `<meta name="jarvis-token" content="${token}"><script src="/test-bridge.js" defer></script></head>`));
       headers(res, asset[1]); res.writeHead(200); res.end(req.method === 'HEAD' ? undefined : content);
     } catch (error) {
-      const safeError = error instanceof ClientError || error instanceof ContextError || error instanceof ReceptionError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError || error instanceof StartupGreetingError;
+      const safeError = error instanceof ClientError || error instanceof ContextError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError || error instanceof StartupGreetingError;
       const message = safeError ? error.message : 'Não foi possível concluir a operação local.';
       if (!res.headersSent) { res.writeHead(error instanceof ClientError ? error.status : safeError ? 400 : 500); res.end(JSON.stringify({ ok: false, error: message })); }
       else res.end();

@@ -1,6 +1,6 @@
 {
   "name": "gleysonsilva-jarvis",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "private": true,
   "description": "Assistente pessoal Windows com inteligência OpenAI, voz ElevenLabs, espera local e HUD ciano.",
   "type": "module",

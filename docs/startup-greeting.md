@@ -1,10 +1,12 @@
-# Recepção e saudação — revisão 0.5.1
+# Recepção e saudação — revisão 0.6.2
 
-A recepção pode seguir esta sequência: **duas palmas → música e saudação com clima → comentário sobre a roupa → conversa por voz**. As duas últimas etapas são opções explícitas de Ajustes. Iniciar ao entrar no Windows e a espera também são escolhas da instalação; o pacote público não ativa captura ou login por conta própria. Veja [Espera e login](standby.md).
+A recepção segue **duas palmas → música e saudação com clima → conversa por voz**, quando essa última opção estiver habilitada. Na 0.6.2, o comentário de roupa e a captura automática de imagem foram retirados. Iniciar ao entrar no Windows, espera e conversa contínua continuam sendo escolhas da instalação. Veja [Espera e login](standby.md).
 
-[CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado desta sequência ainda deve ser registrado em [Validação](validation.md). Os **343 testes e a abertura nativa aprovados na 0.4.0** são evidência da versão anterior, não da nova recepção.
+A preferência antiga `receptionOutfitEnabled: true` é migrada para `false`. Não existe controle de roupa no preset atual nem endpoints ativos `observeOutfit`/`cancelOutfit`; a recepção não pede câmera ou envia imagem à OpenAI. A câmera manual e o cadastro/reconhecimento local em Presença são preservados. **CI, pacote e ensaio físico da 0.6.2 ainda pendentes.** [Registro](validation.md).
 
-A 0.5.1 antecipa a preparação do comentário enquanto a saudação está sendo reproduzida. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. A medição física desta revisão ainda está pendente; os resultados anteriores não medem o intervalo entre as duas falas.
+Histórico: [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado desta sequência ainda deve ser registrado em [Validação](validation.md). Os **343 testes e a abertura nativa aprovados na 0.4.0** são evidência da versão anterior, não da nova recepção.
+
+Histórico: a 0.5.1 antecipava a preparação do comentário de roupa durante a saudação, recurso retirado na 0.6.2. O [CI b8c6c8f](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovou **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa daquela versão. Esse resultado não comprova a revisão atual nem seu ensaio físico.
 
 ## Saudação e música
 
@@ -12,27 +14,19 @@ Ao receber o gatilho elegível, o controlador pausa a espera local e prepara a f
 
 O serviço usa “Bom dia” das 06h às 11h59, “Boa tarde” das 12h às 17h59 e “Boa noite” nos demais horários. Hora e fuso vêm do computador. Nome da cidade e coordenadas ficam na configuração privada; a localização pessoal do autor não acompanha o repositório.
 
-A música selecionada privadamente acompanha a recepção inicial e termina com o fim ou a interrupção da saudação. Não continua no comentário de roupa nem na conversa. A espera por palmas/palavra fica suspensa durante som próprio e conversa para evitar que o assistente se reative. **Nenhuma trilha padrão é distribuída.** O arquivo privado aprovado pelo autor fica fora do GitHub e do pacote.
+A música selecionada privadamente acompanha a recepção inicial e termina com o fim ou a interrupção da saudação. Não continua na conversa. A espera por palmas/palavra fica suspensa durante som próprio e conversa para evitar que o assistente se reative. **Nenhuma trilha padrão é distribuída.** O arquivo privado aprovado pelo autor fica fora do GitHub e do pacote.
 
 O áudio usa a voz ElevenLabs configurada naquela instalação. A abertura não toca a apresentação fixa “Olá, …”; **Ajustes → Saudação → Amostra fixa da voz** é um teste separado, sem clima ou captura. O preset aprovado é Eleven Multilingual v2, estabilidade 0,5, similaridade 0,75, estilo 0, speaker boost ligado e velocidade de síntese 1. Os campos seguem a [configuração oficial de voz](https://elevenlabs.io/docs/api-reference/voices/settings/update).
 
-A reprodução mantém **0,95× com a altura preservada** e efeito metálico local fixo **0,78**, sem ajuste de intensidade. Saudação, comentário sobre roupa e respostas faladas usam essa mesma rota. Não há substituição silenciosa pela voz OpenAI ou do navegador.
+A reprodução mantém **0,95× com a altura preservada** e efeito metálico local fixo **0,78**, sem ajuste de intensidade. Saudação e respostas faladas usam essa mesma rota. Não há substituição silenciosa pela voz OpenAI ou do navegador.
 
-## Comentário sobre a roupa
+## Câmera fora da recepção
 
-Com a opção de comentário de roupa habilitada e uma chave OpenAI configurada, o aplicativo começa a preparar o comentário assim que a reprodução da saudação realmente começa. Nesse período, pede a câmera, captura somente **um JPEG, até 640×480 e 512 KiB**, encerra as tracks de vídeo antes de encaminhar o quadro à OpenAI e prepara a síntese ElevenLabs. Não mantém um vídeo ao vivo nem salva a imagem no histórico ou em arquivo. A câmera e o pedido de observação não começam durante a mera preparação da saudação ou antes da reprodução.
-
-O comentário preparado aguarda o fim da saudação e da música para tocar; as falas não se sobrepõem. Se o áudio do comentário já estiver pronto, a reprodução pode começar em seguida, sem uma pausa artificial. Se captura, modelo ou síntese ainda estiverem pendentes, resta esperar essa etapa. A antecipação não cria uma segunda captura ou geração e não promete latência zero da rede ou do dispositivo.
-
-A opção informa explicitamente que **uma imagem da câmera será enviada à OpenAI**. O serviço usa Responses com o modelo de texto configurado, `detail: 'low'` e `store:false`, sem histórico, memórias ou ferramentas. O pedido limita a resposta a um comentário breve e cordial sobre a roupa visível: cor, peça ou combinação. Não identifica a pessoa nem infere saúde, idade, origem, religião ou outros atributos pessoais.
-
-Se o enquadramento não mostrar roupa suficiente, a resposta deve reconhecer essa limitação. Permissão negada, câmera ocupada, chave ausente, modelo incompatível ou falha de rede não geram um elogio inventado. A etapa informa indisponibilidade e pode seguir para voz, se essa opção estiver habilitada e disponível. O comentário usa a voz aprovada e não acrescenta transcrição ao dashboard. Esse recurso não depende de YuNet/SFace e não cadastra um rosto. Veja [Voz e câmera](voice-and-camera.md).
-
-O backend aceita somente uma observação pendente por perfil, com intervalo mínimo de um minuto e até seis tentativas por hora. Esses limites não provocam nova captura automática quando atingidos. Cada comentário é uma solicitação de imagem/modelo e uma nova síntese de voz, sujeitas à disponibilidade e ao consumo dos provedores.
+A música, a saudação e a entrada na conversa não abrem a câmera. Não há espera por captura, análise de roupa ou geração de um elogio. Para testar a webcam ou usar o reconhecimento facial local opcional, abra **Presença** e acione os controles manualmente. Isso continua separado da voz e não autentica ações. [Voz e câmera](voice-and-camera.md).
 
 ## Entrada na conversa
 
-Com **conversa após a recepção** habilitada, o aplicativo inicia a captura de microfone e a sessão OpenAI Realtime somente depois das etapas anteriores. A resposta audível continua sendo ElevenLabs. A opção de **conversa contínua** permite renovar uma sessão encerrada por prazo normal enquanto essa intenção continuar ativa; não repete a música, a saudação ou a câmera a cada renovação.
+Com **conversa após a recepção** habilitada, o aplicativo inicia a captura de microfone e a sessão OpenAI Realtime somente depois do fim da saudação. A resposta audível continua sendo ElevenLabs. A opção de **conversa contínua** permite renovar uma sessão encerrada por prazo normal enquanto essa intenção continuar ativa; não repete a música ou a saudação a cada renovação.
 
 Falhas de autenticação ou rede não criam um ciclo de novas tentativas. **Interromper**, troca de perfil, reset ou saída cancelam a recepção e a intenção de renovação, param áudio/captura e invalidam resultados antigos. Encerrar a sessão contínua exige uma nova escolha para voltar a ouvir. Detalhes de conexão e custos estão em [OpenAI](openai.md).
 
@@ -52,6 +46,6 @@ Com dados válidos, a interface exibe fonte e licença compactas: **Dados Open-M
 
 Sem chave, a preparação informa `reason: requires_key`, com `audioBase64: null`; não apresenta a amostra gravada como boletim atual. Voz ausente ou falha de síntese também ficam explícitas. Se o navegador exigir gesto, **Ouvir saudação** reproduz o áudio preparado, sem nova consulta/síntese.
 
-O controlador limita repetição, aceita somente uma recepção por vez e propaga cancelamento ao backend. Isso inclui a captura, observação e síntese antecipadas do comentário. Um resultado antigo não pode tocar áudio, abrir câmera ou reconectar voz após interrupção, troca de perfil ou saída. Saudação e comentário são apresentados por som, pulsação e estados, sem transcrição no painel Conversa; mensagens digitadas continuam visíveis.
+O controlador limita repetição, aceita somente uma recepção por vez e propaga cancelamento ao backend. Um resultado antigo não pode tocar áudio ou reconectar voz após interrupção, troca de perfil ou saída. A recepção não abre câmera. A saudação é apresentada por som, pulsação e estados, sem transcrição no painel Conversa; mensagens digitadas continuam visíveis.
 
-Os testes com transporte e dispositivos substituídos verificam esses contratos; não comprovam palmas físicas, som ouvido, roupa corretamente descrita ou entrada real no Windows. Execute o [plano de testes](test-plan.md) no pacote de destino e registre cada evidência separadamente.
+Os testes com transporte e dispositivos substituídos verificam esses contratos; não comprovam palmas físicas, som ouvido ou entrada real no Windows. Execute o [plano de testes](test-plan.md) no pacote de destino e registre cada evidência separadamente.

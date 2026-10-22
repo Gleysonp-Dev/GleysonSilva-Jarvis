@@ -27,7 +27,7 @@ declare global {
   }
   interface JarvisRecord { id: string; text?: string; summary?: string; name?: string; status?: string; createdAt?: string; updatedAt?: string; profileId?: string; [key: string]: unknown; }
   interface JarvisSnapshot { memories: JarvisRecord[]; tasks: JarvisRecord[]; procedures: JarvisRecord[]; }
-  interface JarvisCapabilities { desktop: boolean; vision: boolean; localTest?: boolean; ephemeralBiometrics?: boolean; startup?: boolean; voiceWake?: boolean; jarvisSpeech?: boolean; outfitObservation?: boolean; ultronBridge?: boolean; }
+  interface JarvisCapabilities { desktop: boolean; vision: boolean; localTest?: boolean; ephemeralBiometrics?: boolean; startup?: boolean; voiceWake?: boolean; jarvisSpeech?: boolean; ultronBridge?: boolean; }
   interface JarvisWeatherAttribution { name: string; url: string; license: string; licenseUrl: string; text: string; }
   interface JarvisToolSource { url: string; title: string; }
   interface JarvisContext {
@@ -62,8 +62,6 @@ declare global {
     saveSettings(settings: Partial<JarvisSettings> & { apiKey?: string; elevenApiKey?: string }): Promise<unknown>;
     startupGreeting?(input: { hour: number; timezone: string }): Promise<{ text: string; weatherStatus: string; locationLabel?: string; audioBase64: string | null; mime: string; reason?: string; attribution?: JarvisWeatherAttribution | string }>;
     cancelGreeting?(): Promise<{ cancelled: boolean }>;
-    observeOutfit?(input: { imageDataUrl: string }): Promise<{ text: string; observedAt: number }>;
-    cancelOutfit?(): Promise<unknown>;
     readContext?(input: { timezone?: string }): Promise<JarvisContext>;
     cancelContext?(): Promise<unknown>;
     chooseWorkspace(): Promise<string | null>;

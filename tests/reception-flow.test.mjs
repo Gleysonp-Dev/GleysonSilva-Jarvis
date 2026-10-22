@@ -59,7 +59,7 @@ function environment(t, options = {}) {
   }
   const fakeCapture = async input => { calls.push('capture'); return options.capture ? options.capture(input) : 'data:image/jpeg;base64,/9j/2Q=='; };
   const originals = new Map();
-  const globals = { window: { jarvis: bridge, location: { href: 'http://127.0.0.1:47833/' }, addEventListener(name, callback) { listeners.set(name, callback); }, removeEventListener(name) { listeners.delete(name); } }, document: { getElementById: () => ({}), activeElement: null, addEventListener() {}, removeEventListener() {} }, navigator: { userActivation: { hasBeenActive: true } }, Audio: AudioDouble, AudioContext: Context, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, setTimeout(callback, delay) { const timer = { callback, delay, cleared: false }; timers.push(timer); return timer; }, clearTimeout(timer) { if (timer) timer.cleared = true; } };
+  const globals = { window: { jarvis: bridge, location: { href: 'http://127.0.0.1:47833/' }, addEventListener(name, callback) { listeners.set(name, callback); }, removeEventListener(name) { listeners.delete(name); } }, document: { getElementById: () => ({}), activeElement: null, addEventListener() {}, removeEventListener() {} }, navigator: { userActivation: { hasBeenActive: true }, mediaDevices: { async getUserMedia(constraints) { calls.push(['media', constraints]); throw new Error('Unexpected camera capture during reception'); } } }, Audio: AudioDouble, AudioContext: Context, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, setTimeout(callback, delay) { const timer = { callback, delay, cleared: false }; timers.push(timer); return timer; }, clearTimeout(timer) { if (timer) timer.cleared = true; } };
   for (const [key, value] of Object.entries(globals)) { originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value }); }
   const createUrl = URL.createObjectURL, revokeUrl = URL.revokeObjectURL;
   URL.createObjectURL = value => { const url = createUrl.call(URL, value); createdUrls.push(url); return url; };
@@ -92,153 +92,130 @@ function environment(t, options = {}) {
   };
 }
 
-test('boot stays silent; a clap prepares one outfit comment during greeting and plays it immediately after, then starts voice', async t => {
+function noAutomaticOutfit(app) {
+  assert(!app.calls.includes('capture'), 'reception must not invoke the legacy capture helper');
+  assert(!app.calls.some(call => Array.isArray(call) && call[0] === 'media' && call[1]?.video), 'reception must not request camera video');
+  assert(!app.calls.some(call => Array.isArray(call) && ['observe', 'speak'].includes(call[0])), 'reception must not observe or synthesize clothing text');
+}
+
+const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+
+test('boot waits silently; two claps play only music and greeting, then voice, even with the legacy clothing option enabled', async t => {
   const app = environment(t); await app.boot();
-  assert.equal(app.detectors.length, 1); assert.equal(app.audios.length, 0); assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
-  await app.clap(); assert.equal(app.audios.length, 1); assert(app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
-  assert.equal(app.calls.filter(value => Array.isArray(value) && value[0] === 'speak').length, 1);
-  assert(app.calls.indexOf('audio-start') < app.calls.indexOf('capture'));
+  assert.equal(app.current.receptionOutfitEnabled, true);
+  assert.equal(app.detectors.length, 1); assert.equal(app.audios.length, 0); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
+  await app.clap(); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
+  assert.equal(app.calls.filter(call => call === 'greeting').length, 1);
+  assert.equal(app.calls.filter(call => Array.isArray(call) && call[0] === 'music-start').length, 1);
+  assert.equal(app.audios[0].playbackRate, 0.95); assert.equal(app.audios[0].preservesPitch, true);
+  assert(app.calls.some(call => Array.isArray(call) && call[0] === 'effect' && call[1] === 0.78));
   app.detectors[0].callbacks.onWake(); await tick(); assert.equal(app.audios.length, 1);
   app.audios[0].finish(); await tick();
-  assert.equal(app.calls.filter(value => value === 'capture').length, 1); assert.equal(app.calls.filter(value => Array.isArray(value) && value[0] === 'observe').length, 1);
-  assert.equal(app.audios.length, 2); assert.equal(app.sessions.length, 0); assert.equal(app.detectors.length, 1);
-  const speech = app.calls.find(value => Array.isArray(value) && value[0] === 'speak')[1];
-  assert.match(speech.runId, /^reception-/); assert.match(speech.utteranceId, /^outfit-/); assert.equal(speech.profileId, 'principal');
-  assert.equal(app.audios[1].playbackRate, 0.95); assert.equal(app.audios[1].preservesPitch, true); assert(app.calls.some(value => Array.isArray(value) && value[0] === 'effect' && value[1] === 0.78));
-  const capture = app.calls.indexOf('capture'), greetingEnd = app.calls.indexOf('audio-end'); assert(capture < greetingEnd);
-  assert.equal(app.calls[greetingEnd + 1], 'music-stop');
-  app.audios[1].finish(); await tick(); assert.equal(app.sessions.length, 1); assert.equal(app.sessions[0].profile, 'principal');
-  const log = nodes(app.render()).find(node => node.props?.role === 'log'); assert.equal(text(log), '');
+  assert.equal(app.sessions.length, 1); assert.equal(app.sessions[0].profile, 'principal'); assert.equal(app.audios.length, 1); noAutomaticOutfit(app);
+  const greetingEnd = app.calls.indexOf('audio-end'), voiceStart = app.calls.indexOf('voice-start');
+  assert(greetingEnd >= 0 && voiceStart > greetingEnd);
+  assert(app.calls.slice(greetingEnd + 1, voiceStart).includes('music-stop'));
+  assert.equal(app.createdUrls.length, 1); assert.equal(app.revokedUrls.filter(url => url === app.createdUrls[0]).length, 1);
+  app.detectors[0].callbacks.onWake(); await tick(); assert.equal(app.sessions.length, 1);
+  assert.equal(text(nodes(app.render()).find(node => node.props?.role === 'log')), '');
 });
 
-test('cancel during capture aborts the image and never observes, speaks or connects later', async t => {
-  let released = false;
-  const app = environment(t, { capture: ({ signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => { released = true; reject(new DOMException('Cancelled', 'AbortError')); }, { once: true })) });
-  await app.boot(); await app.finishGreeting();
-  await button(app.render(), 'Interromper').props.onClick(); await tick();
-  assert.equal(released, true); assert(!app.calls.some(value => Array.isArray(value) && ['observe', 'speak'].includes(value[0]))); assert.equal(app.sessions.length, 0);
+test('the manual reception button also skips camera and clothing work before entering voice', async t => {
+  const app = environment(t, { settings: { standbyEnabled: false } }); await app.boot();
+  await button(app.render(), 'Iniciar Jarvis').props.onClick(); await tick();
+  assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
+  app.audios[0].finish(); await tick(); assert.equal(app.sessions.length, 1); assert.equal(app.audios.length, 1); noAutomaticOutfit(app);
+});
+
+test('cancelling a greeting preparation discards its late audio and never connects voice', async t => {
+  const pending = deferred(), app = environment(t, { greeting: () => pending.promise });
+  await app.boot(); await app.clap(); assert.equal(app.audios.length, 0);
+  await button(app.render(), 'Interromper').props.onClick();
+  pending.resolve({ text: 'Late greeting.', weatherStatus: 'ok', audioBase64: Buffer.from('late-greeting').toString('base64'), mime: 'audio/mpeg' }); await tick();
+  assert(app.calls.includes('cancel-greeting')); assert.equal(app.audios.length, 0); assert.equal(app.createdUrls.length, 0); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
   app.fireTimers(4000); await tick(); assert.equal(app.detectors.length, 1);
 });
 
-test('cancel, profile reset and close ignore an outfit response that finishes late', async t => {
-  let respond; const pending = new Promise(resolve => { respond = resolve; });
-  const app = environment(t, { observe: () => pending }); await app.boot(); await app.finishGreeting();
-  app.emit({ type: 'session.reset', profileId: 'principal', reason: 'profile_changed' });
-  respond({ text: 'A late compliment.', observedAt: Date.now() }); await tick();
-  assert.equal(app.sessions.length, 0); assert(!app.calls.some(value => Array.isArray(value) && value[0] === 'speak')); assert(app.calls.includes('cancel-outfit'));
+test('a profile reset discards a greeting response from the previous reception', async t => {
+  const pending = deferred(), app = environment(t, { greeting: () => pending.promise });
+  await app.boot(); await app.clap(); app.emit({ type: 'session.reset', profileId: 'principal', reason: 'profile_changed' });
+  pending.resolve({ text: 'Old profile greeting.', weatherStatus: 'ok', audioBase64: Buffer.from('old-greeting').toString('base64'), mime: 'audio/mpeg' }); await tick();
+  assert.equal(app.audios.length, 0); assert.equal(app.sessions.length, 0); assert(app.calls.includes('cancel-greeting')); noAutomaticOutfit(app);
   app.fireTimers(4000); await tick(); assert.equal(app.detectors.length, 1);
 });
 
-test('a slow outfit synthesis continues across greeting end without replaying capture or overlapping speech', async t => {
-  let deliver, request;
-  const app = environment(t, { speak: input => { request = input; return new Promise(resolve => { deliver = resolve; }); } });
-  await app.boot(); await app.clap();
-  assert(request); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0);
-  app.audios[0].finish(); await tick();
-  assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0);
-  deliver({ ...request, audioBase64: Buffer.from('ready-comment').toString('base64'), mime: 'audio/mpeg' }); await tick();
-  assert.equal(app.audios.length, 2); assert.equal(app.calls.filter(value => value === 'capture').length, 1);
-  assert.equal(app.calls.filter(value => Array.isArray(value) && value[0] === 'speak').length, 1);
-  app.audios[1].finish(); await tick(); assert.equal(app.sessions.length, 1);
-});
-
-test('closing while the next comment is prepared releases its audio without playing it', async t => {
+for (const stop of ['cancel', 'reset', 'close']) test(stop + ' during greeting playback releases its only audio and cannot start voice from a late ended event', async t => {
   const app = environment(t); await app.boot(); await app.clap();
-  assert.equal(app.audios.length, 1); assert.equal(app.createdUrls.length, 2);
-  const preparedUrl = app.createdUrls[1]; assert(!app.revokedUrls.includes(preparedUrl));
-  app.close(); await tick();
-  assert(app.revokedUrls.includes(preparedUrl)); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0);
-  assert(app.calls.includes('cancel-outfit'));
+  const audio = app.audios[0], ended = audio.onended, url = app.createdUrls[0];
+  assert.equal(app.createdUrls.length, 1);
+  if (stop === 'cancel') await button(app.render(), 'Interromper').props.onClick();
+  else if (stop === 'reset') app.emit({ type: 'session.reset', profileId: 'principal', reason: 'profile_changed' });
+  else app.close();
+  ended(); await tick();
+  assert.equal(app.revokedUrls.filter(value => value === url).length, 1); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
 });
 
-test('an outfit audio-context failure releases its transferred URL exactly once and still starts voice', async t => {
-  const app = environment(t, { context: index => { if (index === 2) throw new Error('Audio context unavailable'); } });
-  await app.boot(); await app.clap();
-  assert.equal(app.createdUrls.length, 2); const commentUrl = app.createdUrls[1];
-  assert(!app.revokedUrls.includes(commentUrl));
-  app.audios[0].finish(); await tick();
-  assert.equal(app.revokedUrls.filter(value => value === commentUrl).length, 1);
-  assert.equal(app.calls.filter(value => value === 'audio-start').length, 1); assert.equal(app.sessions.length, 1);
-  assert.match(text(app.render()), /Não consegui reproduzir o comentário da roupa/);
-  app.close(); await tick(); assert.equal(app.revokedUrls.filter(value => value === commentUrl).length, 1);
-  assert.equal(app.calls.filter(value => value === 'audio-start').length, 1);
+test('a greeting audio error releases playback without starting camera, another narration or voice', async t => {
+  const app = environment(t); await app.boot(); await app.clap();
+  app.audios[0].fail(); await tick(); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
+  assert.equal(app.revokedUrls.filter(url => url === app.createdUrls[0]).length, 1);
 });
 
-test('closing during prefetched synthesis discards a late audio result and cannot connect voice', async t => {
-  let deliver, request;
-  const app = environment(t, { speak: input => { request = input; return new Promise(resolve => { deliver = resolve; }); } });
-  await app.boot(); await app.clap(); assert(request);
-  app.close(); deliver({ ...request, audioBase64: Buffer.from('late-comment').toString('base64'), mime: 'audio/mpeg' }); await tick();
-  assert.equal(app.createdUrls.length, 1); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0);
-  assert(app.calls.some(value => Array.isArray(value) && value[0] === 'cancel-speech' && value[1].runId === request.runId));
-});
-
-test('a wrong synthesis correlation is discarded after the greeting and never spoken', async t => {
-  const app = environment(t, { speak: async input => ({ ...input, runId: 'a-different-reception', audioBase64: Buffer.from('wrong-comment').toString('base64'), mime: 'audio/mpeg' }) });
-  await app.boot(); await app.clap(); assert.equal(app.audios.length, 1);
-  app.audios[0].finish(); await tick(); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 1);
-  assert.match(text(app.render()), /Não consegui observar sua roupa agora/);
-});
-
-test('a greeting interrupted after playing cancels in-progress camera work and never speaks a comment', async t => {
-  let aborted = false;
-  const app = environment(t, { capture: ({ signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => { aborted = true; reject(new DOMException('Cancelled', 'AbortError')); }, { once: true })) });
-  await app.boot(); await app.clap(); assert(app.calls.includes('capture'));
-  app.audios[0].fail(); await tick(); assert.equal(aborted, true);
-  assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0); assert(app.calls.includes('cancel-outfit'));
-});
-
-test('camera failure gives a short notice and proceeds to voice without an invented compliment', async t => {
-  const app = environment(t, { capture: async () => { throw new Error('Permission denied'); } }); await app.boot(); await app.finishGreeting();
-  assert.equal(app.sessions.length, 1); assert(!app.calls.some(value => Array.isArray(value) && ['observe', 'speak'].includes(value[0])));
-  assert.match(text(app.render()), /Não consegui observar sua roupa agora/);
-});
-
-test('a missing greeting cannot start the camera or voice session', async t => {
+test('a missing greeting cannot start camera or voice commands', async t => {
   const app = environment(t, { greeting: () => ({ text: '', audioBase64: null, mime: 'audio/mpeg', reason: 'requires_key' }) }); await app.boot(); await app.clap();
-  assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
+  assert.equal(app.audios.length, 0); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
 });
 
-test('greeting playback that fails before starting cannot start camera observation or voice commands', async t => {
+test('greeting playback blocked before starting never connects voice or requests camera', async t => {
   const app = environment(t, { play: async () => { throw new Error('Playback blocked'); } }); await app.boot(); await app.clap();
-  assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
+  assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
 });
 
-test('a not-configured greeting is never treated as a completed reception even if it has audio', async t => {
+test('a not-configured greeting cannot complete reception even when its audio ends', async t => {
   const app = environment(t, { greeting: () => ({ text: 'Configure sua cidade.', audioBase64: Buffer.from('mock').toString('base64'), mime: 'audio/mpeg', weatherStatus: 'not_configured' }) });
-  await app.boot(); await app.finishGreeting(); assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
+  await app.boot(); await app.finishGreeting(); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
 });
 
-test('automatic greeting at boot does not opt into a camera upload or automatic cloud microphone', async t => {
+test('automatic greeting at boot never opts into camera upload or an automatic cloud conversation', async t => {
   const app = environment(t, { settings: { standbyEnabled: false, startupGreeting: true } }); await app.boot();
-  assert.equal(app.audios.length, 1); app.audios[0].finish(); await tick(); assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
+  assert.equal(app.audios.length, 1); app.audios[0].finish(); await tick(); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
 });
 
-test('public-default reception flags keep camera upload and automatic cloud conversation disabled even after activation', async t => {
-  const app = environment(t, { settings: { receptionOutfitEnabled: false, receptionVoiceEnabled: false, continuousVoiceEnabled: false } });
-  await app.boot(); await app.finishGreeting(); assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
+test('disabled voice continuation ends reception after the greeting despite a legacy true clothing setting', async t => {
+  const app = environment(t, { settings: { receptionVoiceEnabled: false, continuousVoiceEnabled: false } });
+  await app.boot(); await app.finishGreeting(); assert.equal(app.audios.length, 1); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
 });
 
 test('continuous mode renews only normal expiry and Interromper prevents reconnection or standby', async t => {
-  const app = environment(t, { settings: { receptionOutfitEnabled: false, continuousVoiceEnabled: true } }); await app.boot(); await app.finishGreeting();
+  const app = environment(t, { settings: { continuousVoiceEnabled: true } }); await app.boot(); await app.finishGreeting();
   assert.equal(app.sessions.length, 1); app.sessions[0].expire(); app.fireTimers(1200); await tick(); assert.equal(app.sessions.length, 2);
-  await button(app.render(), 'Interromper').props.onClick(); app.fireTimers(1200); app.fireTimers(4000); await tick(); assert.equal(app.sessions.length, 2); assert.equal(app.detectors.length, 1);
+  await button(app.render(), 'Interromper').props.onClick(); app.fireTimers(1200); app.fireTimers(4000); await tick(); assert.equal(app.sessions.length, 2); assert.equal(app.detectors.length, 1); noAutomaticOutfit(app);
 });
 
-test('continuous mode never retries errors and closing during a renewal gap prevents a new connection', async t => {
-  const app = environment(t, { settings: { receptionOutfitEnabled: false, continuousVoiceEnabled: true } }); await app.boot(); await app.finishGreeting();
+test('continuous mode never retries errors and closing during a renewal gap prevents another connection', async t => {
+  const app = environment(t, { settings: { continuousVoiceEnabled: true } }); await app.boot(); await app.finishGreeting();
   app.sessions[0].fail(); app.fireTimers(1200); await tick(); assert.equal(app.sessions.length, 1);
   await button(app.render(), 'Iniciar conversa por voz').props.onClick(); await tick(); assert.equal(app.sessions.length, 2);
-  app.sessions[1].expire(); app.close(); app.fireTimers(1200); await tick(); assert.equal(app.sessions.length, 2);
+  app.sessions[1].expire(); app.close(); app.fireTimers(1200); await tick(); assert.equal(app.sessions.length, 2); noAutomaticOutfit(app);
 });
 
-test('full reception preset edits only the draft; saving retains city, model, voice and existing private keys', async t => {
-  const app = environment(t, { settings: { standbyEnabled: false, receptionOutfitEnabled: false, receptionVoiceEnabled: false, continuousVoiceEnabled: false } }); await app.boot();
+test('the reception preset keeps city, model, voice and keys while removing the clothing option from UI and saved payload', async t => {
+  const app = environment(t, { settings: { standbyEnabled: false, receptionVoiceEnabled: false, continuousVoiceEnabled: false } }); await app.boot();
   button(app.render(), 'Configurações').props.onClick(); button(app.render(), 'Ativar recepção completa').props.onClick();
-  assert.equal(app.saved.length, 0); assert(!app.calls.includes('capture')); assert.equal(app.sessions.length, 0);
-  const tree = app.render(), form = nodes(tree).find(node => node.type === 'form' && node.props.className === 'settings-form');
+  assert.equal(app.saved.length, 0); assert.equal(app.sessions.length, 0); noAutomaticOutfit(app);
+  const tree = app.render(); assert.doesNotMatch(text(tree), /comentar a roupa|captura da roupa|observar a roupa/i);
+  const form = nodes(tree).find(node => node.type === 'form' && node.props.className === 'settings-form');
   await form.props.onSubmit({ preventDefault() {} }); await tick(); const saved = app.saved[0];
-  for (const name of ['startAtLogin', 'startupGreeting', 'standbyEnabled', 'wakeClapEnabled', 'greetingMusicEnabled', 'receptionOutfitEnabled', 'receptionVoiceEnabled', 'continuousVoiceEnabled']) assert.equal(saved[name], true, name);
+  for (const name of ['startAtLogin', 'startupGreeting', 'standbyEnabled', 'wakeClapEnabled', 'greetingMusicEnabled', 'receptionVoiceEnabled', 'continuousVoiceEnabled']) assert.equal(saved[name], true, name);
+  assert.equal(Object.hasOwn(saved, 'receptionOutfitEnabled'), false);
   assert.equal(saved.wakeVoiceEnabled, false); assert.equal(saved.textModel, 'test-text'); assert.equal(saved.realtimeModel, 'test-voice'); assert.equal(saved.elevenVoiceId, 'configured-voice'); assert.deepEqual(saved.weatherLocation, app.current.weatherLocation);
   assert.equal(Object.hasOwn(saved, 'apiKey'), false); assert.equal(Object.hasOwn(saved, 'elevenApiKey'), false);
+});
+
+test('a legacy enabled clothing setting does not require OpenAI when automatic voice continuation is disabled', async t => {
+  const app = environment(t, { settings: { hasKey: false, receptionVoiceEnabled: false } }); await app.boot();
+  button(app.render(), 'Configurações').props.onClick();
+  const form = nodes(app.render()).find(node => node.type === 'form' && node.props.className === 'settings-form');
+  await form.props.onSubmit({ preventDefault() {} }); await tick();
+  assert.equal(app.saved.length, 1); assert.equal(Object.hasOwn(app.saved[0], 'receptionOutfitEnabled'), false); noAutomaticOutfit(app);
 });

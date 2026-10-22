@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-A 0.6.1 acrescenta três ferramentas YouTube para conversa nativa por voz/texto: busca de até oito resultados reais, tocar por ID observado e tocar/pausar com evidência do player. [CI 0f293d0 da 0.6.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovado: 529/529 testes, zero falhas/skips, TypeScript/build/pacote e abertura nativa com player real em página HTTPS local e áudio silenciado. [Windows conferido](../AI_INSTALL.md#pacote-windows-061-conferido); o ensaio do YouTube ao vivo e som ouvido continuam pendentes. A janela controlada não opera abas do navegador pessoal; o plugin Ultron permanece 0.6.0 com cinco ferramentas. [Contrato e limites](youtube.md).
+A revisão atual **0.6.2** retira comentário de roupa e captura automática da recepção, migra a preferência antiga para `false` e preserva a câmera manual em Presença. Rever também anúncios, vídeo oculto, referência inicial de progresso e expiração da tentativa no YouTube: anúncio termina naturalmente, timeout mantém janela, cancelamento/perfil interrompem. **CI, pacote e ensaio ao vivo ainda pendentes.** A verificação local está registrada em [Validação](validation.md). Na 0.6.1, o usuário confirmou pesquisa e relatou que o vídeo não tocou; causa indeterminada. O [CI 0f293d0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) e os **529/529 testes** são históricos, com player em HTTPS local e áudio silenciado. [YouTube](youtube.md) e [validação](validation.md).
 
 A 0.6.0 prepara a ponte privada Ultron → Jarvis local com cinco ferramentas MCP. Validar protocolo, permissão local explícita, acesso em tarefa compatível e resultados físicos separadamente. Verificação local: 491 testes, 480 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox e zero skips; TypeScript/build aprovados. O plugin privado foi instalado e habilitado pela CLI oficial, com listagem conferida. O [CI 2adf71d](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovou 491/491 testes, zero falhas/skips, TypeScript/build/pacote e abertura nativa do Jarvis; Windows e plugin foram baixados e conferidos. Handshake MCP instalado 0.6.0 e recusa inicial NOT_RUNNING foram verificados. Após o usuário ativar a conexão na interface, cinco ferramentas ficaram disponíveis nesta conversa e o status real confirmou `connected: true`, versão 0.6.0 e cidade/voz configuradas. A chamada real de abertura do site solicitado retornou despacho `unverified`, sem comprovar a janela. Clima e voz ao vivo pela ponte e teste pelo próprio Dot permanecem pendentes; o Dot pessoal não foi chamado. [Fluxo e limites](ultron.md).
 
@@ -19,7 +19,7 @@ A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a c
 | Revisão 0.2.3 | 229 testes, TypeScript, build, pacote e abertura nativa real aprovados no CI; handlers de fechamento e filtros testados com Electron/OS/sinais substituídos. | Encerramento durante áudio e novos filtros no equipamento do usuário. |
 | Revisão 0.3.1 | 264 testes e abertura nativa aprovados; núcleo recebeu aceite visual do autor. | Login, detecção de palmas e imagem de roupa. |
 | Revisão 0.4.0 | 343 testes e abertura nativa aprovados; pacote conferido por hash. | Recepção 0.5.0, nova chamada de imagem e renovação de voz. |
-| Revisão 0.6.1 | 529/529 testes, TypeScript/build/pacote e abertura nativa aprovados; player real em página HTTPS local com mídia PCM e áudio silenciado. ZIP/EXE conferidos. | YouTube ao vivo, vídeos disponíveis na conta/região, som ouvido e ensaio por voz no equipamento do usuário. |
+| Revisão 0.6.1 | 529/529 testes, TypeScript/build/pacote e abertura nativa aprovados; player em HTTPS local silenciado. ZIP/EXE conferidos. Usuário confirmou busca real, mas o vídeo não começou a tocar. | Causa da falha, reprodução ao vivo, som ouvido, pausa/retomada e correção 0.6.2. |
 | Texto OpenAI | Pergunta real respondida corretamente. | Benchmark, custo e latência comparável. |
 | Microfone | Captura com nível e liberação observadas. | Detector de palmas ou palavra. |
 | Câmera | Prévia real 640×480 e parada. | Reconhecimento: OpenCV e pesos ausentes. |
@@ -28,16 +28,16 @@ A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a c
 | Ajustes no navegador | Opções nativas de login/palavra desabilitadas; espera exige voz/chave/cidade; opções salvas preservadas. | Funcionamento do registro de login ou reconhecedor Windows. |
 | Palmas 0.6.0 | O usuário confirmou ativação física por duas palmas na sessão testada. | Novo login/reinício do Windows, todos os ambientes e o fluxo YouTube 0.6.1. |
 
-O [registro de validação](validation.md) apresenta os limites e o histórico, incluindo o roteiro curto aprovado pelo autor. **A nova sequência integrada com login, palmas, música, roupa e conversa contínua ainda exige ensaio físico.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
+O [registro de validação](validation.md) apresenta os limites e o histórico, incluindo o roteiro curto aprovado pelo autor. **A sequência atual com login, palmas, música/saudação e conversa contínua, sem câmera automática, ainda exige ensaio físico.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
 
-## YouTube nativo — roteiro 0.6.1
+## YouTube nativo — roteiro 0.6.2
 
-1. No aplicativo nativo com **MVP / 06.1**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
+1. No aplicativo nativo com **MVP / 06.2**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
 2. Pedir um dos resultados e conferir que `youtube_play` usa exatamente o ID observado no perfil. Um ID inventado, de outro perfil ou formato incompatível deve ser recusado antes da reprodução.
 3. Confirmar o vídeo correto e o estado do player. Registrar separadamente vídeo carregado, estado de reprodução e som efetivamente ouvido; nenhum desses resultados pode ser deduzido só do despacho de navegação.
 4. Pedir pausa e retomada e conferir o estado real do player. Os comandos devem atuar somente na janela controlada, sem operar abas externas ou outro player.
 5. Pedir somente para abrir youtube.com e confirmar que a rota genérica continua no navegador padrão. A abertura não deve ser anunciada como pesquisa ou reprodução.
-6. Ensaiar pedido ambíguo, lista vazia, vídeo removido/restrito, anúncio, falha de rede, login, consentimento e CAPTCHA. O Jarvis deve informar o limite ou pedir intervenção, sem clicar automaticamente em aceite/login ou anunciar vídeo tocando sem evidência.
+6. Ensaiar pedido ambíguo, lista vazia, vídeo removido/restrito, falha de rede, login, consentimento e CAPTCHA. Anúncio curto deve terminar naturalmente antes da confirmação do vídeo; anúncio/carregamento além de 15 segundos deve expirar com janela preservada. Conferir vídeo oculto residual e progresso entre observações sem substituir continuamente a referência inicial. Não clicar em pular/aceite/login nem anunciar vídeo tocando sem evidência.
 7. Cancelar durante busca/reprodução, fechar a janela e trocar perfil/reset. Observar limpeza, recusa de resultados/IDs antigos e ausência de retomada ou fala tardia. Conferir continuidade da voz/recepção e preservação dos ajustes privados.
 8. Conferir que o plugin Ultron instalado continua anunciando somente as cinco ferramentas anteriores, sem ferramentas YouTube. Registrar os ensaios do Dot em separado.
 
@@ -85,10 +85,10 @@ Não é necessário instalar OpenCV ou baixar modelos para os testes de protocol
 | Continuidade de prévias | Um novo pedido recupera `planId` do backend, sem depender de IDs no texto; contexto limitado, isolamento de perfil e cancelamento antes de envio. | Referências não autorizam execução; planos, pasta e arquivos são revalidados pelo executor. |
 | Erros e chave | Falta de chave não abre rede; erros HTTP, transporte e ferramenta não ecoam a credencial de teste. | Credencial usada apenas no teste; não demonstra DPAPI real. |
 | Realtime | FormData/SDP, saída em texto, VAD, ferramentas e bloqueio de saída de áudio OpenAI. | Não cria uma chamada paga e não captura áudio real. |
-| Recepção 0.5.0 | Sequência, opções separadas, um único quadro, limpeza antes do envio, passagem à voz e cancelamento em cada etapa. | Dispositivos/serviços substituídos não comprovam roupa descrita nem som ouvido. |
-| Preparação de roupa 0.5.1 | Início somente após reprodução efetiva da saudação, captura/observação/síntese antecipadas uma vez, áudio retido até o fim da saudação e cancelamento de resultados tardios. | Relógio/captura/provedores substituídos não medem intervalo audível, permissão ou rede reais. |
+| Recepção 0.6.2 | Sequência sem captura de câmera, saudação→voz e cancelamento em cada etapa. | Verificação local registrada em Validação; substitutos não comprovam login, palmas ou som ouvido. |
+| Retirada de roupa 0.6.2 | Valor legado verdadeiro migrado para falso, controles/endpoints ativos removidos e ausência de captura/envio na recepção. | Não remover prévia/cadastro facial manual nem confundir migração com teste físico. |
 | Navegador padrão 0.5.1 | Abertura genérica sem EXE cadastrado, confirmação com nome/destino, chamada externa fixa, falha/cancelamento e resultado de despacho não verificado. | Callback Windows substituído não demonstra qual navegador ou janela abriu na máquina. |
-| Imagem OpenAI | JPEG/dimensões/tamanho limitados, detalhe baixo, sem ferramentas/histórico, cancelamento e erros sanitizados. | Não mede a interpretação visual do modelo na conta de destino. |
+| Câmera manual | Prévia, parada, reconhecimento local opcional e preservação de cadastro, separados da recepção. | Sem captura automática ou chamada de roupa à OpenAI; reconhecimento exige modelos e ensaio próprios. |
 | Voz contínua | Renovação somente por prazo normal enquanto desejada, sem repetição da recepção; parada/reset invalidam reconexão e erro não cria loop. | Transporte/relógio substituídos não comprovam conexão prolongada real nem custo. |
 | Fala ElevenLabs | Preset aprovado, IDs de execução/trecho, fila, cancelamento, limites e ausência de fallback de voz. | Rede e áudio substituídos; não comprova o clone ouvido em conversa. |
 | Espera/palmas | Duas transientes, intervalo, adaptação, cooldown, rejeição de envelopes sustentados e limpeza da captura. | Sinais e dispositivos sintéticos; não mede falsos positivos no ambiente real. |
@@ -184,34 +184,28 @@ Teste desativação, novo login sem lançamento, mudança/ausência do caminho p
 
 Este ensaio ainda não foi realizado fisicamente; sucesso do empacotamento no CI não o substitui. Veja [Espera local](standby.md).
 
-## Recepção completa e conversa contínua — 0.5.1
+## Recepção completa e conversa contínua — 0.6.2
 
-Use o executável novo em caminho estável, com chaves e cidade configuradas privadamente. A música precisa ter sido escolhida naquela instalação. Registre versão, dispositivos, opções e resultado; não publique imagens, chaves, ID da voz, caminho da música ou detalhes pessoais.
+Use o executável atual quando estiver disponível e conferido, com chaves, cidade e trilha configuradas privadamente. Registre versão, dispositivos, opções e resultado; não publique imagens, chaves, ID da voz, caminho da música ou dados pessoais.
 
 | Ensaio | Evidência esperada |
 | --- | --- |
-| Instalação limpa | Login, espera, roupa, voz após a recepção e conversa contínua não ativados silenciosamente; opções novas começam em `false`. |
-| Salvar configuração e reabrir o nativo | Opções persistem; chaves permanecem configuradas sem redigitação e sem aparecer em histórico/eventos. Não confundir com o teste HTTP, cuja chave é temporária. |
-| Login com espera/palmas habilitados e palavra desligada | Aplicativo em espera/bandeja, microfone local armado; nenhuma música, saudação, câmera ou sessão OpenAI antes das palmas. |
-| Duas palmas e disparo concorrente | Uma única recepção, música e cumprimento pelo horário/clima; sem repetição por TV, própria narração ou um segundo gatilho durante o fluxo. Registrar falsos positivos/negativos em ambiente real. |
-| Fim da saudação | Música termina. Se roupa e conversa estiverem desligadas, nenhum dispositivo/provedor novo é iniciado. |
-| Roupa habilitada e saudação ainda em preparação | Controle informa envio à OpenAI; nenhuma captura ou observação antes do início efetivo da reprodução. Negação de reprodução/gesto não inicia a câmera por antecipação. |
-| Saudação começa a tocar, roupa habilitada | Uma captura JPEG de até 640×480 e 512 KiB, tracks encerradas antes do pedido; observação e síntese começam durante a saudação. Nenhum vídeo persistente nem imagem gravada em banco/log/arquivo. |
-| Comentário preparado antes do fim da saudação | Áudio permanece retido enquanto a saudação toca. Após seu fim e o da música, começa em seguida, sem fala sobreposta ou temporizador de pausa artificial. Medir o intervalo realmente ouvido. |
-| Observação/síntese ainda pendente ao fim da saudação | Aguarda somente a preparação restante; nenhuma captura, chamada ou geração duplicada. Registrar intervalo, falha e condição de rede, sem prometer zero latência. |
-| Roupa visível em luz e enquadramento habituais | Comentário breve coerente com peças/cores visíveis, narrado pelo clone aprovado, sem música ou transcrição. Não aceitar identidade ou inferências pessoais como parte do resultado. |
-| Imagem insuficiente, outra pessoa ao fundo ou rosto sem roupa visível | Limitação honesta e neutra; sem elogio inventado, identificação ou divulgação de dados do perfil. |
-| Câmera negada/ocupada, modelo incompatível, chave inválida ou rede ausente | Aviso útil, captura liberada, sem corpo bruto de erro. A etapa de voz ainda pode começar se habilitada/disponível. Não repetir a captura em loop. |
-| Conversa após a recepção habilitada | Microfone WebRTC somente após saudação/comentário; pergunta inédita respondida com a voz aprovada e núcleo pulsando, sem novas palmas ou transcrição. |
-| Conversa contínua desligada | Conexão termina no prazo configurado, sem reiniciar por conta própria. |
-| Conversa contínua ligada, prazo local configurado | Uma nova conexão por encerramento elegível, sem repetir música/saudação/imagem; novo comando responde. Registrar limites de continuidade do histórico. |
-| Falha de autenticação/rede durante negociação ou sessão | Estado de erro e microfone liberado; nenhuma cadeia indefinida de reconexões. |
-| Interromper durante permissão de câmera, captura, observação, síntese ou negociação/renovação | Toda etapa futura cancelada; nenhuma fala, câmera ou microfone reaberto por resultado tardio. Verificar também concessão tardia da permissão. |
-| Interromper/reset/perfil/saída com comentário já preparado durante a saudação | Áudio antecipado descartado; nunca começa após o fim ou cancelamento da fala anterior. Câmera concedida tardiamente é encerrada, sem envio. |
-| Perfil/reset/configuração/saída durante o fluxo | Gerações antigas invalidadas, sem elogio, ferramenta ou sessão no perfil novo. X encerra som, captura, worker e processo. |
+| Instalação limpa | Login, espera e voz contínua começam desligados; não há opção de análise de roupa nem captura automática. |
+| Configuração legada com `receptionOutfitEnabled: true` | Valor migrado para `false`; demais escolhas, chaves, cidade, voz, trilha e cadastro facial preservados. |
+| Salvar e reabrir o nativo | Opções persistem; chave não exige redigitação nem aparece no histórico. O teste HTTP mantém credencial apenas em memória. |
+| Login com espera/palmas e palavra desligada | App em espera/bandeja; nenhuma música, saudação, câmera ou sessão OpenAI antes das duas palmas. Não clicar em Iniciar Jarvis para provocar o gatilho. |
+| Duas palmas e disparo concorrente | Uma única recepção; música e cumprimento pelo horário/clima, sem repetição pelo segundo gatilho durante o fluxo. |
+| Preparação, reprodução e fim da saudação | Nenhuma captura, pedido de câmera, chamada de imagem ou elogio; música termina com a saudação. |
+| Conversa após a recepção ligada | Microfone WebRTC inicia depois do fim da saudação; pergunta inédita responde com a voz aprovada e núcleo pulsando, sem novas palmas ou transcrição. |
+| Conversa após a recepção desligada | Não abre conversa em nuvem; pode retornar à espera local se continuar desejada. |
+| Conversa contínua ligada | Renova apenas após prazo elegível, sem repetir música/saudação ou abrir câmera. Registrar continuidade e limites do histórico. |
+| Rede/autenticação recusadas | Erro claro e microfone liberado; sem cadeia indefinida de reconexões. |
+| Interromper durante saudação, síntese ou negociação/renovação | Trabalho futuro cancelado; nenhuma fala ou conexão de microfone começa por resposta atrasada. |
+| Perfil/reset/configuração/saída | Gerações antigas invalidadas; X encerra áudio, captura, worker e processo. |
+| Presença manual após recepção | Abrir/encerrar prévia continua funcionando separadamente; cadastro local é preservado e nunca autentica ferramentas. |
 | Desativar início no Windows | Registro removido e nenhum lançamento no próximo login. |
 
-A conversa contínua transmite áudio enquanto conectada, incluindo o silêncio entre comandos. Registre duração e consumo real por provedor; a opção não promete sessão infinita, memória ilimitada ou orçamento máximo. Não use sucesso de parser/tempo simulado como comprovação de conexão prolongada real.
+A conversa contínua transmite áudio enquanto conectada, incluindo o silêncio entre comandos. Registre duração e consumo por provedor; a opção não promete sessão infinita ou orçamento máximo. Testes com substitutos não comprovam conexão prolongada no equipamento.
 
 ## Acesso ampliado e navegador padrão — 0.5.1
 
@@ -240,7 +234,7 @@ Para cada modelo e dispositivo, grave pelo menos 30 solicitações repetíveis p
 | --- | --- | --- |
 | Primeiro texto | Envio do pedido | Primeiro delta visível. |
 | Primeiro áudio | Fim da fala percebido no cliente | Primeiro som efetivamente reproduzido. |
-| Passagem da saudação para roupa | Fim audível da saudação | Primeiro som audível do comentário. Registrar também início da captura, retorno do modelo e fim da síntese para separar trabalho antecipado da espera restante. |
+| Passagem da saudação para voz | Fim audível da saudação | Microfone/sessão prontos para o novo comando. Conferir ausência de etapa de câmera ou comentário entre esses eventos. |
 | Interrupção | Fala da pessoa ou clique | Fim audível da resposta anterior. |
 | Ferramenta | Pedido aceito pelo executor | Resultado verificado. Excluir espera humana da medida de execução e reportá-la separadamente. |
 | Presença | Primeiro quadro com rosto | Indicação de presença local. |
@@ -262,7 +256,7 @@ Automáticos: comando, quantidade, aprovados, falhas, skips
 Microfone: acesso, captura, liberação
 Saída: provedor/voz realmente ouvidos, reprodução e interrupção
 Câmera: captura e liberação
-Roupa: opção explícita, início da reprodução da saudação, quadro único, vídeo encerrado antes do envio, áudio preparado/retido, intervalo audível, resultado e descarte
+Recepção sem câmera: migração legada, ausência de captura/envio automático e passagem da saudação para voz; Presença manual preservada
 Espera: palmas/palavra, idioma, ruído, pausa/retorno e segundo plano
 Login Windows: pacote/caminho, entrada real e desativação
 Música: não fornecida / arquivo privado testado, fim e cancelamento

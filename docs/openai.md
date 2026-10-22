@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: OpenAI
 
-O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrada falada e geração de texto. A resposta audível vem da ElevenLabs com a voz configurada; o áudio de saída OpenAI fica desativado. A revisão 0.5.1 preserva a recepção da 0.5.0 e antecipa observação/síntese da roupa durante a reprodução da saudação, mantendo as falas em sequência. Corrige também a abertura genérica do navegador padrão do Windows sem cadastro manual. Pesquisa web, leitura de páginas, clima atual e acesso ampliado a aplicativos/pastas da 0.4.0 são preservados.
+O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrada falada e geração de texto. A resposta audível vem da ElevenLabs com a voz configurada; o áudio de saída OpenAI fica desativado. Na 0.6.2, a recepção não analisa roupa nem envia imagem à OpenAI: música/saudação com clima passam à conversa por voz quando habilitada. A preferência antiga de roupa é migrada para `false`. Câmera manual e reconhecimento local permanecem separados. As ferramentas YouTube, web, clima, aplicativos e pastas são preservadas. CI, pacote e ensaio ao vivo da 0.6.2 ainda pendentes. [Registro](validation.md).
 
 O modelo solicita ferramentas; o executor local valida argumentos, verifica a pasta autorizada, apresenta a confirmação necessária e registra o resultado. Uma resposta gerada não prova que uma ação aconteceu.
 
@@ -15,9 +15,8 @@ Abra **Ajustes**, informe sua chave de API no campo de senha e salve. No aplicat
 | Voz audível | ElevenLabs configurada | Exige chave ElevenLabs e ID privado da voz existente. |
 | Limite da sessão | 10 minutos | De 1 a 30 minutos por conexão. Conversa contínua pode renovar após encerramento normal por prazo. |
 | Perfil | `default` | Preferências salvas e execução são separadas por identificador. |
-| Conversa após a recepção | Desligada | Abre o microfone depois da saudação e da etapa opcional de roupa. |
+| Conversa após a recepção | Desligada | Abre o microfone depois do fim da saudação. |
 | Conversa contínua | Desligada | Renova sessão por prazo; não repete recepção e não tenta indefinidamente após erro. |
-| Comentário de roupa | Desligado | Envia um JPEG limitado da câmera à OpenAI, após escolha explícita em Ajustes. |
 
 Os IDs são configuráveis. O catálogo do provedor e as permissões da conta podem mudar; a listagem autenticada de modelos confirma IDs visíveis à conta, sem garantir cada modalidade. A seleção de texto foi verificada na [página oficial GPT-5.4 Mini](https://developers.openai.com/api/docs/models/gpt-5.4-mini). O modelo de áudio segue o [schema oficial de criação de chamadas](https://developers.openai.com/api/reference/resources/realtime/subresources/calls/methods/create).
 
@@ -37,9 +36,9 @@ No modo texto, o provedor recebe a solicitação, o histórico fornecido àquele
 
 Na sessão de voz, o microfone transmite áudio à OpenAI enquanto a conexão estiver aberta, incluindo o silêncio entre comandos e períodos em que a pessoa ainda não terminou de falar. O texto a narrar é enviado à ElevenLabs pelo principal, com credencial própria. Encerrar fecha captura, conexão, síntese pendente e reprodução. A detecção de fim de fala e a transcrição em português fazem parte da configuração. Vídeo e vetores de reconhecimento facial não são incluídos nesses pedidos de conversa.
 
-O comentário de roupa é um pedido Responses separado e opcional: envia um JPEG de até 640×480 e 512 KiB, com `detail:'low'` e `store:false`, ao modelo de texto configurado. Na 0.5.1, captura, pedido de observação e síntese começam durante a saudação, somente após o início efetivo de sua reprodução e com a opção habilitada. O aplicativo encerra as tracks da câmera antes do envio e não persiste a imagem. Essa chamada não contém histórico, memórias ou ferramentas; limita a resposta a roupa visível, sem identificação ou inferências pessoais. Imagem insuficiente e falha de captura/provedor não autorizam elogio inventado. O texto segue à ElevenLabs e o áudio preparado aguarda o fim da saudação e da música, sem sobreposição. Se ainda não estiver pronto, a sequência aguarda o restante da preparação; não cria chamadas extras para antecipar a fala. A câmera não fica aberta durante a conversa por causa dessa opção.
+A análise de roupa foi retirada na 0.6.2. Não há chamada Responses de imagem na recepção, controle de ativação ou endpoints ativos `observeOutfit`/`cancelOutfit`. O valor legado `receptionOutfitEnabled: true` é migrado para `false`. O aplicativo não envia a imagem da câmera ou os vetores faciais como parte da saudação; a prévia manual e o reconhecimento local em Presença continuam disponíveis.
 
-A espera por palmas ou pela palavra nativa é processamento local e não abre uma sessão OpenAI. Ela mantém o microfone ativo enquanto habilitada, cede ao uso de conversa/teste e pausa durante a recepção. Com a opção de conversa após a recepção habilitada, a sessão OpenAI começa somente depois da saudação e do comentário opcional. Manter a chave salva não abre esse fluxo antes das palmas. Veja [Espera local](standby.md).
+A espera por palmas ou pela palavra nativa é processamento local e não abre uma sessão OpenAI. Ela mantém o microfone ativo enquanto habilitada, cede ao uso de conversa/teste e pausa durante a recepção. Com a opção de conversa após a recepção habilitada, a sessão OpenAI começa somente depois do fim da saudação. Manter a chave salva não abre esse fluxo antes das palmas. Veja [Espera local](standby.md).
 
 As requisições Responses definem `store:false`. Isso evita depender da recuperação de respostas armazenadas para a continuação da tarefa e **não significa retenção zero** para todas as finalidades do provedor. Consulte os [controles de dados oficiais](https://developers.openai.com/api/docs/guides/your-data).
 
@@ -57,7 +56,7 @@ O retorno exige resposta completa, chamada de busca concluída e texto utilizáv
 
 ## Continuidade da conexão de voz
 
-`receptionVoiceEnabled` permite iniciar voz após a recepção; `continuousVoiceEnabled` permite renovar quando uma sessão alcançar seu limite normal de duração configurado. As opções começam em `false`. Enquanto a conversa contínua estiver desejada, cada renovação abre uma conexão nova, sem repetir música, saudação ou fotografia. A memória explícita do perfil é recuperada na abertura; o histórico completo da conversa encerrada não é transferido como uma sessão infinita.
+`receptionVoiceEnabled` permite iniciar voz após a recepção; `continuousVoiceEnabled` permite renovar quando uma sessão alcançar seu limite normal de duração configurado. As opções começam em `false`. Enquanto a conversa contínua estiver desejada, cada renovação abre uma conexão nova, sem repetir música ou saudação e sem acionar a câmera. A memória explícita do perfil é recuperada na abertura; o histórico completo da conversa encerrada não é transferido como uma sessão infinita.
 
 Autenticação recusada, falha de rede ou outro erro interrompem o fluxo sem ciclo indefinido de novas tentativas. **Interromper**, troca de perfil, reset ou saída removem a intenção de renovação e liberam o microfone. Uma negociação que terminar atrasada não pode restaurar a escuta ou falar na sessão cancelada. O usuário pode iniciar uma nova conversa quando quiser.
 
@@ -77,7 +76,7 @@ O parser SSE aceita fragmentos UTF-8 divididos pela rede, comentários de heartb
 
 Cancelar propaga um sinal ao transporte e ao executor. Uma solicitação tem prazo total padrão de três minutos, incluindo espera por confirmação. Uma autorização pendente expira junto com esse prazo. Interromper a fala ou desconectar não apaga efeitos que já foram confirmados; consulte o registro antes de repetir uma tarefa.
 
-Responses reporta tokens acumulados por turno. O limite de chamadas e o limite de tempo de cada conexão reduzem execuções acidentais, mas não são um teto monetário garantido. A opção de conversa contínua pode criar sessões sucessivas e o comentário de roupa faz uma chamada adicional de imagem/modelo. Configure os limites do projeto na plataforma e acompanhe o consumo. Não há valor de custo ou promessa de latência medidos sem uma sessão real com sua conta.
+Responses reporta tokens acumulados por turno. O limite de chamadas e o limite de tempo de cada conexão reduzem execuções acidentais, mas não são um teto monetário garantido. A opção de conversa contínua pode criar sessões sucessivas. A análise de roupa não faz parte da recepção atual. Configure os limites do projeto na plataforma e acompanhe o consumo. Não há valor de custo ou promessa de latência medidos sem uma sessão real com sua conta.
 
 ## Erros e diagnóstico
 
@@ -104,4 +103,4 @@ Para usar uma voz baseada em gravação **dentro da OpenAI**, também seria nece
 
 [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Os testes físicos de abertura do navegador e intervalo entre saudação/comentário ainda estão pendentes. Antecipar a chamada não altera o modelo ou o preset de voz nem comprova uma latência fixa; não há benchmark publicado dessa passagem.
 
-Os testes offline verificam streaming, segurança de erros, memória, ferramentas, cancelamento e timeout com transporte substituído. Os **343 testes e a abertura nativa aprovados no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** são evidência histórica. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico de imagem/recepção/renovação no destino continua pendente; não há p50/p95 publicados. O ensaio antigo confirmou texto e uma resposta Realtime audível com marin, antes da troca para ElevenLabs. O roteiro curto posterior aprovado pelo autor não substitui os testes específicos da nova sequência. Veja [Validação](validation.md) e [Plano de testes](test-plan.md).
+Os testes offline verificam streaming, segurança de erros, memória, ferramentas, cancelamento e timeout com transporte substituído. Os **343 testes e a abertura nativa aprovados no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** são evidência histórica. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico da recepção e renovação atuais no destino continua pendente; não há p50/p95 publicados. O ensaio antigo confirmou texto e uma resposta Realtime audível com marin, antes da troca para ElevenLabs. O roteiro curto posterior aprovado pelo autor não substitui os testes específicos da nova sequência. Veja [Validação](validation.md) e [Plano de testes](test-plan.md).

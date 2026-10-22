@@ -13,7 +13,6 @@ import { VisionService } from './vision.mjs';
 import { StartupGreetingService } from '../../packages/greeting/index.mjs';
 import { ContextService, ContextError } from '../../packages/context/index.mjs';
 import { WebService } from '../../packages/web/index.mjs';
-import { ReceptionObservation, ReceptionError } from '../../packages/reception/index.mjs';
 import { SpeechService, SpeechServiceError } from '../../packages/speech/index.mjs';
 import { SpeechController, SpeechControlError } from '../../packages/speech/controller.mjs';
 import { configureStartup, isStandbyLaunch, WindowsWakeService } from './startup.mjs';
@@ -74,7 +73,7 @@ if (process.argv.includes('--jarvis-smoke')) {
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let mainWindow, settings, runtime, provider, vision, startupService, contextService, contextFlight, reception, speech, musicStore, wakeService, tray, youtube;
+let mainWindow, settings, runtime, provider, vision, startupService, contextService, contextFlight, speech, musicStore, wakeService, tray, youtube;
 let startupStatus = { available: false, enabled: false }, standbyActive = false;
 let generation = 0, shuttingDown = false, cleanupPromise, shutdownPromise, shutdownComplete = false, textRunId;
 let ultronBridge, ultronFlight, ultronCommands;
@@ -153,7 +152,6 @@ async function clearSessions(reason) {
   const ultronStopped = stopUltronBridge();
   youtube?.close();
   speech?.reset();
-  reception?.reset();
   const wakeStopped = wakeService?.stop(); standbyActive = false; updateTray();
   for (const [runId, run] of runs) { run.controller.abort(); runtime?.cancel(runId); }
   for (const controller of connectionControllers) controller.abort();
@@ -228,7 +226,7 @@ function handle(name, fn) {
     if (shuttingDown) throw new Error('O aplicativo está encerrando.');
     try { return await fn(input); }
     catch (error) {
-      if (error instanceof InputError || error instanceof ContextError || error instanceof ReceptionError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError || error instanceof UltronCommandError) throw new Error(error.message);
+      if (error instanceof InputError || error instanceof ContextError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError || error instanceof UltronCommandError) throw new Error(error.message);
       // Native errors may include OS paths, command arguments or credentials.
       throw new Error('A operação não pôde ser concluída. Revise a configuração e o histórico local.');
     }
@@ -263,7 +261,7 @@ function registerIPC() {
     controller?.abort(); contextFlight = undefined;
     return { cancelled: Boolean(controller) };
   });
-  handle('boot', async () => ({ settings: { ...settings.public(), hasGreetingMusic: musicStore.available() }, snapshot: runtime.getSnapshot(settings.get().profileId), capabilities: { desktop: process.platform === 'win32', vision: (await vision.handle({ type: 'status' })).available === true, startup: startupStatus.available, voiceWake: process.platform === 'win32', jarvisSpeech: true, outfitObservation: !smoke, ultronBridge: process.platform === 'win32' && !smoke }, startup: startupStatus, productName: PRODUCT }));
+  handle('boot', async () => ({ settings: { ...settings.public(), hasGreetingMusic: musicStore.available() }, snapshot: runtime.getSnapshot(settings.get().profileId), capabilities: { desktop: process.platform === 'win32', vision: (await vision.handle({ type: 'status' })).available === true, startup: startupStatus.available, voiceWake: process.platform === 'win32', jarvisSpeech: true, ultronBridge: process.platform === 'win32' && !smoke }, startup: startupStatus, productName: PRODUCT }));
   handle('saveSettings', async input => {
     only(record(input, 5000), ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey', 'startAtLogin', 'standbyEnabled', 'wakeClapEnabled', 'wakeVoiceEnabled', 'greetingMusicEnabled', 'receptionOutfitEnabled', 'receptionVoiceEnabled', 'continuousVoiceEnabled', 'ultronEnabled']);
     validateSettings(input);
@@ -276,8 +274,6 @@ function registerIPC() {
     return settings.public();
   });
   handle('speak', input => speech.speak(input));
-  handle('observeOutfit', input => reception.observe(input));
-  handle('cancelOutfit', input => { if (input != null) only(record(input, 100), []); return reception.cancel(); });
   handle('cancelGreeting', () => {
     const profileId = settings.get().profileId, controller = startupFlights.get(profileId);
     if (controller) { controller.abort(); startupFlights.delete(profileId); connectionControllers.delete(controller); }
@@ -456,11 +452,10 @@ async function startApplication() {
   }
   settings.write({ workspaceRoot });
   provider = new OpenAIService({ getKey: () => settings.getSecret(), getSettings: () => settings.get(), runtime, onEvent: providerEvent });
-  reception = new ReceptionObservation({ getSettings: () => settings.get(), describe: (input, options) => provider.describeOutfit(input, options) });
   startupService = new StartupGreetingService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() });
   ultronCommands = new UltronCommands({
     getSettings: () => ({ ...settings.get(), hasElevenKey: Boolean(settings.getElevenSecret()) }),
-    getVersion: () => app.getVersion?.() || '0.6.1', emit: publish,
+    getVersion: () => app.getVersion?.() || '0.6.2', emit: publish,
     isWindowAvailable: () => Boolean(mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()),
     readWeather: options => startupService.readWeather({}, options),
     openBrowser: ({ signal }) => runtime.call({ id: randomUUID(), runId: `ultron-${randomUUID()}`, profileId: settings.get().profileId, name: 'apps_open', args: { appId: 'browser' } }, { signal }),

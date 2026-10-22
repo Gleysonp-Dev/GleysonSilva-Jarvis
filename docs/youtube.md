@@ -1,6 +1,14 @@
-# YouTube na conversa nativa — 0.6.1
+# YouTube na conversa nativa — 0.6.2
 
-A revisão 0.6.1 acrescenta pesquisa, escolha e reprodução de YouTube pelo Jarvis nativo no Windows. Os mesmos comandos podem ser solicitados por texto ou durante a conversa por voz configurada. [CI 0f293d0 da 0.6.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovado: **529/529 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa com player real exercitado em página HTTPS local e áudio silenciado. [Windows 0.6.1 conferido](../AI_INSTALL.md#pacote-windows-061-conferido). **O YouTube ao vivo e som ouvido pelo usuário continuam pendentes.** O cenário local não substitui esse ensaio; os resultados 491/491 da 0.6.0 no [registro de validação](validation.md) são históricos.
+A 0.6.2 preserva pesquisa, escolha e reprodução de YouTube por texto/voz na janela controlada do Jarvis e ajusta a verificação do player. Na **0.6.1**, o usuário confirmou a pesquisa real, mas relatou que o vídeo **não começou a tocar**. A causa no computador de destino ainda não foi determinada. O [CI 0f293d0 da 0.6.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovou **529/529 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa com player em página HTTPS local e áudio silenciado; isso não aprovou reprodução no site ao vivo ou som ouvido. [Pacote histórico 0.6.1](../AI_INSTALL.md#pacote-windows-061-conferido).
+
+## Mudança 0.6.2 e estado da validação
+
+O controlador aguarda anúncios terminarem naturalmente dentro do prazo da tentativa, sem clicar para pular publicidade, e não aceita o anúncio como prova do vídeo solicitado. Escolhe o elemento de vídeo de conteúdo visível e preserva a referência inicial necessária para verificar progresso. Se a tentativa expirar, mantém a janela para inspeção/intervenção manual; isso não é confirmação de reprodução nem uma tentativa automática indefinida. Cancelamento, troca de perfil e saída continuam interrompendo o fluxo.
+
+O prazo padrão é de **15 segundos por tentativa**; um anúncio ou carregamento maior pode ultrapassá-lo. A pessoa pode resolver a tela e solicitar novamente tocar/continuar quando o conteúdo estiver disponível. Login, consentimento e CAPTCHA continuam exigindo intervenção humana. Esses ajustes tratam caminhos possíveis de falha; não demonstram que um anúncio causou o relato da 0.6.1.
+
+**CI, pacote Windows e ensaio real da 0.6.2 ainda estão pendentes.** A verificação local está registrada em [Validação](validation.md). [Registro](validation.md). A recepção dessa revisão também deixa de capturar imagem ou comentar roupa e passa da saudação à voz quando habilitada. [Recepção](startup-greeting.md).
 
 ## Como pedir
 
@@ -20,13 +28,13 @@ Pedir **“abra o YouTube”** ou abrir youtube.com como endereço pode apenas e
 
 A pesquisa preenche e envia o campo de busca real do YouTube; os resultados vêm dos links de vídeos observados na página, sem fabricar uma lista a partir da consulta. Os contratos são fechados: não recebem JavaScript, seletores livres, caminhos locais, comandos de terminal ou ações arbitrárias. Um pedido explícito dessas operações dispensa um segundo cartão de autorização; não concede permissão permanente para outros sites ou ações.
 
-Só carregar uma página ou enviar um comando não comprova reprodução. O adaptador precisa observar o ID e a URL correspondentes ao vídeo e uma posição temporal válida do player. Para confirmar reprodução, exige mídia pronta, player não pausado e progresso entre duas observações; para pausa, exige o estado pausado. Se a evidência não estiver disponível, o Jarvis deve relatar falha ou bloqueio. Mesmo um estado de player confirmado não comprova que o usuário ouviu o som.
+Só carregar uma página ou enviar um comando não comprova reprodução. O adaptador precisa observar o ID e a URL correspondentes ao vídeo e uma posição temporal válida do player. Para confirmar reprodução, exige o player de conteúdo visível, mídia pronta, estado não pausado e progresso entre duas observações do mesmo vídeo; para pausa, exige o estado pausado. Se a evidência não estiver disponível, o Jarvis deve relatar falha ou bloqueio. Mesmo um estado de player confirmado não comprova que o usuário ouviu o som.
 
 ## Janela e limites
 
 O fluxo usa uma janela Electron controlada pelo Jarvis, isolada da interface principal e do navegador padrão, com navegação limitada a HTTPS em www.youtube.com. Node permanece desabilitado, com sandbox; downloads e novas permissões são recusados. A página não recebe a bridge do Jarvis, não herda os cookies ou o login do navegador pessoal e não obtém acesso às chaves, arquivos, microfone ou câmera pela ferramenta.
 
-Login, consentimento, CAPTCHA, uma seleção ambígua ou um bloqueio do site exigem intervenção do usuário. O Jarvis não deve entrar em contas, aceitar termos ou superar essas etapas automaticamente. Um anúncio também interrompe a tentativa automática para intervenção, sem pular publicidade. Disponibilidade regional, restrições, alterações no site e falhas de rede podem impedir a reprodução; um anúncio não deve ser anunciado como confirmação do vídeo solicitado.
+Login, consentimento, CAPTCHA, uma seleção ambígua ou um bloqueio do site exigem intervenção do usuário. O Jarvis não deve entrar em contas, aceitar termos ou superar essas etapas automaticamente. Um anúncio é aguardado até sua conclusão natural dentro do prazo da tentativa, sem pular publicidade; se o prazo expirar, a janela permanece aberta para intervenção. Cancelar ou mudar de perfil encerra esse fluxo. Disponibilidade regional, restrições, alterações no site e falhas de rede podem impedir a reprodução; um anúncio não deve ser anunciado como confirmação do vídeo solicitado.
 
 Não há promessa de automação geral de navegador, controle de qualquer site, busca em toda conta pessoal, downloads de mídia ou resposta instantânea. O comportamento depende da evidência realmente disponível no site e no player.
 
@@ -36,8 +44,8 @@ As três ferramentas desta revisão pertencem à conversa nativa do Jarvis, tant
 
 ## O que falta validar
 
-O cenário nativo aprovado usou uma página HTTPS local de teste, mídia PCM e áudio silenciado. As evidências `ready/window/dom/preload/boot/fullscreen/youtube/packaged` pertencem à execução 0.6.1; não são uma consulta ao YouTube ao vivo ou confirmação auditiva. O [registro](validation.md) separa esse resultado do ensaio do usuário.
+O cenário nativo aprovado da **0.6.1** usou uma página HTTPS local, mídia PCM e áudio silenciado. As evidências `ready/window/dom/preload/boot/fullscreen/youtube/packaged` são daquela execução. O ensaio posterior do usuário confirmou a busca ao vivo e relatou falha ao tocar. Não foi registrada causa, reprodução correta, som ouvido ou pausa/retomada aprovados. O [registro](validation.md) separa os resultados históricos da correção 0.6.2 ainda pendente.
 
-Executar a pesquisa real, escolher um resultado, observar o vídeo correto, ouvir o áudio e confirmar pausa/retomada no Windows. Ensaiar também lista vazia, ID antigo/de outro perfil, cancelamento, fechamento, anúncio, indisponibilidade e intervenção exigida pelo site. Registrar versão, horário e resultado, sem publicar histórico pessoal ou credenciais.
+No pacote 0.6.2 quando estiver disponível e conferido, repetir busca, escolha, reprodução, pausa e retomada por voz e texto. Conferir vídeo correto e som ouvido separadamente. Ensaiar anúncio curto que termina naturalmente, anúncio que ultrapassa o prazo, vídeo oculto residual, expiração com janela preservada, ID antigo/de outro perfil, cancelamento, fechamento e intervenção exigida pelo site. Não pular publicidade, aceitar login/consentimento ou declarar sucesso sem evidência. Registrar versão, horário e resultado sem divulgar histórico pessoal ou credenciais.
 
 O usuário confirmou a ativação por duas palmas na 0.6.0. Esse relato pertence à espera/recepção daquela sessão e não valida o fluxo YouTube ou um novo login do Windows. A prova automática e o ensaio físico devem permanecer separados no [plano de testes](test-plan.md) e na [validação](validation.md).

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
@@ -81,12 +81,27 @@ test('enabling standby also enables its weather greeting even when an older conf
  store.save({standbyEnabled:false,startupGreeting:false});assert.equal(store.get().startupGreeting,false);
 });
 
-test('camera reception, automatic voice and continuous renewal require explicit boolean choices and persist without changing voice or keys',t=>{
- const {store,dir,crypto}=fixture(t); const fields=['receptionOutfitEnabled','receptionVoiceEnabled','continuousVoiceEnabled'];
+test('automatic voice and continuous renewal require explicit boolean choices and persist without changing voice or keys',t=>{
+ const {store,dir,crypto}=fixture(t); const fields=['receptionVoiceEnabled','continuousVoiceEnabled'];
  for(const key of fields){assert.equal(defaults[key],false);for(const value of ['true',0,1,null,{},[]])assert.throws(()=>store.save({[key]:value}));}
  store.save({apiKey:'test-openai',elevenApiKey:'test-eleven',elevenVoiceId:'TestVoice',...Object.fromEntries(fields.map(key=>[key,true]))});
  const restored=new SettingsStore(dir,crypto); for(const key of fields)assert.equal(restored.public()[key],true);
  assert.equal(restored.getSecret(),'test-openai');assert.equal(restored.getElevenSecret(),'test-eleven');assert.equal(restored.get().elevenVoiceId,'TestVoice');
+});
+
+test('old outfit opt-in is retired when reading or saving without modifying voice, keys or other settings',t=>{
+ const {store,dir,crypto}=fixture(t);
+ store.save({apiKey:'test-openai',elevenApiKey:'test-eleven',elevenVoiceId:'TestVoice',receptionVoiceEnabled:true,continuousVoiceEnabled:true});
+ const file=join(dir,'settings.json'),raw=JSON.parse(readFileSync(file,'utf8'));
+ writeFileSync(file,JSON.stringify({...raw,receptionOutfitEnabled:true}));
+ const restored=new SettingsStore(dir,crypto);
+ assert.equal(restored.public().receptionOutfitEnabled,false);
+ restored.save({receptionOutfitEnabled:true});
+ assert.equal(new SettingsStore(dir,crypto).get().receptionOutfitEnabled,false);
+ assert.equal(restored.getSecret(),'test-openai');assert.equal(restored.getElevenSecret(),'test-eleven');assert.equal(restored.get().elevenVoiceId,'TestVoice');
+ assert.equal(restored.get().receptionVoiceEnabled,true);assert.equal(restored.get().continuousVoiceEnabled,true);
+ for(const value of ['true',0,1,null,{},[]])assert.throws(()=>restored.save({receptionOutfitEnabled:value,apiKey:'replacement'}));
+ assert.equal(restored.getSecret(),'test-openai');
 });
 
 

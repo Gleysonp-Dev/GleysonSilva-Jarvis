@@ -4,7 +4,6 @@ import { readFile } from 'node:fs/promises';
 import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { transform } from 'esbuild';
-import { ReceptionObservation, ReceptionError } from '../packages/reception/index.mjs';
 import { UltronCommands, UltronCommandError } from '../packages/ultron/commands.mjs';
 
 const require = createRequire(import.meta.url);
@@ -51,7 +50,6 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
     'node:fs/promises': { async mkdir() {}, readFile() { throw new Error('Unexpected file access.'); } },
     '../../packages/runtime/index.mjs': { createRuntime: options => { adapters = options.platformAdapters; return runtime; } },
     '../../packages/openai/index.mjs': { OpenAIService: class { respond = blocking; searchWeb = async (input, options) => { calls.search = { input, options }; return { text: 'Search test', sources: [] }; }; describeOutfit = async (input, options) => { calls.outfit = { input, options }; return lateOutfit ? outfit.promise : { text: 'Roupa de teste.', observedAt: Date.now() }; }; }, OpenAIServiceError: class extends Error {} },
-    '../../packages/reception/index.mjs': { ReceptionObservation, ReceptionError },
     '../../packages/ultron/commands.mjs': { UltronCommands, UltronCommandError },
     '../../packages/ultron/index.mjs': { async createUltronBridge({ handle }) { calls.ultronCreates = (calls.ultronCreates ?? 0) + 1; ultronHandle = handle; return { async close() { calls.ultronCloses = (calls.ultronCloses ?? 0) + 1; } }; } },
     '../../packages/web/index.mjs': { WebService: class { read = async (input, options) => { calls.website = { input, options }; return { text: 'Website test', sources: [] }; }; } },
@@ -76,7 +74,7 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
   const window = windows[0];
   const invoke = (name, input) => ipc.get('jarvis:' + name)({ sender: window.webContents, senderFrame: window.webContents.mainFrame }, input);
   t.after(async () => { wake.resolve(); await module.exports.requestShutdown('test_cleanup'); });
-  return { calls, app, window, trays, invoke, invokeFrom: (event, name, input) => ipc.get('jarvis:' + name)(event, input), invokeUltron: (method, args = {}, scope = {}) => ultronHandle(method, args, { id: crypto.randomUUID(), ...scope }), adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, shutdown: module.exports.requestShutdown };
+  return { calls, app, window, trays, invoke, hasHandler: name => ipc.has('jarvis:' + name), invokeFrom: (event, name, input) => ipc.get('jarvis:' + name)(event, input), invokeUltron: (method, args = {}, scope = {}) => ultronHandle(method, args, { id: crypto.randomUUID(), ...scope }), adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, shutdown: module.exports.requestShutdown };
 }
 
 test('Ultron stays disabled until explicitly saved and exposes only the five bounded capabilities', async t => {
@@ -172,16 +170,14 @@ test('fullscreen native errors are redacted without closing the app or stopping 
   assert.equal(f.window.isDestroyed(), false); assert.equal(f.calls.speechReset, 0); assert.equal(f.calls.wakeStop, 0);
 });
 
-test('outfit IPC requires enabled choice, exposes capability and aborts before X cleanup finishes', async t => {
-  const f = await fixture(t, { lateOutfit: true });
-  const input = { imageDataUrl: 'data:image/jpeg;base64,/9j/2Q==' };
-  assert.equal((await f.invoke('boot')).capabilities.outfitObservation, true);
-  await assert.rejects(f.invoke('observeOutfit', input), /Ative/); assert.equal(f.calls.outfit, undefined);
+test('retired outfit observation has no IPC route or capability even with the old preference enabled', async t => {
+  const f = await fixture(t);
   f.preferences.receptionOutfitEnabled = true;
-  const pending = f.invoke('observeOutfit', input); await flush();
-  const rejected = assert.rejects(pending, /interrompida/);
-  await f.shutdown('window_closed'); await rejected; assert.equal(f.calls.outfit.options.signal.aborted, true);
-  f.resolveOutfit({ text: 'Late', observedAt: Date.now() }); await flush();
+  assert.equal((await f.invoke('boot')).capabilities.outfitObservation, undefined);
+  assert.equal(f.hasHandler('observeOutfit'), false);
+  assert.equal(f.hasHandler('cancelOutfit'), false);
+  assert.equal(f.hasHandler('vision'), true);
+  assert.equal(f.calls.outfit, undefined);
 });
 
 test('native runtime wires website, search and forced fresh weather without greeting', async t => {

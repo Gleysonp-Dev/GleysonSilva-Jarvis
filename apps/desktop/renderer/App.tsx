@@ -8,7 +8,6 @@ import { createSpeechEffects, DEFAULT_SPEECH_EFFECT_AMOUNT, type SpeechEffectsCo
 import { LocalClapStandby } from './standby';
 import { GreetingMusic } from './greeting-music';
 import { ContextPanel } from './context-panel';
-import { captureOutfitImage } from './outfit-camera';
 import { createFullscreenController } from './fullscreen';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; done?: boolean; origin?: 'voice' | 'greeting'; source?: JarvisWeatherAttribution | string };
@@ -184,7 +183,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const [greetingNeedsTap, setGreetingNeedsTap] = useState(false);
   const greetingAudio = useRef<{ base64: string; mime: string } | null>(null);
   const greetingInFlight = useRef(false);
-  const reception = useRef<{ controller: AbortController; profileId: string; runId: string } | null>(null);
+  const reception = useRef<{ controller: AbortController; profileId: string } | null>(null);
   const continuousWanted = useRef(false);
   const voiceResumeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const music = useRef<GreetingMusic | null>(null);
@@ -509,10 +508,6 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     }
     const activeReception = reception.current; reception.current = null;
     activeReception?.controller.abort();
-    if (activeReception) {
-      void bridge?.cancelOutfit?.().catch(() => {});
-      void bridge?.cancelSpeech?.({ runId: activeReception.runId }).catch(() => {});
-    }
     if (greetingInFlight.current) void bridge?.cancelGreeting?.().catch(() => {});
     greetingInFlight.current = false;
     musicPlaying.current = false; music.current?.stop();
@@ -541,7 +536,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     pauseStandby();
     await playAudio(new URL('./voice-demo.mp3', window.location.href).href, 'demo');
   }
-  async function playAudio(source: string, kind: 'demo' | 'greeting' | 'ultron', objectUrl?: string, automatic = false, onStarted?: () => void): Promise<boolean> {
+  async function playAudio(source: string, kind: 'demo' | 'greeting' | 'ultron', objectUrl?: string, automatic = false): Promise<boolean> {
     const generation = ++demoGeneration.current; setDemoStarting(true); setError('');
     setPlaybackKind(kind);
     let context: AudioContext | undefined;
@@ -579,7 +574,6 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (generation !== demoGeneration.current || demo.current !== session) { audio.pause(); return false; }
       setDemoPlaying(true); setDemoStarting(false);
       if (kind === 'greeting') { setGreetingNeedsTap(false); music.current?.duck(0.22); }
-      onStarted?.();
       const measure = () => {
         if (demo.current !== session) return;
         const samples = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(samples);
@@ -632,7 +626,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (ultronPlayback.current === job) { ultronPlayback.current = null; setUltronBusy(false); setDemoStarting(false); resumeStandbySoon(); }
     }
   }
-  async function playGreeting(automatic = false, onStarted?: () => void) {
+  async function playGreeting(automatic = false) {
     const audio = greetingAudio.current;
     if (!audio || demo.current || voice.current || micTest.current || runRef.current) return false;
     pauseStandby(); greetingInFlight.current = true; beginGreetingMusic();
@@ -640,47 +634,17 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       const decoded = atob(audio.base64), bytes = new Uint8Array(decoded.length);
       for (let index = 0; index < decoded.length; index++) bytes[index] = decoded.charCodeAt(index);
       const objectUrl = URL.createObjectURL(new Blob([bytes], { type: audio.mime || 'audio/mpeg' }));
-      return await playAudio(objectUrl, 'greeting', objectUrl, automatic, onStarted);
+      return await playAudio(objectUrl, 'greeting', objectUrl, automatic);
     } catch (e) { stopDemo(); showError(e); return false; }
   }
   async function startGreeting(automatic = false, receptionRequested = false) {
     if (!bridge?.startupGreeting || voice.current || continuousWanted.current || ultronPlayback.current || micTest.current || micFlight.current || runRef.current || demo.current || greetingInFlight.current) return;
     pauseStandby(); stopDemo(false); const generation = ++greetingGeneration.current;
-    const flow = { controller: new AbortController(), profileId: settingsRef.current.profileId, runId: `reception-${crypto.randomUUID()}` };
+    const flow = { controller: new AbortController(), profileId: settingsRef.current.profileId };
     reception.current = flow;
     const active = () => reception.current === flow && !flow.controller.signal.aborted && settingsRef.current.profileId === flow.profileId && generation === greetingGeneration.current;
     greetingInFlight.current = true; setGreetingBusy(true); setError(''); greetingAudio.current = null; beginGreetingMusic();
     let completed = false;
-    const outfit: { prepared: { url: string } | null; preparation: Promise<{ url: string } | null> | null; finished: boolean; failed: boolean } = { prepared: null, preparation: null, finished: false, failed: false };
-    const discardPreparedOutfit = () => { if (outfit.prepared) URL.revokeObjectURL(outfit.prepared.url); outfit.prepared = null; };
-    flow.controller.signal.addEventListener('abort', discardPreparedOutfit, { once: true });
-    const prepareOutfit = () => {
-      if (outfit.preparation || !active() || !receptionRequested || !settingsRef.current.receptionOutfitEnabled) return;
-      // Prepare the next sentence while the greeting is speaking; playback still waits for its end.
-      outfit.preparation = (async () => {
-        try {
-          if (!bridge.observeOutfit) throw new Error('A observação da roupa exige a versão atualizada do aplicativo.');
-          stopCamera();
-          let imageDataUrl = await captureOutfitImage({ signal: flow.controller.signal });
-          if (!active()) return null;
-          const observationRequest = bridge.observeOutfit({ imageDataUrl });
-          imageDataUrl = '';
-          const observation = await observationRequest;
-          if (!active()) return null;
-          if (typeof observation?.text !== 'string' || !observation.text.trim() || observation.text.length > 600) throw new Error('Não foi possível observar a roupa nesta captura.');
-          const utteranceId = `outfit-${crypto.randomUUID()}`;
-          const spoken = await bridge.speak({ text: observation.text, profileId: flow.profileId, runId: flow.runId, utteranceId });
-          if (!active()) return null;
-          if (spoken.runId !== flow.runId || spoken.utteranceId !== utteranceId) throw new Error('A resposta de voz não corresponde à recepção atual.');
-          const decoded = atob(spoken.audioBase64), bytes = Uint8Array.from(decoded, char => char.charCodeAt(0));
-          outfit.prepared = { url: URL.createObjectURL(new Blob([bytes], { type: spoken.mime || 'audio/mpeg' })) };
-          return outfit.prepared;
-        } catch {
-          if (active()) outfit.failed = true;
-          return null;
-        } finally { outfit.finished = true; }
-      })();
-    };
     try {
       const result = await bridge.startupGreeting({ hour: new Date().getHours(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
       if (!active()) return;
@@ -689,31 +653,13 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (result.audioBase64) {
         greetingAudio.current = { base64: result.audioBase64, mime: result.mime };
         const validGreeting = Boolean(result.text?.trim()) && !result.reason && !['not_configured', 'skipped', 'cancelled', 'failed'].includes(result.weatherStatus);
-        completed = await playGreeting(automatic, validGreeting ? prepareOutfit : undefined);
+        completed = await playGreeting(automatic);
         completed = completed && validGreeting;
-        if (!active() || !completed || !receptionRequested) return;
-        if (outfit.preparation) {
-          const ready = await outfit.preparation;
-          if (!active()) return;
-          if (ready && outfit.prepared === ready) {
-            // Transfer this URL to playback, which owns its release from now on.
-            outfit.prepared = null;
-            const spokenCompleted = await playAudio(ready.url, 'greeting', ready.url);
-            if (active() && !spokenCompleted) { setGreetingNeedsTap(false); setNotice('Não consegui reproduzir o comentário da roupa. Você pode continuar por voz.'); }
-          } else if (outfit.failed) setNotice('Não consegui observar sua roupa agora. A câmera foi desligada.');
-        }
       }
       else setNotice(result.reason === 'requires_key' ? 'Configure a chave ElevenLabs em Ajustes para ouvir a saudação.' : 'Não foi possível gerar o áudio da saudação. Verifique a conexão e as permissões da chave ElevenLabs.');
     } catch (e) { if (active()) showError(e); }
     finally {
       const currentReception = active();
-      flow.controller.signal.removeEventListener('abort', discardPreparedOutfit);
-      discardPreparedOutfit();
-      if (currentReception && outfit.preparation && !outfit.finished) {
-        flow.controller.abort();
-        void bridge.cancelOutfit?.().catch(() => {});
-        void bridge.cancelSpeech?.({ runId: flow.runId }).catch(() => {});
-      }
       if (currentReception) {
         reception.current = null; greetingInFlight.current = false; setGreetingBusy(false); musicPlaying.current = false; music.current?.stop();
         if (completed && receptionRequested && settingsRef.current.receptionVoiceEnabled) await startVoice(true);
@@ -757,9 +703,9 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       }
       if (form.standbyEnabled && form.wakeClapEnabled === false && form.wakeVoiceEnabled === false) throw new Error('Escolha palmas ou a palavra Jarvis para ativar a espera.');
       if (form.standbyEnabled && (!(form.elevenVoiceId || '').trim() || (!settings.hasElevenKey && !elevenApiKey.trim()) || !weatherLocation)) throw new Error('Configure a voz, a chave ElevenLabs e a cidade antes de ativar a espera.');
-      if ((form.receptionOutfitEnabled || form.receptionVoiceEnabled) && !settings.hasKey && !apiKey.trim()) throw new Error('Configure a chave OpenAI para observar a roupa ou iniciar os comandos por voz após a recepção.');
+      if (form.receptionVoiceEnabled && !settings.hasKey && !apiKey.trim()) throw new Error('Configure a chave OpenAI para iniciar os comandos por voz após a recepção.');
       continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false; pauseStandby(); stopDemo(false);
-      await bridge.saveSettings({ profileId: form.profileId.trim(), textModel: form.textModel.trim(), realtimeModel: form.realtimeModel.trim(), voice: form.voice.trim(), maxSessionMinutes: Number(form.maxSessionMinutes), startupGreeting: Boolean(form.startupGreeting), weatherLocation, elevenVoiceId: (form.elevenVoiceId || '').trim(), ...(capabilities.jarvisSpeech ? { startAtLogin: Boolean(form.startAtLogin), standbyEnabled: Boolean(form.standbyEnabled), wakeClapEnabled: form.wakeClapEnabled !== false, wakeVoiceEnabled: form.wakeVoiceEnabled !== false, greetingMusicEnabled: form.greetingMusicEnabled !== false, receptionOutfitEnabled: Boolean(form.receptionOutfitEnabled), receptionVoiceEnabled: Boolean(form.receptionVoiceEnabled), continuousVoiceEnabled: Boolean(form.continuousVoiceEnabled && form.receptionVoiceEnabled) } : {}), ...(capabilities.ultronBridge ? { ultronEnabled: Boolean(form.ultronEnabled) } : {}), ...(apiKey ? { apiKey: apiKey.trim() } : {}), ...(elevenApiKey ? { elevenApiKey: elevenApiKey.trim() } : {}) });
+      await bridge.saveSettings({ profileId: form.profileId.trim(), textModel: form.textModel.trim(), realtimeModel: form.realtimeModel.trim(), voice: form.voice.trim(), maxSessionMinutes: Number(form.maxSessionMinutes), startupGreeting: Boolean(form.startupGreeting), weatherLocation, elevenVoiceId: (form.elevenVoiceId || '').trim(), ...(capabilities.jarvisSpeech ? { startAtLogin: Boolean(form.startAtLogin), standbyEnabled: Boolean(form.standbyEnabled), wakeClapEnabled: form.wakeClapEnabled !== false, wakeVoiceEnabled: form.wakeVoiceEnabled !== false, greetingMusicEnabled: form.greetingMusicEnabled !== false, receptionVoiceEnabled: Boolean(form.receptionVoiceEnabled), continuousVoiceEnabled: Boolean(form.continuousVoiceEnabled && form.receptionVoiceEnabled) } : {}), ...(capabilities.ultronBridge ? { ultronEnabled: Boolean(form.ultronEnabled) } : {}), ...(apiKey ? { apiKey: apiKey.trim() } : {}), ...(elevenApiKey ? { elevenApiKey: elevenApiKey.trim() } : {}) });
       setApiKey(''); setElevenApiKey('');
       const data = await bridge.boot();
       if (data.settings.profileId !== settings.profileId) { setMessages([]); setActions([]); setWeatherAttribution(undefined); }
@@ -838,7 +784,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const profileMemories = snapshot.memories.filter(m => !m.profileId || m.profileId === settings.profileId);
   const activity = [...actions, ...snapshot.tasks.filter(t => !actions.some(a => a.id === t.id))].slice(0, 30);
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 06.1</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="icon-button fullscreen-button" type="button" aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'} aria-pressed={fullscreen} title={fullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia (F11)'} onClick={() => { void fullscreenController.current?.toggle(); }}><Icon name={fullscreen ? 'fullscreen-exit' : 'fullscreen'} size={18}/></button><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
+    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 06.2</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="icon-button fullscreen-button" type="button" aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'} aria-pressed={fullscreen} title={fullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia (F11)'} onClick={() => { void fullscreenController.current?.toggle(); }}><Icon name={fullscreen ? 'fullscreen-exit' : 'fullscreen'} size={18}/></button><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
     <main className="workspace">
       <nav className="rail" aria-label="Painéis"><button className={drawer === 'context' ? 'selected' : ''} title="Contexto" aria-label="Contexto" aria-expanded={drawer === 'context'} onClick={() => setDrawer('context')}><Icon name="context"/><span>CONTEXTO</span></button><button className={drawer === 'memory' ? 'selected' : ''} title="Memória" aria-label="Memória" onClick={() => setDrawer('memory')}><Icon name="memory"/><span>MEMÓRIA</span></button><button className={drawer === 'activity' ? 'selected' : ''} title="Atividades" aria-label="Atividades" onClick={() => setDrawer('activity')}><Icon name="activity"/><span>REGISTRO</span></button><button className={drawer === 'presence' ? 'selected' : ''} title="Presença e perfis" aria-label="Presença e perfis" onClick={() => setDrawer('presence')}><Icon name="camera"/><span>PRESENÇA</span></button><div className="rail-spacer"/><button title="Configurações" aria-label="Configurações" onClick={openSettings}><Icon name="settings"/><span>AJUSTES</span></button></nav>
       <section className="core-column" aria-label="Núcleo Jarvis">
@@ -888,15 +834,13 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
 <p className="field-note greeting-test-note">A saudação e a conversa usam a mesma voz ElevenLabs, com efeito fixo e velocidade de 95%. Salve alterações antes de testar.</p>
 </fieldset><fieldset disabled={!bridge || !capabilities.jarvisSpeech || voiceActive || !!runId || saving}>
 <legend>03 / INÍCIO E ESPERA</legend>
-{capabilities.startup && <><button type="button" className="quiet-button" onClick={() => setForm(current => ({ ...current, startAtLogin: true, startupGreeting: true, standbyEnabled: true, wakeClapEnabled: true, wakeVoiceEnabled: false, greetingMusicEnabled: true, receptionOutfitEnabled: true, receptionVoiceEnabled: true, continuousVoiceEnabled: true }))}>Ativar recepção completa</button><p className="field-note">Prepara estas opções. Clique em Salvar configuração para aplicar: entrar com o Windows, aguardar duas palmas, música e saudação, uma captura da roupa enviada à OpenAI e comandos de voz contínuos.</p></>}
+{capabilities.startup && <><button type="button" className="quiet-button" onClick={() => setForm(current => ({ ...current, startAtLogin: true, startupGreeting: true, standbyEnabled: true, wakeClapEnabled: true, wakeVoiceEnabled: false, greetingMusicEnabled: true, receptionVoiceEnabled: true, continuousVoiceEnabled: true }))}>Ativar recepção completa</button><p className="field-note">Prepara estas opções. Clique em Salvar configuração para aplicar: entrar com o Windows, aguardar duas palmas, música e saudação com o tempo atual e comandos de voz contínuos.</p></>}
 <label className="greeting-toggle"><input type="checkbox" disabled={!capabilities.startup} checked={Boolean(form.startAtLogin)} onChange={e => setForm({ ...form, startAtLogin: e.target.checked, ...(e.target.checked ? { standbyEnabled: true } : {}) })}/><span>Iniciar ao entrar no Windows</span></label>
 {!capabilities.startup && <p className="field-note">Disponível no aplicativo Windows instalado ou portátil. O teste no navegador não altera a inicialização do computador.</p>}
 <label className="greeting-toggle"><input type="checkbox" checked={Boolean(form.standbyEnabled)} onChange={e => setForm({ ...form, standbyEnabled: e.target.checked })}/><span>Entrar em espera e saudar após ativação</span></label>
 <label className="greeting-toggle"><input type="checkbox" checked={form.wakeClapEnabled !== false} onChange={e => setForm({ ...form, wakeClapEnabled: e.target.checked })}/><span>Ativar com duas palmas</span></label>
 <label className="greeting-toggle"><input type="checkbox" disabled={!capabilities.voiceWake} checked={form.wakeVoiceEnabled !== false} onChange={e => setForm({ ...form, wakeVoiceEnabled: e.target.checked })}/><span>Ativar ao dizer “Jarvis”</span></label>
 <p className="field-note">A espera mantém o microfone ativo e processa a ativação neste computador. A fala “Jarvis” requer o reconhecedor de voz do Windows. A escuta pausa durante a saudação e a conversa.</p>
-<label className="greeting-toggle"><input type="checkbox" disabled={!bridge?.observeOutfit || capabilities.outfitObservation === false} checked={Boolean(form.receptionOutfitEnabled)} onChange={e => setForm({ ...form, receptionOutfitEnabled: e.target.checked })}/><span>Enviar uma captura à OpenAI para comentar a roupa</span></label>
-<p className="field-note">Após as palmas ou o botão Iniciar Jarvis, termina a saudação, captura uma imagem da câmera e a desliga antes do envio. Não guarda a imagem nem cadastra seu rosto. Requer sua permissão de câmera e a chave OpenAI.</p>
 <label className="greeting-toggle"><input type="checkbox" checked={Boolean(form.receptionVoiceEnabled)} onChange={e => setForm({ ...form, receptionVoiceEnabled: e.target.checked, ...(!e.target.checked ? { continuousVoiceEnabled: false } : {}) })}/><span>Aguardar comandos de voz após a recepção</span></label>
 <label className="greeting-toggle"><input type="checkbox" disabled={!form.receptionVoiceEnabled} checked={Boolean(form.continuousVoiceEnabled)} onChange={e => setForm({ ...form, continuousVoiceEnabled: e.target.checked })}/><span>Manter a conversa conectada à OpenAI</span></label>
 <p className="field-note">A conexão começa depois da recepção. O microfone envia áudio à OpenAI enquanto a conversa estiver ativa, com cobrança da API. A opção contínua renova sessões ao atingir o limite; Interromper, Encerrar voz ou fechar o aplicativo encerra a conexão. Erros exigem iniciar novamente.</p>

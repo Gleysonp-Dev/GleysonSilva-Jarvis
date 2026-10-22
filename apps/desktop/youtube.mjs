@@ -4,7 +4,7 @@ const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 const messages = Object.freeze({
   INVALID: 'Informe uma busca válida ou escolha um vídeo observado na última busca do YouTube.',
   CANCELLED: 'A operação do YouTube foi interrompida.',
-  TIMEOUT: 'O YouTube não confirmou a operação em até 15 segundos. Confira a janela e tente novamente.',
+  TIMEOUT: 'O YouTube não confirmou a operação em até 15 segundos. A janela foi mantida aberta; confira anúncios, carregamento ou avisos e continue manualmente.',
   CONSENT: 'O YouTube solicitou consentimento, login ou uma verificação. Conclua essa etapa manualmente e tente novamente.',
   UNAVAILABLE: 'Não foi possível confirmar esta operação no YouTube. Confira a janela; anúncios, restrições ou mudanças da página podem exigir uma ação manual.',
 });
@@ -20,6 +20,8 @@ const clean = (value, limit) => typeof value === 'string' ? value.replace(/[\u00
 // This fixed function runs in an isolated world. Callers supply typed values only;
 // neither model output nor page strings become selectors or executable source.
 function pageOperation(input) {
+  // A queued renderer task must not begin a delayed action after its request expired.
+  if (!Number.isFinite(input.expiresAt) || Date.now() >= input.expiresAt) return { state: 'expired' };
   const text = (value, limit = 200) => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, limit) : '';
   const visible = element => {
     if (!element || !element.isConnected || element.hidden || element.getClientRects().length === 0) return false;
@@ -73,11 +75,13 @@ function pageOperation(input) {
   }
   if (url.pathname !== '/watch' || url.searchParams.get('v') !== input.videoId) return { state: 'not_ready' };
   const player = document.querySelector('#movie_player');
-  if (player?.classList.contains('ad-showing') || player?.classList.contains('ad-interrupting')) return { state: 'unavailable' };
-  const video = document.querySelector('#movie_player video.html5-main-video') || document.querySelector('video');
-  if (!(video instanceof HTMLVideoElement) || !visible(video)) return { state: 'not_ready' };
+  const advertisement = Boolean(player?.classList.contains('ad-showing') || player?.classList.contains('ad-interrupting'));
+  const videos = [...document.querySelectorAll(player ? '#movie_player video' : 'video')].filter(element => element instanceof HTMLVideoElement && visible(element));
+  // YouTube can leave a hidden former ad element before the visible content video.
+  const video = videos.find(element => !element.paused && !element.ended) || videos.find(element => element.readyState >= 2) || videos[0];
+  if (!video) return { state: 'not_ready' };
   const heading = document.querySelector('ytd-watch-metadata h1 yt-formatted-string, h1.title yt-formatted-string');
-  const snapshot = () => ({ state: 'ready', videoId: input.videoId, url: location.href, title: text(heading?.textContent || document.title), paused: video.paused, ended: video.ended, readyState: video.readyState, currentTime: video.currentTime });
+  const snapshot = () => ({ state: 'ready', videoId: input.videoId, url: location.href, title: text(heading?.textContent || document.title), advertisement, paused: video.paused, ended: video.ended, readyState: video.readyState, currentTime: video.currentTime });
   if (input.kind === 'media-state') return snapshot();
   if (input.kind === 'media-control') {
     if (input.action === 'pause') { video.pause(); return snapshot(); }
@@ -100,7 +104,7 @@ export class YouTubeController {
     return this.#run(options, async scope => {
       this.#observed.clear(); this.#playingId = undefined;
       const window = this.#ensureWindow(scope);
-      if (!allowed(window.webContents.getURL())) await this.#wait(window.loadURL(HOME), scope);
+      if (!allowed(window.webContents.getURL())) await this.#load(scope, HOME);
       await this.#poll(scope, async () => { const state = await this.#script(scope, { kind: 'search-ready' }); return state?.state === 'ready' && state.field ? state : null; });
       const submitted = await this.#script(scope, { kind: 'search-submit', query }, true);
       if (submitted?.state !== 'submitted') throw new YouTubeError('UNAVAILABLE');
@@ -128,7 +132,7 @@ export class YouTubeController {
     return this.#run(options, async scope => {
       const window = this.#requireWindow(scope), item = this.#observed.get(videoId);
       if (!item || !watch(item.url, videoId)) throw new YouTubeError('INVALID');
-      await this.#wait(window.loadURL(item.url), scope); this.#playingId = videoId;
+      this.#playingId = videoId; await this.#load(scope, item.url);
       return this.#media(scope, 'play', videoId);
     });
   }
@@ -145,14 +149,35 @@ export class YouTubeController {
       const state = await this.#script(scope, { kind: 'media-state', videoId });
       return state?.state === 'ready' && Number.isFinite(state.currentTime) && state.currentTime >= 0 ? state : null;
     });
-    const changed = await this.#script(scope, { kind: 'media-control', action, videoId }, true);
+    const changed = action === 'play' && first.advertisement && first.paused === false ? first : await this.#script(scope, { kind: 'media-control', action, videoId }, true);
     if (changed?.state !== 'ready' || !Number.isFinite(changed.currentTime) || changed.currentTime < 0) throw new YouTubeError('UNAVAILABLE');
+    let advertisementObserved = first.advertisement === true || changed.advertisement === true;
+    let postAdvertisementContentHandled = false;
+    let baseline = changed.advertisement ? undefined : changed.currentTime;
     return this.#poll(scope, async () => {
       const state = await this.#script(scope, { kind: 'media-state', videoId });
       if (state?.state !== 'ready' || state.videoId !== videoId || !watch(state.url, videoId) || scope.window.webContents.getURL() !== state.url || !Number.isFinite(state.currentTime) || state.currentTime < 0 || !clean(state.title, 200)) return null;
-      const confirmed = action === 'pause' ? state.paused === true : state.paused === false && !state.ended && state.readyState >= 2 && state.currentTime > changed.currentTime + 0.05;
-      return confirmed ? { verified: true, videoId, url: state.url, title: clean(state.title, 200), playing: action === 'play', currentTime: state.currentTime } : null;
+      if (action === 'pause') return state.paused === true ? { verified: true, videoId, url: state.url, title: clean(state.title, 200), playing: false, currentTime: state.currentTime, ...(state.advertisement ? { advertisement: true } : {}) } : null;
+      if (state.advertisement) { advertisementObserved = true; baseline = undefined; return null; }
+      if (advertisementObserved && !postAdvertisementContentHandled) {
+        postAdvertisementContentHandled = true;
+        if (state.paused) {
+          // One play for the newly observed content phase, never an ad-skip or a retry loop.
+          const content = await this.#script(scope, { kind: 'media-control', action: 'play', videoId }, true);
+          if (content?.state !== 'ready' || !Number.isFinite(content.currentTime) || content.currentTime < 0) throw new YouTubeError('UNAVAILABLE');
+          baseline = content.advertisement ? undefined : content.currentTime; return null;
+        }
+        baseline = state.currentTime; return null;
+      }
+      if (baseline === undefined || state.currentTime < baseline) { baseline = state.currentTime; return null; }
+      const confirmed = state.paused === false && !state.ended && state.readyState >= 2 && state.currentTime > baseline + 0.05;
+      return confirmed ? { verified: true, videoId, url: state.url, title: clean(state.title, 200), playing: true, currentTime: state.currentTime } : null;
     });
+  }
+  async #load(scope, url) {
+    this.#assert(scope); scope.pendingNavigation = true;
+    try { await this.#wait(scope.window.loadURL(url), scope); }
+    finally { scope.pendingNavigation = false; }
   }
   #ensureWindow(scope) {
     if (this.#window && (this.#profileId !== scope.profileId || this.#window.isDestroyed())) this.close();
@@ -181,9 +206,10 @@ export class YouTubeController {
   async #script(scope, args, gesture = false) {
     this.#assert(scope);
     if (!allowed(scope.window.webContents.getURL())) throw new YouTubeError('UNAVAILABLE');
-    const code = `(${pageOperation.toString()})(${JSON.stringify(args)})`;
+    const code = `(${pageOperation.toString()})(${JSON.stringify({ ...args, expiresAt: Date.now() + Math.max(0, scope.deadline - this.#now()) })})`;
     const result = await this.#wait(scope.window.webContents.executeJavaScriptInIsolatedWorld(WORLD, [{ code }], gesture), scope);
     this.#assert(scope);
+    if (result?.state === 'expired') { scope.reason = 'TIMEOUT'; scope.controller.abort(); throw new YouTubeError('TIMEOUT'); }
     if (result?.state === 'consent' || result?.state === 'blocked') throw new YouTubeError('CONSENT');
     if (result?.state === 'unavailable') throw new YouTubeError('UNAVAILABLE');
     return result;
@@ -221,7 +247,14 @@ export class YouTubeController {
     if (this.#window && this.#profileId !== profileId) this.close();
     const controller = new AbortController(), scope = { controller, signal: controller.signal, profileId, generation: this.#generation, deadline: this.#now() + this.#timeoutMs };
     const cancel = () => { scope.reason = 'CANCELLED'; controller.abort(); };
-    const aborted = () => { if (scope.window && this.#window === scope.window) this.close(); };
+    const aborted = () => {
+      if (!scope.window || this.#window !== scope.window) return;
+      if (scope.reason === 'TIMEOUT') {
+        // Preserve the page and observed selection for an honest manual handoff.
+        // Cancel only an unfinished navigation; no further scripted actions are scheduled.
+        if (scope.pendingNavigation) { try { scope.window.webContents.stop?.(); } catch {} }
+      } else this.close();
+    };
     const timer = setTimeout(() => { scope.reason = 'TIMEOUT'; controller.abort(); }, this.#timeoutMs);
     signal?.addEventListener('abort', cancel, { once: true }); controller.signal.addEventListener('abort', aborted, { once: true });
     this.#scopes.add(scope); if (signal?.aborted) cancel();

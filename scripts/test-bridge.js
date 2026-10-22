@@ -44,7 +44,7 @@
     if (!response.ok || payload.ok !== true) throw new Error(payload.error || 'A solicitação local falhou.');
     return payload.result;
   }
-  const methods = ['boot', 'readContext', 'cancelContext', 'saveSettings', 'chooseWorkspace', 'chooseApp', 'text', 'cancel', 'callTool', 'approve', 'memorySave', 'memoryDelete', 'realtimeSession', 'vision', 'observeOutfit', 'cancelOutfit', 'openExternal', 'listModels', 'startupGreeting', 'cancelGreeting', 'speak', 'cancelSpeech', 'wakeStart', 'wakeStop', 'chooseGreetingMusic'];
+  const methods = ['boot', 'readContext', 'cancelContext', 'saveSettings', 'chooseWorkspace', 'chooseApp', 'text', 'cancel', 'callTool', 'approve', 'memorySave', 'memoryDelete', 'realtimeSession', 'vision', 'openExternal', 'listModels', 'startupGreeting', 'cancelGreeting', 'speak', 'cancelSpeech', 'wakeStart', 'wakeStop', 'chooseGreetingMusic'];
   const bridge = Object.fromEntries(methods.map(method => [method, value => invoke(method, value)]));
     bridge.openExternal = async value => {
       if (typeof value !== 'string' || value.length > 2048 || /[\u0000-\u0020\u007f]/.test(value)) throw new Error('Link inválido.');

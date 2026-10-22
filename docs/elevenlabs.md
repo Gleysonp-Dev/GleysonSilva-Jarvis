@@ -6,6 +6,8 @@ O responsável pelo projeto confirmou autorização para clonar a referência es
 
 ## Estado atual
 
+Na recepção 0.6.2, a mesma voz aprovada narra somente a saudação com clima e as respostas da conversa. O comentário de roupa e sua geração automática foram retirados; música termina com a saudação, seguida pela voz quando habilitada. A reprodução permanece em **0,95× com altura preservada e efeito metálico fixo 0,78**. Preserve a voz existente: atualizar não exige nova clonagem nem publicação de referência/ID. CI, pacote e ensaio físico da revisão ainda pendentes; veja [Recepção](startup-greeting.md) e [Validação](validation.md).
+
 | Item | Estado |
 | --- | --- |
 | Adaptador REST sem SDK adicional | Implementado com `fetch` nativo no Node 24. |

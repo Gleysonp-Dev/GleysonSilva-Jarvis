@@ -1,18 +1,18 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Revisão 0.6.1 — YouTube na conversa nativa
+## Revisão 0.6.2 — recepção sem câmera automática
 
-Código **0.6.1**, indicador **MVP / 06.1**. Os pedidos por voz ou texto usam três ferramentas novas: `youtube_search({query})`, `youtube_play({videoId})` e `youtube_control({action:'play'|'pause'})`. A busca entrega até oito resultados realmente observados; tocar exige um ID dessa descoberta no perfil atual. Pesquisa, escolha e reprodução são etapas distintas: abrir youtube.com no navegador padrão continua sendo apenas uma abertura de site.
+A recepção atual é **Windows → espera local → duas palmas → música e saudação com clima → comandos por voz**, conforme as opções salvas. O comentário de roupa foi retirado da interface, do preset e dos endpoints ativos. O aplicativo não pede câmera nem envia imagem à OpenAI ao iniciar a recepção. A preferência antiga `receptionOutfitEnabled: true` é migrada para `false`; preserve voz, chaves, cidade, música, login e demais escolhas. A câmera manual e o reconhecimento local em Presença continuam disponíveis.
 
-O fluxo YouTube usa uma janela controlada pelo Jarvis e não herda o login, cookies ou abas do navegador pessoal. Pedidos de login, consentimento, CAPTCHA ou uma escolha ambígua devem ser entregues ao usuário; não autorize cliques automáticos para ultrapassá-los. Anúncios, bloqueios e disponibilidade do vídeo podem impedir reprodução. [Roteiro e limites](docs/youtube.md).
+A 0.6.2 também altera o tratamento de anúncios, vídeo oculto, observação inicial do player e expiração do YouTube. Anúncios aguardam sua conclusão natural, sem clicar para pular; expirar a tentativa preserva a janela, enquanto cancelamento, troca de perfil e saída continuam interrompendo o fluxo. **CI, pacote e ensaio ao vivo da 0.6.2 ainda estão pendentes.** A verificação local teve 534 testes, 523 aprovados e 11 falhas EPERM conhecidas no sandbox, zero skips; TypeScript e build passaram. [Detalhes](docs/validation.md). Não use o pacote histórico abaixo como se contivesse esta correção. [Recepção](docs/startup-greeting.md) e [YouTube](docs/youtube.md).
 
-[CI 0f293d0 da 0.6.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovado: **529/529 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa. O player foi ensaiado em página HTTPS local com mídia PCM e áudio silenciado; isso não comprova o YouTube ao vivo ou som ouvido. **O ensaio real do usuário permanece pendente.** O Windows 0.6.1 foi baixado e conferido na seção a seguir; o pacote 0.6.0 não contém estas ferramentas. Preserve os ajustes privados, feche a versão anterior por X/Sair e confira a versão antes do teste. O plugin Jarvis · Ultron permanece 0.6.0 e oferece as mesmas cinco ferramentas; as ferramentas YouTube são da conversa nativa, sem atualização do MCP nesta revisão.
+Na 0.6.1, o usuário confirmou a busca real no YouTube e relatou que o vídeo não começou a tocar. A causa dessa falha ainda não foi determinada no computador de destino; não atribua o relato a anúncio, conta ou navegador sem evidência. O [CI 0f293d0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovou **529/529 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa com player em página HTTPS local e áudio silenciado. Isso não confirmou reprodução ao vivo ou som ouvido. A 0.6.1 permanece registrada com seus hashes a seguir.
 
-O usuário confirmou que duas palmas ativaram a recepção na 0.6.0. Esse resultado da sessão não substitui um ensaio após novo login/reinício do Windows.
+O usuário confirmou que duas palmas ativaram a recepção na 0.6.0. Esse resultado não substitui um ensaio após novo login/reinício do Windows. O plugin Jarvis · Ultron permanece 0.6.0 com cinco ferramentas; as três ferramentas YouTube pertencem à conversa nativa.
 
 ## Pacote Windows 0.6.1 conferido
 
-Baixe o [Windows 0.6.1 da execução 39857691300](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300/artifacts/12459274688). ZIP e executável foram baixados e conferidos; a extração limitou-se às duas entradas esperadas.
+**Pacote histórico, sem as alterações 0.6.2.** [Windows 0.6.1 da execução 39857691300](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300/artifacts/12459274688). ZIP e executável foram baixados e conferidos; a extração limitou-se às duas entradas esperadas.
 
 | Arquivo conferido | Tamanho em bytes | SHA-256 |
 | --- | ---: | --- |
@@ -21,7 +21,7 @@ Baixe o [Windows 0.6.1 da execução 39857691300](https://github.com/Gleysonp-De
 
 Retenção até **20 de janeiro de 2027, às 16h29, America/New_York**. É um download temporário do GitHub Actions e pode exigir login; não é um link permanente de release. Não houve novo pacote do plugin Ultron: mantenha a versão 0.6.0 quando usar a conexão privada opcional.
 
-Feche a versão anterior por **X/Sair**, extraia o ZIP e abra **GleysonSilva-Jarvis-0.6.1-Windows.exe**. Confira **MVP / 06.1** e preserve os ajustes privados. Para o ensaio real pendente, peça **“Pesquise no YouTube Thunderstruck do AC/DC”**, escolha um resultado observado e teste tocar, pausar e continuar. Observe vídeo correto, estado do player e som ouvido separadamente. Login, consentimento, CAPTCHA e anúncio pedem intervenção; o Jarvis não deve ultrapassá-los automaticamente. [Roteiro completo](docs/youtube.md).
+Para reproduzir o ensaio histórico da 0.6.1, feche a versão anterior por **X/Sair**, extraia o ZIP e confira **MVP / 06.1**. O usuário já confirmou busca real e relatou falha ao tocar; pausa, retomada e som ouvido não estão aprovados. A validação da correção exige o pacote 0.6.2 quando ele estiver disponível e conferido. [Roteiro completo](docs/youtube.md).
 
 ## Base 0.6.0 — integração privada com Ultron
 
@@ -95,7 +95,7 @@ Baixe o [artefato 12313302731](https://github.com/Gleysonp-Dev/GleysonSilva-Jarv
 
 O [job 118982734554](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376/job/118982734554), commit `fced65256707608fbc00366b29553bab608dd9a1`, confirmou ready/window/DOM/preload/boot e packaged verdadeiros, com perfil temporário e rede/captura/login isolados, em **20 de outubro de 2026, às 21h22, America/New_York**. Não substitui palmas, câmera, som e login físicos. A configuração privada/início no Windows não pôde ser alterada por este ambiente; aplique o preset no app.
 
-No pacote nativo, abra **Ajustes → Início e espera**, clique em **Ativar recepção completa** e depois **Salvar configuração**. O preset habilita início no login/espera/palmas/música/saudação/roupa/voz/continuidade e desliga a palavra “Jarvis” como gatilho inicial. A interface informa que a captura é enviada à OpenAI e que a escuta contínua transmite áudio e pode consumir a API. As opções só passam a valer após salvar. Não apague ou substitua chaves, voz, trilha ou cidade já configuradas. O envio de roupa, conversa automática e continuidade começam desligados para novas instalações.
+No pacote atual, **Ajustes → Início e espera → Ativar recepção completa → Salvar configuração** prepara login, espera por duas palmas, música/saudação, voz e continuidade, sem câmera automática. O controle de roupa não existe na 0.6.2. A escuta contínua transmite áudio à OpenAI e pode consumir a API; não equivale a áudio em nuvem durante a espera local. As opções só passam a valer após salvar. Preserve chaves, voz, trilha e cidade existentes; não ative login ou microfone em uma instalação de terceiros sem essa escolha.
 
 Não reinicie o computador como teste sem o usuário pedir. O registro nativo pode ser confirmado no app e no próximo login real; testes simulados não demonstram palmas físicas ou acesso à câmera. Minimizar preserva a espera/conversa; X encerra. [Guia da recepção](docs/startup-greeting.md), [Espera/login](docs/standby.md).
 

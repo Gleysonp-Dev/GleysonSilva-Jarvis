@@ -1,10 +1,16 @@
 # Roadmap — Projeto GleysonSilva-Jarvis
 
-## Correção de uso e espera — 0.5.1 com CI aprovado
+## Revisão atual 0.6.2 — recepção simples e nova validação do YouTube
+
+Retirar câmera/comentário de roupa da recepção e migrar a preferência antiga para `false`, preservando Presença manual, voz, clima, música e login configurado. Validar a sequência **duas palmas → música/saudação → comandos por voz**, sem imagem enviada à OpenAI. No YouTube, rever espera natural de anúncio, player de conteúdo visível, comparação inicial de progresso e preservação da janela em timeout; cancelamento e perfil continuam interrompendo. O usuário confirmou busca na 0.6.1, mas relatou falha ao tocar; a causa ainda não foi determinada. **CI, pacote e ensaio ao vivo 0.6.2 pendentes.** A verificação local está registrada em [Validação](validation.md). [Validação](validation.md) e [YouTube](youtube.md).
+
+As seções de versões anteriores registram o histórico, incluindo o comentário de roupa existente na 0.5.x. Esse recurso não deve ser reativado na instalação atual.
+
+## Histórico: correção de uso e espera — 0.5.1 com CI aprovado
 
 Abrir o navegador padrão sem cadastro manual, mantendo a autorização, e antecipar câmera/análise/síntese da roupa enquanto a saudação toca. A reprodução do comentário espera o fim da saudação; nenhuma captura ou chamada extra é adicionada a uma recepção normal. Preservar configurações/voz/música, cancelamento e limpeza de recursos. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Teste físico da correção no destino ainda pendente. A 0.5.0 abaixo é o histórico da recepção anterior.
 
-## Recepção e conversa contínua — 0.5.0 com CI aprovado
+## Histórico: recepção e conversa contínua — 0.5.0 com CI aprovado
 
 Fluxo implementado: login Windows em espera → duas palmas → música e saudação com clima → uma captura para comentar roupa visível → comandos por voz. Continuidade opcional renova a sessão após seu prazo local, sem repetir a recepção. Interromper/erro/fechamento/perfil interrompem o fluxo. As três opções novas começam desligadas; o preset de Ajustes é aplicado somente ao salvar, com informação do envio de imagem/áudio à OpenAI. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico no destino ainda está pendente. [Recepção](startup-greeting.md), [configuração e espera](standby.md), [validação](validation.md). Os resultados da 0.4.0 abaixo são históricos.
 

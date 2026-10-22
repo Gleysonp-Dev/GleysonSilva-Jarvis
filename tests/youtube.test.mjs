@@ -38,9 +38,10 @@ function fixture(t, options = {}) {
     pause() { calls.push('pause-video'); this.paused = true; }
   }
   class Window extends EventEmitter {
-    destroyed = false; url = 'about:blank';
+    destroyed = false; url = 'about:blank'; navigation = 0;
     constructor() {
       super(); this.video = new Video(); this.field = new Input();
+      this.hiddenVideo = new Video(); this.hiddenVideo.hidden = true; this.hiddenVideo.paused = false;
       this.field.form = { action: 'https://www.youtube.com/results', requestSubmit: () => {
         calls.push(['submit', this.field.value]);
         if (!options.ignoreSubmit) this.url = `https://www.youtube.com/results?search_query=${encodeURIComponent(this.field.value)}`;
@@ -54,15 +55,19 @@ function fixture(t, options = {}) {
       this.webContents = new EventEmitter();
       Object.assign(this.webContents, {
         isDestroyed: () => this.destroyed, getURL: () => this.url, getTitle: () => 'Vídeo do teste',
+        stop: () => { this.navigation++; calls.push('stop-navigation'); },
         setWindowOpenHandler: handler => { this.openHandler = handler; },
         executeJavaScriptInIsolatedWorld: async (world, scripts, gesture) => {
           calls.push(['execute', world, gesture, scripts[0].code]);
-          if (options.scriptGate) await options.scriptGate.promise;
+          const kind = /"kind":"([^"]+)"/.exec(scripts[0].code)?.[1];
+          if (options.scriptGate && (!options.scriptGateKind || options.scriptGateKind === kind)) await options.scriptGate.promise;
+          options.beforeScript?.({ kind, window: this });
           const document = {
             title: 'Vídeo do teste',
             querySelectorAll: selector => {
               if (selector.includes('input[name="search_query"]')) return options.noField ? [] : [this.field];
               if (selector.includes('ytd-video-renderer a#video-title')) return this.url.includes('/results?') ? this.anchors : [];
+              if (selector === '#movie_player video' || selector === 'video') return this.url.includes('/watch?') && !options.noVideo ? [...(options.hiddenVideoFirst ? [this.hiddenVideo] : []), this.video] : [];
               if (options.consent && selector.includes('ytd-consent-bump')) return [new Element()];
               if (options.login && selector.includes('[role="dialog"]')) return [new Element({ textContent: 'Sign in before you continue' })];
               if (options.captcha && selector.includes('#captcha')) return [new Element()];
@@ -70,6 +75,7 @@ function fixture(t, options = {}) {
               return [];
             },
             querySelector: selector => {
+              if (selector.includes('skip')) return { click() { calls.push('skip-ad'); } };
               if (selector === '#movie_player') return { classList: { contains: name => options.ad && name === 'ad-showing' } };
               if (selector.includes('video')) return this.url.includes('/watch?') && !options.noVideo ? this.video : null;
               if (selector.includes('h1')) return new Element({ textContent: 'Título observado do vídeo' });
@@ -83,7 +89,7 @@ function fixture(t, options = {}) {
         },
       });
     }
-    async loadURL(url) { calls.push(['load', url]); if (options.loadGate) await options.loadGate.promise; if (!this.destroyed) this.url = url; }
+    async loadURL(url) { const navigation = ++this.navigation; calls.push(['load', url]); if (options.loadGate) await options.loadGate.promise; if (!this.destroyed && navigation === this.navigation) this.url = url; }
     isDestroyed() { return this.destroyed; }
     show() { calls.push('show-window'); }
     destroy() { this.destroyed = true; calls.push('destroy-window'); this.emit('closed'); }
@@ -187,18 +193,89 @@ test('consent, login and captcha hand off without accepting terms, clicking logi
   });
 });
 
-test('an advertisement or autoplay rejection cannot be claimed as the requested video playing', async t => {
-  for (const options of [{ ad: true }, { rejectPlay: true }]) await t.test(JSON.stringify(options), async t => {
-    const f = fixture(t, options); await f.search('vídeo');
-    await assert.rejects(f.play(FIRST), error => error.code === 'UNAVAILABLE');
-    assert.equal(f.calls.filter(call => call === 'play-video').length, options.ad ? 0 : 1);
-  });
+test('autoplay rejection remains an honest failure with one requested play and no retry loop', async t => {
+  const f = fixture(t, { rejectPlay: true }); await f.search('vídeo');
+  await assert.rejects(f.play(FIRST), error => error.code === 'UNAVAILABLE');
+  assert.equal(f.calls.filter(call => call === 'play-video').length, 1); assert.equal(f.windows[0].destroyed, false);
+});
+
+test('an observed advertisement is awaited naturally and content progress starts from a fresh timeline', async t => {
+  let states = 0;
+  const f = fixture(t, { ad: true, beforeScript({ kind, window }) {
+    if (kind !== 'media-state') return;
+    if (++states === 1) window.video.time = 25;
+    if (states === 3) { f.options.ad = false; window.video.time = 0; window.video.paused = true; }
+  } });
+  await f.search('vídeo com publicidade'); const result = await f.play(FIRST);
+  assert.equal(result.verified, true); assert.equal(result.playing, true); assert.ok(result.currentTime > 0 && result.currentTime < 1);
+  assert.equal(f.calls.filter(call => call === 'play-video').length, 2); // One per observed ad/content phase.
+  assert.equal(f.calls.filter(call => Array.isArray(call) && call[0] === 'load' && call[1].includes('/watch?')).length, 1);
+  assert.equal(f.calls.filter(call => call === 'skip-ad').length, 0);
+});
+
+test('long advertisements never verify content playback and leave the observed player available for explicit pause', async t => {
+  const f = fixture(t, { ad: true, timeoutMs: 150 }); await f.search('vídeo');
+  await assert.rejects(f.play(FIRST), error => error.code === 'TIMEOUT');
+  assert.equal(f.windows[0].destroyed, false); assert.equal(f.calls.filter(call => call === 'play-video').length, 1);
+  const paused = await f.control('pause');
+  assert.equal(paused.verified, true); assert.equal(paused.playing, false); assert.equal(paused.advertisement, true); assert.equal(f.windows[0].video.paused, true);
+});
+
+test('a delayed ad marker still permits one new content-phase play after the advertisement ends', async t => {
+  let states = 0, starts = 0;
+  const f = fixture(t, { beforeScript({ kind, window }) {
+    if (kind !== 'media-state') return;
+    states++;
+    if (states === 1) {
+      const original = window.video.play.bind(window.video);
+      window.video.play = () => { if (++starts === 1) f.options.ad = true; return original(); };
+    }
+    if (states === 3) { f.options.ad = false; window.video.time = 0; window.video.paused = true; }
+  } });
+  await f.search('vídeo'); const result = await f.play(FIRST);
+  assert.equal(result.verified, true); assert.equal(result.playing, true); assert.equal(starts, 2);
+  assert.equal(f.calls.filter(call => call === 'skip-ad').length, 0);
+});
+
+test('the visible content element is controlled even when an old hidden ad video appears first', async t => {
+  const f = fixture(t, { hiddenVideoFirst: true }); await f.search('vídeo'); const result = await f.play(FIRST);
+  assert.equal(result.verified, true); assert.equal(f.windows[0].video.paused, false); assert.equal(f.windows[0].hiddenVideo.time, 0);
+  assert.equal(f.calls.filter(call => call === 'play-video').length, 1);
 });
 
 test('a paused or frozen timeline times out without retrying play or returning a late verified result', async t => {
   const f = fixture(t, { advance: false, timeoutMs: 80 }); await f.search('vídeo');
   await assert.rejects(f.play(FIRST), error => error.code === 'TIMEOUT');
-  assert.equal(f.calls.filter(call => call === 'play-video').length, 1); assert.equal(f.windows[0].destroyed, true);
+  assert.equal(f.calls.filter(call => call === 'play-video').length, 1); assert.equal(f.windows[0].destroyed, false);
+});
+
+test('timeout preserves the window but an expired queued script cannot begin a late media action', async t => {
+  const f = fixture(t, { timeoutMs: 150 }); await f.search('vídeo');
+  const gate = deferred(); f.options.scriptGate = gate; f.options.scriptGateKind = 'media-control';
+  const pending = f.play(FIRST); await assert.rejects(pending, error => error.code === 'TIMEOUT');
+  assert.equal(f.windows[0].destroyed, false); assert.equal(f.calls.includes('play-video'), false);
+  gate.resolve(); await tick(); assert.equal(f.calls.includes('play-video'), false);
+  f.options.scriptGate = null;
+  assert.equal((await f.control('pause')).verified, true);
+});
+
+test('an unfinished navigation is stopped on timeout without closing the handoff window or replaying a load', async t => {
+  const f = fixture(t, { timeoutMs: 150 }); await f.search('vídeo');
+  const gate = deferred(); f.options.loadGate = gate;
+  await assert.rejects(f.play(FIRST), error => error.code === 'TIMEOUT');
+  assert.equal(f.windows[0].destroyed, false); assert.equal(f.calls.filter(call => call === 'stop-navigation').length, 1);
+  const url = f.windows[0].url; gate.resolve(); await tick(); assert.equal(f.windows[0].url, url);
+  assert.equal(f.calls.filter(call => Array.isArray(call) && call[0] === 'load' && call[1].includes('/watch?')).length, 1);
+});
+
+test('explicit cancellation while awaiting an ad closes the player and cannot start a later content phase', async t => {
+  const f = fixture(t, { ad: true }); await f.search('vídeo'); const controller = new AbortController();
+  const pending = f.controller.play(FIRST, { ...f.scope(), signal: controller.signal });
+  await until(() => f.calls.includes('play-video')); controller.abort();
+  await assert.rejects(pending, error => error.code === 'CANCELLED'); assert.equal(f.windows[0].destroyed, true);
+  f.options.ad = false; await tick();
+  assert.equal(f.calls.filter(call => call === 'play-video').length, 1);
+  await assert.rejects(f.play(FIRST), error => error.code === 'INVALID');
 });
 
 test('cancel during a pending native load destroys the window and late load completion cannot submit', async t => {
