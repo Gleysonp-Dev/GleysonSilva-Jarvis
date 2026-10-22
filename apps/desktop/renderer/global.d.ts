@@ -23,10 +23,11 @@ declare global {
     receptionOutfitEnabled?: boolean;
     receptionVoiceEnabled?: boolean;
     continuousVoiceEnabled?: boolean;
+    ultronEnabled?: boolean;
   }
   interface JarvisRecord { id: string; text?: string; summary?: string; name?: string; status?: string; createdAt?: string; updatedAt?: string; profileId?: string; [key: string]: unknown; }
   interface JarvisSnapshot { memories: JarvisRecord[]; tasks: JarvisRecord[]; procedures: JarvisRecord[]; }
-  interface JarvisCapabilities { desktop: boolean; vision: boolean; localTest?: boolean; ephemeralBiometrics?: boolean; startup?: boolean; voiceWake?: boolean; jarvisSpeech?: boolean; outfitObservation?: boolean; }
+  interface JarvisCapabilities { desktop: boolean; vision: boolean; localTest?: boolean; ephemeralBiometrics?: boolean; startup?: boolean; voiceWake?: boolean; jarvisSpeech?: boolean; outfitObservation?: boolean; ultronBridge?: boolean; }
   interface JarvisWeatherAttribution { name: string; url: string; license: string; licenseUrl: string; text: string; }
   interface JarvisToolSource { url: string; title: string; }
   interface JarvisContext {
@@ -76,6 +77,8 @@ declare global {
     realtimeSession(input: { sdp: string; profileId: string }): Promise<{ sdp: string; tools?: unknown[]; sessionId?: string }>;
     speak(input: { text: string; profileId: string; runId: string; utteranceId: string }): Promise<{ audioBase64: string; mime: string; runId: string; utteranceId: string }>;
     cancelSpeech(input: { runId: string }): Promise<unknown>;
+    ultronPlaybackResult?(input: { requestId: string; played: boolean; reason?: 'busy' | 'cancelled' | 'speech_unavailable' | 'playback_failed' }): Promise<boolean>;
+    cancelUltron?(): Promise<{ cancelled: true }>;
     wakeStart?(): Promise<{ available: boolean; running: boolean; state: string; reason?: string }>;
     wakeStop?(): Promise<unknown>;
     chooseGreetingMusic?(): Promise<{ hasGreetingMusic: boolean }>;

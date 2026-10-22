@@ -19,6 +19,8 @@ import { SpeechController, SpeechControlError } from '../../packages/speech/cont
 import { configureStartup, isStandbyLaunch, WindowsWakeService } from './startup.mjs';
 import { GreetingMusicStore } from './greeting-music.mjs';
 import { TRAY_ICON } from './tray-icon.mjs';
+import { createUltronBridge } from '../../packages/ultron/index.mjs';
+import { UltronCommands, UltronCommandError } from '../../packages/ultron/commands.mjs';
 
 const PRODUCT = 'Projeto GleysonSilva-Jarvis';
 const APP_ORIGIN = 'jarvis://app';
@@ -72,6 +74,7 @@ if (!singleInstance) app.quit();
 let mainWindow, settings, runtime, provider, vision, startupService, contextService, contextFlight, reception, speech, musicStore, wakeService, tray;
 let startupStatus = { available: false, enabled: false }, standbyActive = false;
 let generation = 0, shuttingDown = false, cleanupPromise, shutdownPromise, shutdownComplete = false, textRunId;
+let ultronBridge, ultronFlight, ultronCommands;
 const runs = new Map();
 const knownRuns = new Map();
 const approvals = new Map();
@@ -99,6 +102,25 @@ function activeProfile(request = {}) {
   if (request.profileId !== undefined && request.profileId !== profileId) invalid('O perfil mudou. Inicie uma nova solicitação no perfil atual.');
   return profileId;
 }
+async function stopUltronBridge() {
+  ultronCommands?.reset();
+  const previous = ultronBridge; ultronBridge = undefined;
+  await Promise.allSettled([previous?.close(), ultronFlight]);
+}
+async function startUltronBridge() {
+  if (ultronBridge || smoke || shuttingDown || process.platform !== 'win32' || settings.get().ultronEnabled !== true) return;
+  if (ultronFlight) return ultronFlight;
+  const startGeneration = generation;
+  const operation = (async () => {
+    const bridge = await createUltronBridge({ dataDir: app.getPath('userData'), handle: (method, args, scope) => ultronCommands.run(method, args, scope) });
+    if (shuttingDown || generation !== startGeneration || !settings.get().ultronEnabled) { await bridge.close(); return; }
+    ultronBridge = bridge;
+  })();
+  const flight = operation.finally(() => { if (ultronFlight === flight) ultronFlight = undefined; });
+  ultronFlight = flight;
+  try { await flight; }
+  catch { throw new InputError('Não foi possível iniciar a conexão privada com Ultron. Tente salvar a opção novamente.'); }
+}
 function runtimeEvent(event) {
   if (event.type === 'approval') approvals.set(event.approvalId, { profileId: event.profileId, runId: event.runId, generation });
   if (event.profileId !== settings.get().profileId) {
@@ -125,6 +147,7 @@ function newRun(runId, profileId, kind) {
 }
 async function clearSessions(reason) {
   generation++;
+  const ultronStopped = stopUltronBridge();
   speech?.reset();
   reception?.reset();
   const wakeStopped = wakeService?.stop(); standbyActive = false; updateTray();
@@ -136,6 +159,7 @@ async function clearSessions(reason) {
   for (const [approvalId] of approvals) runtime?.approve(approvalId, false);
   approvals.clear(); runs.clear(); textRunId = undefined;
   await wakeStopped;
+  await ultronStopped;
   for (const window of browserWindows.values()) if (!window.isDestroyed()) window.destroy();
   browserWindows.clear();
   await vision?.handle({ type: 'reset' }).catch(() => {});
@@ -163,21 +187,15 @@ function dedicatedBrowser(profileId) {
 async function openBrowser(value, { signal } = {}) {
   const url = webURL(value);
   if (signal?.aborted) throw new InputError('Ação cancelada.');
-  const profileId = settings.get().profileId;
-  const window = dedicatedBrowser(profileId);
-  const stop = () => { if (!window.isDestroyed()) window.webContents.stop(); };
-  signal?.addEventListener('abort', stop, { once: true });
   try {
-    await timeout(window.loadURL(url), 20_000, 'O navegador não confirmou a navegação no prazo.');
-    if (signal?.aborted || window.isDestroyed()) throw new InputError('Ação cancelada.');
-    const finalURL = webURL(window.webContents.getURL());
-    window.show(); window.focus();
-    return { verified: true, url: finalURL, title: window.webContents.getTitle().slice(0, 300) };
-  } finally { signal?.removeEventListener('abort', stop); }
+    await shell.openExternal(url);
+  } catch { throw new InputError('O Windows não conseguiu encaminhar o endereço ao navegador padrão.'); }
+  if (signal?.aborted) throw new InputError('Ação cancelada.');
+  return { dispatched: true, verified: false, url };
 }
 async function readBrowserSelection({ signal } = {}) {
   const window = browserWindows.get(settings.get().profileId);
-  if (!window || window.isDestroyed()) throw new InputError('Abra uma página no navegador dedicado e selecione o trecho que deseja compartilhar.');
+  if (!window || window.isDestroyed()) throw new InputError('A seleção do navegador externo não está acessível. Peça para consultar o endereço do site.');
   if (signal?.aborted) throw new InputError('Leitura cancelada.');
   const url = webURL(window.webContents.getURL());
   // Constant script: model/page strings are never interpolated into executable code.
@@ -206,13 +224,15 @@ function handle(name, fn) {
     if (shuttingDown) throw new Error('O aplicativo está encerrando.');
     try { return await fn(input); }
     catch (error) {
-      if (error instanceof InputError || error instanceof ContextError || error instanceof ReceptionError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError) throw new Error(error.message);
+      if (error instanceof InputError || error instanceof ContextError || error instanceof ReceptionError || error instanceof OpenAIServiceError || error instanceof SpeechServiceError || error instanceof SpeechControlError || error instanceof UltronCommandError) throw new Error(error.message);
       // Native errors may include OS paths, command arguments or credentials.
       throw new Error('A operação não pôde ser concluída. Revise a configuração e o histórico local.');
     }
   });
 }
 function registerIPC() {
+  handle('ultronPlaybackResult', input => ultronCommands?.finish(input) ?? false);
+  handle('cancelUltron', input => { if (input != null) only(record(input, 100), []); ultronCommands?.reset(); return { cancelled: true }; });
   handle('getFullscreen', input => {
     if (input != null) only(record(input, 100), []);
     return mainWindow.isFullScreen();
@@ -239,15 +259,16 @@ function registerIPC() {
     controller?.abort(); contextFlight = undefined;
     return { cancelled: Boolean(controller) };
   });
-  handle('boot', async () => ({ settings: { ...settings.public(), hasGreetingMusic: musicStore.available() }, snapshot: runtime.getSnapshot(settings.get().profileId), capabilities: { desktop: process.platform === 'win32', vision: (await vision.handle({ type: 'status' })).available === true, startup: startupStatus.available, voiceWake: process.platform === 'win32', jarvisSpeech: true, outfitObservation: !smoke }, startup: startupStatus, productName: PRODUCT }));
+  handle('boot', async () => ({ settings: { ...settings.public(), hasGreetingMusic: musicStore.available() }, snapshot: runtime.getSnapshot(settings.get().profileId), capabilities: { desktop: process.platform === 'win32', vision: (await vision.handle({ type: 'status' })).available === true, startup: startupStatus.available, voiceWake: process.platform === 'win32', jarvisSpeech: true, outfitObservation: !smoke, ultronBridge: process.platform === 'win32' && !smoke }, startup: startupStatus, productName: PRODUCT }));
   handle('saveSettings', async input => {
-    only(record(input, 5000), ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey', 'startAtLogin', 'standbyEnabled', 'wakeClapEnabled', 'wakeVoiceEnabled', 'greetingMusicEnabled', 'receptionOutfitEnabled', 'receptionVoiceEnabled', 'continuousVoiceEnabled']);
+    only(record(input, 5000), ['profileId', 'textModel', 'realtimeModel', 'voice', 'maxSessionMinutes', 'apiKey', 'startupGreeting', 'weatherLocation', 'elevenVoiceId', 'elevenApiKey', 'startAtLogin', 'standbyEnabled', 'wakeClapEnabled', 'wakeVoiceEnabled', 'greetingMusicEnabled', 'receptionOutfitEnabled', 'receptionVoiceEnabled', 'continuousVoiceEnabled', 'ultronEnabled']);
     validateSettings(input);
     for (const field of ['apiKey', 'elevenApiKey']) if (input[field] !== undefined && (typeof input[field] !== 'string' || input[field].length > 512 || /[\r\n\0]/.test(input[field]))) invalid('Chave inválida.');
     await clearSessions(input.profileId && input.profileId !== settings.get().profileId ? 'profile_changed' : 'settings_changed');
     settings.save(input);
     startupStatus = configureStartup(app, settings.get());
     updateTray();
+    await startUltronBridge();
     return settings.public();
   });
   handle('speak', input => speech.speak(input));
@@ -428,6 +449,14 @@ async function startApplication() {
   provider = new OpenAIService({ getKey: () => settings.getSecret(), getSettings: () => settings.get(), runtime, onEvent: providerEvent });
   reception = new ReceptionObservation({ getSettings: () => settings.get(), describe: (input, options) => provider.describeOutfit(input, options) });
   startupService = new StartupGreetingService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() });
+  ultronCommands = new UltronCommands({
+    getSettings: () => ({ ...settings.get(), hasElevenKey: Boolean(settings.getElevenSecret()) }),
+    getVersion: () => app.getVersion?.() || '0.6.0', emit: publish,
+    isWindowAvailable: () => Boolean(mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()),
+    readWeather: options => startupService.readWeather({}, options),
+    openBrowser: ({ signal }) => runtime.call({ id: randomUUID(), runId: `ultron-${randomUUID()}`, profileId: settings.get().profileId, name: 'apps_open', args: { appId: 'browser' } }, { signal }),
+    openWebsite: (url, { signal }) => runtime.call({ id: randomUUID(), runId: `ultron-${randomUUID()}`, profileId: settings.get().profileId, name: 'browser_open', args: { url } }, { signal }),
+  });
   contextService = new ContextService({ weather: startupService, getProfileId: () => settings.get().profileId, getSnapshot: profileId => runtime.getSnapshot(profileId) });
   vision = new VisionService({ dataDir: path.join(userData, 'vision'), modelsDir: path.join(userData, 'models'), crypto: safeStorage, ...(app.isPackaged ? { workerPath: path.join(process.resourcesPath, 'vision', 'worker.py') } : {}) });
   protocol.handle('jarvis', async request => {
@@ -464,6 +493,7 @@ async function startApplication() {
   registerIPC();
   if (process.platform === 'win32' && !smoke) { try { tray = new Tray(nativeImage.createFromBuffer(Buffer.from(TRAY_ICON, 'base64'))); tray.setToolTip(PRODUCT); tray.on('double-click', () => { mainWindow.show(); mainWindow.focus(); }); updateTray(); } catch { tray = undefined; mainWindow.show(); } }
   await mainWindow.loadURL(APP_URL);
+  try { await startUltronBridge(); } catch { publish({ type: 'ultron.status', state: 'unavailable' }); }
   if (smoke) {
     const result = await timeout(mainWindow.webContents.executeJavaScript(`(async () => {
       const deadline = Date.now() + 15000;

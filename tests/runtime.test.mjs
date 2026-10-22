@@ -81,17 +81,15 @@ test('app actions wait for immutable approval and replay one saved effect per ID
   assert.deepEqual(calls, ['notepad']);
 });
 
-test('duplicate concurrent calls share one approval and unsupported/unverified adapters do not report success', async t => {
+test('duplicate concurrent URL calls share one execution and unsupported or unacknowledged adapters do not report success', async t => {
   const f = await fixture(t, { platformAdapters: { openBrowser: async () => ({ opened: true }) } });
   assert.equal((await f.runtime.call(request('apps_open', { appId: 'notepad' }))).status, 'failed');
   const call = request('browser_open', { url: 'https://example.com' });
   const a = f.runtime.call(call), b = f.runtime.call(call);
   assert.equal(a, b);
-  const approval = await eventAfter(f.events, 'approval');
-  f.runtime.approve(approval.approvalId, true);
   assert.equal((await a).status, 'failed');
   assert.equal((await b).ok, false);
-  assert.equal(f.events.filter(event => event.type === 'approval').length, 1);
+  assert.equal(f.events.filter(event => event.type === 'approval').length, 0);
 });
 
 test('deny and abort cancel pending effects and run cancellation blocks future calls', async t => {

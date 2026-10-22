@@ -116,18 +116,16 @@ test('other application openings still require an explicit approval before nativ
   assert.equal((await pending).status, 'cancelled'); assert.deepEqual(opened, []);
 });
 
-test('URL-specific browser tool retains its dedicated browser adapter and strict URL-only schema', async t => {
+test('URL-specific browser tool uses the URL adapter and strict URL-only schema without default-page fallback', async t => {
   let requested, defaults = 0;
   const f = await fixture(t, { openDefaultBrowser: async () => { defaults++; }, openBrowser: async url => { requested = url; return { verified: true, url }; } });
-  const pending = f.runtime.call(call({ name: 'browser_open', args: { url: 'https://example.com/path' } }));
-  const entry = await approval(f); assert.equal(entry.tool, 'browser_open'); assert.equal(requested, undefined);
-  f.runtime.approve(entry.approvalId, true); const result = await pending;
+  const result = await f.runtime.call(call({ name: 'browser_open', args: { url: 'https://example.com/path' } }));
   assert.equal(result.status, 'verified'); assert.equal(requested, 'https://example.com/path'); assert.equal(defaults, 0);
   for (const args of [{ appId: 'browser', url: 'https://example.com' }, { appId: 'browser', path: 'C:\\apps\\browser.exe' }, { appId: 'browser --arbitrary' }]) {
     assert.equal((await f.runtime.call(call({ args }))).status, 'failed');
   }
   assert.equal(defaults, 0);
-  assert.equal(f.events.filter(event => event.type === 'approval').length, 1);
+  assert.equal(f.events.filter(event => event.type === 'approval').length, 0);
 });
 
 test('unobservable focus on an external browser is not misreported or opened as a side effect', async t => {

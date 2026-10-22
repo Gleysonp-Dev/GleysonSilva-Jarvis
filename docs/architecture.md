@@ -1,10 +1,12 @@
 # Arquitetura — Projeto GleysonSilva-Jarvis
 
+A 0.6.0 acrescenta uma ponte privada opcional para **Ultron → Jarvis local**. O plugin reúne skill e servidor MCP STDIO; o cliente chama um named pipe local autenticado, e o processo principal vincula as operações ao perfil/configuração atuais. A ponte começa desligada e oferece cinco ferramentas limitadas: estado, clima atual, abertura genérica do navegador, abertura do site solicitado e narração. Não exporta identidade ou memória do Dot nem oferece entrada de mensagens ao Dot pessoal. O plugin privado 0.6.0 está instalado e habilitado, com listagem conferida; ainda não foi recarregado nesta conversa nem chamado pelo Dot. CI e pacote continuam pendentes. [Guia](ultron.md).
+
 Na 0.5.3, `apps_open/browser` dispensa a segunda autorização para a abertura solicitada do navegador padrão no destino fixo Google. Continua na fila serializada, com argumentos imutáveis, cancelamento, proteção contra duplicação e relato de despacho sem alegar verificação da janela. As outras ferramentas mantêm a política anterior. Não altera as regras do Firewall do Windows.
 
 A 0.5.2 acrescenta controle local da janela em tela cheia por botão/F11, saída por Esc e sincronização do estado nativo. A bridge aceita somente o booleano pela origem/frame principal confiável; esse controle de interface não passa pelo modelo nem altera a conversa. [CI 4e90ff5 da 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223) aprovado: **413/413 testes, zero falhas/skips**, TypeScript, build, pacote e entrada/saída de tela cheia pelo botão real no aplicativo Windows. [Detalhes](fullscreen.md).
 
-O MVP 0.5.3 separa interface, leitura de contexto/web, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. A recepção encadeia saudação com música, um quadro opcional para comentar roupa e entrada opcional em conversa contínua. A preparação da roupa começa durante a reprodução da saudação, mas a narração aguarda seu fim. A abertura genérica de navegador usa o padrão do Windows sem cadastro manual de executável. Preserva o núcleo 0.3.1 aprovado pelo autor, a voz e os acessos desktop/web da 0.4.0. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador.
+O MVP 0.6.0 separa interface, leitura de contexto/web, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. A recepção encadeia saudação com música, um quadro opcional para comentar roupa e entrada opcional em conversa contínua. A preparação da roupa começa durante a reprodução da saudação, mas a narração aguarda seu fim. A abertura genérica de navegador usa o padrão do Windows sem cadastro manual de executável. Preserva o núcleo 0.3.1 aprovado pelo autor, a voz e os acessos desktop/web da 0.4.0. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador.
 
 O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343/343 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real daquela versão. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, com os limites do ensaio físico registrados em [Validação](validation.md). Guia de comandos preservados em [Acesso desktop e web](desktop-access.md).
 
@@ -14,6 +16,10 @@ O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/acti
 
 ```mermaid
 flowchart LR
+    Dot[Ultron: pedido autorizado em tarefa local] --> MCP[Plugin MCP STDIO]
+    MCP --> Pipe[Named pipe local autenticado]
+    Pipe --> Ultron[Comandos limitados do Ultron]
+    Ultron --> Main
     Pessoa[Pessoa] --> UI[React + HUD Canvas]
     UI --> Bridge[Bridge limitada / preload]
     Bridge --> Main[Processo principal Electron]
@@ -47,6 +53,7 @@ flowchart LR
 
 | Camada | Responsabilidade | Não recebe como autoridade |
 | --- | --- | --- |
+| Ponte Ultron | Cinco operações limitadas, descoberta local privada, autenticação do transporte, limites de entrada/prazo e cancelamento. | Chaves, memória do Dot, captura, shell ou uma URL transformada em comando. |
 | Renderer | Conversa, núcleo orbital azul, Contexto sob demanda, fontes compactas, captura limitada, WebRTC, fila/reprodução de fala, palmas e sequência da recepção. | Chave salva, Node, shell ou embeddings faciais. |
 | Preload | Expor métodos explícitos, filtrar IPC e entregar eventos. | Código arbitrário fornecido pelo modelo ou página. |
 | Processo principal | Validar origem/argumentos, guardar configuração, ligar serviços, vincular perfil e cancelar sessões. | Um perfil escolhido unilateralmente por uma ferramenta. |
@@ -59,7 +66,19 @@ flowchart LR
 
 O Electron usa `contextIsolation`, sandbox e `nodeIntegration:false`. A interface é servida pela origem própria `jarvis://app`; o processo principal aceita IPC somente do frame principal esperado. Navegações, janelas e permissões passam por regras específicas. A abertura geral de URL encaminha o endereço ao navegador sem lhe conceder a bridge; o leitor web é um serviço separado e não reutiliza a sessão autenticada do navegador.
 
+## Ponte privada Ultron
+
+`plugins/jarvis-ultron/server.mjs` oferece `jarvis_status`, `jarvis_weather`, `jarvis_open_browser`, `jarvis_open_website` e `jarvis_speak`. O MCP não é exposto por uma porta pública. O principal aceita a conexão somente quando `ultronEnabled` está ativo e entrega o perfil internamente. Mudança de configuração/perfil, Interromper e fechamento invalidam trabalho pendente.
+
+`jarvis_open_browser` encaminha sempre a página fixa Google. `jarvis_open_website` recebe somente o endereço HTTP(S) solicitado, com HTTPS implícito quando não há esquema, e usa o navegador padrão. Essa rota é separada de `browser_open` da conversa normal; não lê conteúdo nem concede a bridge a páginas externas. Um despacho aceito continua sem comprovar a janela aberta.
+
+Para `jarvis_speak`, o principal emite um evento com requestId e aguarda o recibo do renderer confiável. O renderer recusa estado ocupado antes da síntese, preserva a voz existente e só confirma reprodução após o fim do áudio. Interrupção cancela TTS e descarta resultados tardios/URLs preparadas. A fala usa 0,95×, altura preservada e efeito 0,78; não inicia música, microfone, captura ou transcrição. A confirmação técnica não prova que o usuário ouviu.
+
+A execução local é uma condição de acesso, não uma API para a identidade pessoal do Dot. O plugin instalado pode estar disponível em uma tarefa local compatível enquanto a conversa principal do Ultron não o carrega. A validação desse caminho é separada dos testes do protocolo.
+
 ## Texto e ferramentas
+
+O fluxo abaixo é a conversa normal do Jarvis com a API OpenAI. A ponte Ultron tem o fluxo separado descrito na seção anterior.
 
 1. A interface envia texto, um histórico limitado, perfil e identificador de execução.
 2. O principal confirma o perfil ativo e abre um controlador de cancelamento.
@@ -113,11 +132,11 @@ Os cartões aparecem somente no painel solicitado e não acrescentam transcriç�
 
 `apps_find` lê o inventário instalado do Windows e devolve nomes/IDs opacos. O runtime guarda os IDs descobertos por perfil; `apps_launch` aceita somente um ID previamente observado, apresenta o nome para confirmar e valida o alvo novamente no adaptador. Não converte texto do modelo em shell, argumentos livres ou executável arbitrário. Descoberta incompleta ou nomes semelhantes exigem resposta honesta e escolha do usuário.
 
-Na 0.5.3, `apps_open` com `appId:'browser'` tem uma rota própria: sem segunda confirmação para o pedido explícito de abertura, `openDefaultBrowser` encaminha a URL fixa `https://www.google.com/` ao `shell.openExternal` do Electron. Usa a associação de navegador padrão do Windows; não exige o caminho de um EXE em Ajustes nem uma descoberta prévia. O despacho sem observação independente da janela retorna `unverified`. `apps_focus` não promete localizar/focar esse navegador genérico. Pedir Chrome, Edge ou Firefox pelo nome continua usando descoberta e lançamento do aplicativo instalado; pedir uma URL específica usa `browser_open` no navegador dedicado, com verificação de carregamento.
+Na 0.5.3, `apps_open` com `appId:'browser'` tem uma rota própria: sem segunda confirmação para o pedido explícito de abertura, `openDefaultBrowser` encaminha a URL fixa `https://www.google.com/` ao `shell.openExternal` do Electron. Usa a associação de navegador padrão do Windows; não exige o caminho de um EXE em Ajustes nem uma descoberta prévia. O despacho sem observação independente da janela retorna `unverified`. `apps_focus` não promete localizar/focar esse navegador genérico. Pedir Chrome, Edge ou Firefox pelo nome continua usando descoberta e lançamento do aplicativo instalado; na 0.6.0, pedir uma URL específica usa `browser_open` para encaminhar o endereço exato ao navegador padrão, sem segunda confirmação e sem alegar verificação de carregamento.
 
 `folders_open` resolve pastas conhecidas ou um caminho absoluto existente em qualquer unidade local acessível à conta Windows. A confirmação mostra nome/caminho e a abertura é encaminhada ao Explorador. Isso não altera `workspaceRoot` nem amplia o acesso de leitura/organização. Caminhos UNC, dispositivos, relativos à unidade e fluxos alternativos são recusados. Uma abertura despachada sem evidência suficiente permanece `unverified`, separada de uma conclusão verificada.
 
-`browser_open` abre a URL HTTP(S) no navegador dedicado e verifica o carregamento. `web_read` é outra operação: depois de confirmar endereço e destino dos dados, `packages/web` valida esquema/credenciais, DNS público e cada redirecionamento, e fixa o transporte ao endereço validado. Lê somente texto compatível com limites de tamanho/prazo, sem cookies, login ou execução de JavaScript. Texto de página é dado não confiável, sem autoridade para outras ações.
+`browser_open` encaminha a URL HTTP(S) explicitamente pedida ao navegador padrão por integração externa do Windows, sem outra confirmação; domínio sem esquema usa HTTPS. O resultado de despacho permanece `unverified` e não comprova carregamento ou leitura. `browser_read_selected` informa indisponibilidade para seleção no navegador externo, sem alegar acesso às abas. `web_read` é outra operação: depois de confirmar endereço e destino dos dados, `packages/web` valida esquema/credenciais, DNS público e cada redirecionamento, e fixa o transporte ao endereço validado. Lê somente texto compatível com limites de tamanho/prazo, sem cookies, login ou execução de JavaScript. Texto de página é dado não confiável, sem autoridade para outras ações.
 
 `web_search` faz uma chamada hospedada da OpenAI com a chave e o modelo de texto configurados, após confirmação. A subconsulta envia somente a pesquisa e instruções específicas, sem histórico da conversa ou memórias. Pode consumir busca/modelo da conta e falhar se a combinação não estiver disponível. O fluxo normal da conversa permanece separado dessa subconsulta. Não há pesquisa ou navegação autônoma em segundo plano.
 

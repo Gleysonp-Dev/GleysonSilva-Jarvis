@@ -22,6 +22,8 @@ jobs:
         env:
           JARVIS_PYTHON: python
       - run: npm run package:win
+      - name: Package private Ultron plugin
+        run: python scripts/package-plugin.py
       - name: Open packaged Electron main, preload and renderer
         run: node scripts/native-smoke.mjs --packaged
       - name: Calculate SHA256
@@ -36,5 +38,12 @@ jobs:
           name: GleysonSilva-Jarvis-Windows-preview
           path: |
             release/*.exe
-            release/*.sha256
+            release/*-Windows.exe.sha256
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-Ultron-Plugin-preview
+          path: |
+            release/Jarvis-Ultron-*.zip
+            release/Jarvis-Ultron-*.zip.sha256
           if-no-files-found: error

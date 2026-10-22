@@ -1,0 +1,12 @@
+{
+  "name": "jarvis-private",
+  "interface": { "displayName": "Jarvis privado" },
+  "plugins": [
+    {
+      "name": "jarvis-ultron",
+      "source": { "source": "local", "path": "./plugins/jarvis-ultron" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

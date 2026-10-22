@@ -4,9 +4,15 @@
 
 Prévia visual com dados de demonstração; não representa uma sessão conectada.
 
-Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais que você pode revisar antes de autorizar.
+Assistente pessoal para Windows com núcleo orbital azul, conversa pela voz configurada e ações locais solicitadas com permissões revisáveis.
 
-**Atualização 0.5.3 — navegador padrão sem confirmação extra:** ao pedir “abra o navegador”, Jarvis encaminha diretamente a abertura da página inicial fixa do Google ao navegador padrão do Windows. Não exige cadastro ou clique em Autorizar. A exceção vale somente para esse pedido; URLs específicas, outros aplicativos, leitura web e alterações em arquivos mantêm suas confirmações. Preserva tela cheia, voz e configurações. Confira **MVP / 05.3**. [CI b856f89 da 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302) aprovado: **415/415 testes, zero falhas/skips**, TypeScript, build, pacote e abertura real do Jarvis, incluindo entrada/saída de tela cheia. Os pacotes anteriores abaixo são históricos. [Comandos e aviso do Firewall](docs/desktop-access.md).
+**Atualização 0.6.0 — ponte privada com Ultron:** cinco ferramentas MCP para estado, tempo atual, navegador padrão, site solicitado e narração pela voz Jarvis. A conexão começa desligada; habilite em **Ajustes → Conexão privada com Ultron** e salve. Confira **MVP / 06.0**. A direção é **Ultron → Jarvis no computador conectado**: não transfere memórias nem cria uma API para conversar com o Dot pessoal. Plugin privado 0.6.0 instalado e habilitado, com estado verificado na listagem do cliente. As ferramentas ainda não foram recarregadas na conversa ativa; a ponte permanece desligada e não houve chamada real do Ultron. CI e pacote 0.6.0 continuam pendentes. [Guia e limites](docs/ultron.md).
+
+Na conversa normal, um pedido explícito para abrir um site também encaminha o endereço exato ao navegador padrão, sem confirmação extra; domínio sem esquema usa HTTPS. Essa abertura não dá acesso à página ou ao login. [Comandos atuais](docs/desktop-access.md).
+
+As revisões e os pacotes 0.5.3 e anteriores abaixo são históricos e não incluem a ponte 0.6.0.
+
+**Base anterior 0.5.3 — navegador padrão sem confirmação extra:** ao pedir “abra o navegador”, Jarvis encaminha diretamente a abertura da página inicial fixa do Google ao navegador padrão do Windows. Não exige cadastro ou clique em Autorizar. A exceção vale somente para esse pedido; URLs específicas, outros aplicativos, leitura web e alterações em arquivos mantêm suas confirmações. Preserva tela cheia, voz e configurações. Confira **MVP / 05.3**. [CI b856f89 da 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302) aprovado: **415/415 testes, zero falhas/skips**, TypeScript, build, pacote e abertura real do Jarvis, incluindo entrada/saída de tela cheia. Os pacotes anteriores abaixo são históricos. [Comandos e aviso do Firewall](docs/desktop-access.md).
 
 [Pacote Windows 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302/artifacts/12316996601) baixado e conferido. EXE **104.021.514 bytes**, SHA-256 `484ef104c1647ff47ec84c43fbfa085f204faf5b9e9f3025476616e77c019398`. ZIP **104.031.894 bytes**, SHA-256 `1605ed7ba38cdc939e4d7afee52a9c4a0d8bb97564cff47cc5f69a6088399cfb`. Retenção até 18 de janeiro de 2027, horário de Nova York; artefato temporário do GitHub, sem assinatura de release. Feche a versão anterior e abra **GleysonSilva-Jarvis-0.5.3-Windows.exe**; confira **MVP / 05.3**. [Instalação](AI_INSTALL.md).
 
@@ -34,6 +40,7 @@ Saudação e conversa por voz continuam usando áudio e pulsação, sem falas ou
 
 | Recurso | Comportamento do código atual |
 | --- | --- |
+| Ultron → Jarvis local, opcional | Plugin MCP privado com cinco ferramentas: estado, clima atual, navegador padrão, site pedido e narração de até 600 caracteres. Sem envio de microfone ao Dot, migração de memória ou transcrição no painel. Habilitação explícita e teste de disponibilidade na tarefa local são separados da instalação. |
 | Recepção completa opcional | Duas palmas → música/saudação → uma captura para comentar roupa visível → comandos por voz. Renovação no prazo local se habilitada; Interromper encerra escuta e renovação. Não repete a recepção ao renovar. |
 | Núcleo orbital aprovado | Desenho da 0.3.1 preservado: dez curvas com intensidades distintas e deformação assimétrica, focos ciano e campo azul com grade plana ampla. Paleta fixa e pulso reativo, sem texto central ou telemetria decorativa. |
 | Contexto sob demanda | Botão **Contexto** abre clima e atividade local. Abrir/atualizar não liga o microfone, não gera fala e não chama um modelo de linguagem. |
@@ -153,6 +160,8 @@ Detalhes em [Arquitetura](docs/architecture.md), [OpenAI](docs/openai.md), [Elev
 
 ## Verificação e evidências
 
+**0.6.0:** verificação local com **491 testes: 480 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox, zero skips**; TypeScript e build aprovados. Plugin privado instalado e habilitado pela CLI oficial, confirmado na listagem. Carregamento em uma nova conversa/tarefa, habilitação da ponte e teste pelo Dot ainda não ocorreram. CI e hash de pacote pendentes. Os resultados abaixo pertencem às versões anteriores. Veja [Validação](docs/validation.md) e [ensaio do Ultron](docs/ultron.md).
+
 **0.5.0:** [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. ZIP e EXE baixados e conferidos por hash; ensaio físico no destino ainda pendente. A conexão usa a chave API OpenAI já configurada, não uma sessão de login ou assinatura ChatGPT. Câmera e áudio de conversa têm envio e consumo de API próprios; veja [Validação](docs/validation.md).
 
 **0.4.0:** [CI 475f3f4 aprovado](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110), **343 testes**, zero falhas/skips, TypeScript, build, pacote e abertura nativa real, em **20 de outubro de 2026, às 20h48, America/New_York**. Leitura real de site público funcionou; pesquisa paga OpenAI e novos comandos por voz/Windows no destino permanecem para teste. O [registro detalhado](docs/validation.md) separa essas evidências.
@@ -190,6 +199,8 @@ apps/desktop/           Electron, bridge limitada, ajustes e adaptadores Windows
 apps/desktop/renderer/  React, HUD Canvas, WebRTC, áudio e detector local de palmas
 apps/desktop/platform/  reconhecimento offline Windows
 packages/runtime/      política, SQLite, ferramentas e execução
+packages/ultron/       ponte local opcional e controle das operações do plugin
+plugins/jarvis-ultron/ plugin privado, servidor MCP STDIO, cliente da ponte e skill
 packages/openai/       Responses, Realtime e erros
 packages/speech/       síntese da conversa, correlação e cancelamento
 packages/greeting/     cumprimento, clima e narração de abertura

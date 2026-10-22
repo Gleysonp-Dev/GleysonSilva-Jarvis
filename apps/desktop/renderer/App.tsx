@@ -13,6 +13,8 @@ import { createFullscreenController } from './fullscreen';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; done?: boolean; origin?: 'voice' | 'greeting'; source?: JarvisWeatherAttribution | string };
 type Drawer = 'settings' | 'memory' | 'activity' | 'presence' | 'context' | null;
+type UltronPlayback = { requestId: string; profileId: string; runId: string; cancelled: boolean; acknowledged: boolean };
+type UltronPlaybackFailure = 'busy' | 'cancelled' | 'speech_unavailable' | 'playback_failed';
 type ToolSources = { tool: string; sources: Array<{ url: string; title: string; hostname: string }>; retrievedAt: number; profileId: string; runId: string; runOrder?: number };
 const sourceToolNames: Record<string, string> = { web_read: 'Página', web_search: 'Pesquisa', weather_current: 'Tempo' };
 const unsafeSourceText = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/;
@@ -46,7 +48,7 @@ function normalizeToolSources(value: unknown): ToolSources | null {
   return { tool: event.tool, sources, retrievedAt, profileId: event.profileId, runId: event.runId };
 }
 const emptySnapshot: JarvisSnapshot = { memories: [], tasks: [], procedures: [] };
-const defaultSettings: JarvisSettings = { profileId: 'principal', textModel: '', realtimeModel: '', voice: '', maxSessionMinutes: 10, workspaceRoot: '', apps: [], hasKey: false };
+const defaultSettings: JarvisSettings = { profileId: 'principal', textModel: '', realtimeModel: '', voice: '', maxSessionMinutes: 10, workspaceRoot: '', apps: [], hasKey: false, ultronEnabled: false };
 const states: Record<string, { label: string }> = {
   idle: { label: 'EM ESPERA' },
   connecting: { label: 'CONECTANDO' },
@@ -170,7 +172,10 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const micTest = useRef<{ stream: MediaStream; context: AudioContext; frame: number } | null>(null);
   const [demoPlaying, setDemoPlaying] = useState(false);
   const [demoStarting, setDemoStarting] = useState(false);
-  const [playbackKind, setPlaybackKind] = useState<'demo' | 'greeting'>('demo');
+  const [playbackKind, setPlaybackKind] = useState<'demo' | 'greeting' | 'ultron'>('demo');
+  const [ultronBusy, setUltronBusy] = useState(false);
+  const ultronPlayback = useRef<UltronPlayback | null>(null);
+  const ultronRequests = useRef(new Set<string>());
   const demoGeneration = useRef(0);
   const demo = useRef<{ audio: HTMLAudioElement; context: AudioContext; frame: number; objectUrl?: string; effects?: SpeechEffectsController; finish(completed: boolean): void; timer?: ReturnType<typeof setTimeout> } | null>(null);
   const startupAttempted = useRef(skipAutomaticGreeting);
@@ -203,7 +208,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const micMeter = useRef<HTMLDivElement>(null);
   const levels = useRef({ mic: 0, speaker: 0, wave: [] as number[] });
-  const effectiveMode: HudFrame['mode'] = approvals.length ? 'approval' : demoPlaying ? 'speak' : greetingBusy ? 'think' : micTesting ? 'listen' : voiceState === 'speak' || voiceState === 'listen' ? voiceState : ['execute', 'executing', 'running'].includes(backendState) ? 'execute' : runId ? 'think' : voiceState;
+  const effectiveMode: HudFrame['mode'] = approvals.length ? 'approval' : demoPlaying ? 'speak' : greetingBusy || ultronBusy ? 'think' : micTesting ? 'listen' : voiceState === 'speak' || voiceState === 'listen' ? voiceState : ['execute', 'executing', 'running'].includes(backendState) ? 'execute' : runId ? 'think' : voiceState;
   const hud = useRef<HudFrame>({ mode: 'idle', levels: levels.current }); hud.current = { mode: effectiveMode, levels: levels.current };
   const seen = useRef(new Set<string>());
   const [memoryDraft, setMemoryDraft] = useState('');
@@ -262,6 +267,8 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     }).catch(e => { if (mounted) { showError(e); setBooted(true); } });
     const unsub = bridge.onEvent(raw => {
       const e = raw.payload ? { ...raw, ...raw.payload } : raw;
+      if (e.type === 'ultron.speak') { void speakUltron(e); return; }
+      if (e.type === 'ultron.cancel') { const job = ultronPlayback.current; if (job && e.requestId === job.requestId) stopDemo(); return; }
       if (e.profileId && e.profileId !== settingsRef.current.profileId) return;
       if (e.type === 'session.reset') {
         setDrawer(current => current === 'context' ? null : current);
@@ -326,6 +333,10 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   useEffect(() => { if (drawer !== 'presence') stopCamera(); }, [drawer]);
   useEffect(() => { if (drawer === 'settings' && focusElevenKey.current) { focusElevenKey.current = false; elevenKeyInput.current?.focus(); } }, [drawer]);
   useEffect(() => { sourceRuns.current.clear(); setToolSources(null); }, [settings.profileId]);
+  useEffect(() => {
+    const job = ultronPlayback.current;
+    if (job && (job.profileId !== settings.profileId || !settings.ultronEnabled || !capabilities.ultronBridge)) stopDemo();
+  }, [settings.profileId, settings.ultronEnabled, capabilities.ultronBridge]);
   useEffect(() => { if (cameraOn && video.current && camera.current) { video.current.srcObject = camera.current; void video.current.play().catch(showError); } }, [cameraOn]);
 
   function pauseStandby() {
@@ -340,7 +351,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   async function startStandby() {
     const current = settingsRef.current;
-    if (!standbyWanted.current || !current.standbyEnabled || standbyStarting.current || standby.current || voice.current || continuousWanted.current || reception.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) return;
+    if (!standbyWanted.current || !current.standbyEnabled || standbyStarting.current || standby.current || voice.current || continuousWanted.current || reception.current || ultronPlayback.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) return;
     const generation = ++standbyGeneration.current;
     standbyStarting.current = true;
     let available = false;
@@ -370,7 +381,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     }
   }
   wakeGreeting.current = source => {
-    if (!standbyWanted.current || wakeBusy.current || Date.now() - lastWake.current < 8000 || voice.current || continuousWanted.current || reception.current || demo.current || runRef.current || greetingInFlight.current) return;
+    if (!standbyWanted.current || wakeBusy.current || Date.now() - lastWake.current < 8000 || voice.current || continuousWanted.current || reception.current || ultronPlayback.current || demo.current || runRef.current || greetingInFlight.current) return;
     lastWake.current = Date.now(); wakeBusy.current = true; pauseStandby();
     void startGreeting(false, true).finally(() => { wakeBusy.current = false; });
   };
@@ -389,7 +400,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
 
   async function send(text = input) {
     const clean = text.trim();
-    if (!clean || runRef.current || voice.current || demo.current || demoStarting || greetingBusy || !bridge) return;
+    if (!clean || runRef.current || voice.current || ultronPlayback.current || demo.current || demoStarting || greetingBusy || !bridge) return;
     if (!settings.hasKey) { setDrawer('settings'); return; }
     pauseStandby();
     const id = crypto.randomUUID(); runRef.current = id; setRunId(id); setBackendState('think'); setError(''); setInput('');
@@ -406,6 +417,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   async function cancel() {
     continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false; pauseStandby();
+    void bridge?.cancelUltron?.().catch(() => {});
     stopDemo();
     voice.current?.stop(); voice.current = null; setVoiceActive(false); setVoiceConnected(false); setVoiceState('idle');
     if (runRef.current && bridge) { try { await bridge.cancel(runRef.current); setApprovals([]); } catch (e) { showError(e); } }
@@ -416,7 +428,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   async function startVoice(fromReception: boolean) {
     const current = settingsRef.current;
-    if (!bridge || voice.current || runRef.current || demo.current || reception.current || micFlight.current) return;
+    if (!bridge || voice.current || runRef.current || demo.current || reception.current || ultronPlayback.current || micFlight.current) return;
     if (!current.hasKey) { continuousWanted.current = false; setDrawer('settings'); return; }
     if (!capabilitiesRef.current.jarvisSpeech) { continuousWanted.current = false; setError('Esta sessão usa o servidor anterior. Abra a versão atualizada para conversar com a voz Jarvis.'); return; }
     if (!current.hasElevenKey || !current.elevenVoiceId) { continuousWanted.current = false; focusElevenKey.current = true; openSettings(); return; }
@@ -459,7 +471,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   async function toggleMicTest() {
     if (micStarting) { stopMicTest(); resumeStandbySoon(); return; }
     if (micTest.current) { stopMicTest(); resumeStandbySoon(); return; }
-    if (voice.current || runRef.current || micFlight.current || demo.current || demoStarting || greetingBusy) return;
+    if (voice.current || runRef.current || micFlight.current || ultronPlayback.current || demo.current || demoStarting || greetingBusy) return;
     pauseStandby();
     const generation = ++micGeneration.current; setMicStarting(true); setMicPending(true);
     const flight: { stream?: MediaStream; context?: AudioContext } = {};
@@ -488,6 +500,13 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   function stopDemo(resume = true) {
     demoGeneration.current++;
+    const job = ultronPlayback.current;
+    if (job) {
+      job.cancelled = true;
+      void bridge?.cancelSpeech?.({ runId: job.runId }).catch(() => {});
+      acknowledgeUltron(job, false, 'cancelled');
+      ultronPlayback.current = null; setUltronBusy(false);
+    }
     const activeReception = reception.current; reception.current = null;
     activeReception?.controller.abort();
     if (activeReception) {
@@ -516,12 +535,13 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     if (!reception.current) { greetingInFlight.current = false; resumeStandbySoon(); }
   }
   async function toggleDemo() {
+    if (ultronPlayback.current) return;
     if (demo.current || demoStarting) { stopDemo(); return; }
     if (voice.current || micTest.current || micStarting || runRef.current || greetingBusy) return;
     pauseStandby();
     await playAudio(new URL('./voice-demo.mp3', window.location.href).href, 'demo');
   }
-  async function playAudio(source: string, kind: 'demo' | 'greeting', objectUrl?: string, automatic = false, onStarted?: () => void): Promise<boolean> {
+  async function playAudio(source: string, kind: 'demo' | 'greeting' | 'ultron', objectUrl?: string, automatic = false, onStarted?: () => void): Promise<boolean> {
     const generation = ++demoGeneration.current; setDemoStarting(true); setError('');
     setPlaybackKind(kind);
     let context: AudioContext | undefined;
@@ -544,7 +564,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       const session = { audio, context, frame: 0, objectUrl, effects, finish, timer: undefined as ReturnType<typeof setTimeout> | undefined }; demo.current = session;
       objectUrlOwnedBySession = true;
       audio.onended = () => { if (demo.current === session) releasePlayback(true); };
-      audio.onerror = () => { if (demo.current === session) { releasePlayback(false); setError(kind === 'greeting' ? 'Não foi possível reproduzir o áudio da saudação.' : 'A amostra de voz não está disponível nesta instalação. Atualize os arquivos do aplicativo e tente novamente.'); } };
+      audio.onerror = () => { if (demo.current === session) { releasePlayback(false); setError(kind === 'greeting' ? 'Não foi possível reproduzir o áudio da saudação.' : kind === 'ultron' ? 'Não foi possível reproduzir a narração solicitada pelo Ultron.' : 'A amostra de voz não está disponível nesta instalação. Atualize os arquivos do aplicativo e tente novamente.'); } };
       if (automatic && context.state === 'suspended' && !navigator.userActivation?.hasBeenActive) {
         releasePlayback(false); setGreetingNeedsTap(true); setNotice('A saudação está pronta. Clique em Ouvir saudação para liberar o áudio no navegador.'); return false;
       }
@@ -579,6 +599,39 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       return false;
     }
   }
+  function acknowledgeUltron(job: UltronPlayback, played: boolean, reason?: UltronPlaybackFailure) {
+    if (job.acknowledged) return;
+    job.acknowledged = true;
+    void bridge?.ultronPlaybackResult?.({ requestId: job.requestId, played, ...(reason ? { reason } : {}) }).catch(() => {});
+  }
+  async function speakUltron(event: JarvisEvent) {
+    const requestId = event.requestId;
+    if (typeof requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,110}$/.test(requestId) || ultronRequests.current.has(requestId)) return;
+    if (ultronRequests.current.size >= 128) ultronRequests.current.delete(ultronRequests.current.values().next().value!);
+    ultronRequests.current.add(requestId);
+    const current = settingsRef.current;
+    const job: UltronPlayback = { requestId, profileId: typeof event.profileId === 'string' ? event.profileId : '', runId: `ultron-${requestId}`, cancelled: false, acknowledged: false };
+    if (!capabilitiesRef.current.ultronBridge || !current.ultronEnabled || job.profileId !== current.profileId) { acknowledgeUltron(job, false, 'cancelled'); return; }
+    if (voice.current || continuousWanted.current || reception.current || ultronPlayback.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) { acknowledgeUltron(job, false, 'busy'); return; }
+    if (!bridge?.ultronPlaybackResult || !bridge.speak || !current.hasElevenKey || !current.elevenVoiceId || typeof event.text !== 'string' || !event.text.trim() || event.text.length > 600) { acknowledgeUltron(job, false, 'speech_unavailable'); return; }
+    ultronPlayback.current = job; setUltronBusy(true); setPlaybackKind('ultron'); setDemoStarting(true); setError(''); pauseStandby();
+    const active = () => ultronPlayback.current === job && !job.cancelled && settingsRef.current.profileId === job.profileId && settingsRef.current.ultronEnabled && capabilitiesRef.current.ultronBridge;
+    let failure: UltronPlaybackFailure = 'speech_unavailable';
+    try {
+      const spoken = await bridge.speak({ text: event.text.trim(), profileId: job.profileId, runId: job.runId, utteranceId: requestId });
+      if (!active()) return;
+      if (spoken.runId !== job.runId || spoken.utteranceId !== requestId || spoken.mime !== 'audio/mpeg' || typeof spoken.audioBase64 !== 'string' || !spoken.audioBase64 || spoken.audioBase64.length > 12_000_000) throw new Error('speech_response_mismatch');
+      failure = 'playback_failed';
+      const decoded = atob(spoken.audioBase64), bytes = Uint8Array.from(decoded, char => char.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+      const played = await playAudio(url, 'ultron', url);
+      if (active()) acknowledgeUltron(job, played, played ? undefined : 'playback_failed');
+    } catch { if (active()) { acknowledgeUltron(job, false, failure); setError(failure === 'speech_unavailable' ? 'Não foi possível preparar a voz Jarvis solicitada pelo Ultron.' : 'Não foi possível reproduzir a narração solicitada pelo Ultron.'); } }
+    finally {
+      if (!job.acknowledged) acknowledgeUltron(job, false, 'cancelled');
+      if (ultronPlayback.current === job) { ultronPlayback.current = null; setUltronBusy(false); setDemoStarting(false); resumeStandbySoon(); }
+    }
+  }
   async function playGreeting(automatic = false, onStarted?: () => void) {
     const audio = greetingAudio.current;
     if (!audio || demo.current || voice.current || micTest.current || runRef.current) return false;
@@ -591,7 +644,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     } catch (e) { stopDemo(); showError(e); return false; }
   }
   async function startGreeting(automatic = false, receptionRequested = false) {
-    if (!bridge?.startupGreeting || voice.current || continuousWanted.current || micTest.current || micFlight.current || runRef.current || demo.current || greetingInFlight.current) return;
+    if (!bridge?.startupGreeting || voice.current || continuousWanted.current || ultronPlayback.current || micTest.current || micFlight.current || runRef.current || demo.current || greetingInFlight.current) return;
     pauseStandby(); stopDemo(false); const generation = ++greetingGeneration.current;
     const flow = { controller: new AbortController(), profileId: settingsRef.current.profileId, runId: `reception-${crypto.randomUUID()}` };
     reception.current = flow;
@@ -669,6 +722,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     }
   }
   function beginJarvis() {
+    if (ultronPlayback.current) return;
     if (greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting))) { void cancel(); return; }
     const current = settingsRef.current;
     if (!current.hasElevenKey || !current.elevenVoiceId || !current.weatherLocation?.name) {
@@ -705,7 +759,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       if (form.standbyEnabled && (!(form.elevenVoiceId || '').trim() || (!settings.hasElevenKey && !elevenApiKey.trim()) || !weatherLocation)) throw new Error('Configure a voz, a chave ElevenLabs e a cidade antes de ativar a espera.');
       if ((form.receptionOutfitEnabled || form.receptionVoiceEnabled) && !settings.hasKey && !apiKey.trim()) throw new Error('Configure a chave OpenAI para observar a roupa ou iniciar os comandos por voz após a recepção.');
       continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false; pauseStandby(); stopDemo(false);
-      await bridge.saveSettings({ profileId: form.profileId.trim(), textModel: form.textModel.trim(), realtimeModel: form.realtimeModel.trim(), voice: form.voice.trim(), maxSessionMinutes: Number(form.maxSessionMinutes), startupGreeting: Boolean(form.startupGreeting), weatherLocation, elevenVoiceId: (form.elevenVoiceId || '').trim(), ...(capabilities.jarvisSpeech ? { startAtLogin: Boolean(form.startAtLogin), standbyEnabled: Boolean(form.standbyEnabled), wakeClapEnabled: form.wakeClapEnabled !== false, wakeVoiceEnabled: form.wakeVoiceEnabled !== false, greetingMusicEnabled: form.greetingMusicEnabled !== false, receptionOutfitEnabled: Boolean(form.receptionOutfitEnabled), receptionVoiceEnabled: Boolean(form.receptionVoiceEnabled), continuousVoiceEnabled: Boolean(form.continuousVoiceEnabled && form.receptionVoiceEnabled) } : {}), ...(apiKey ? { apiKey: apiKey.trim() } : {}), ...(elevenApiKey ? { elevenApiKey: elevenApiKey.trim() } : {}) });
+      await bridge.saveSettings({ profileId: form.profileId.trim(), textModel: form.textModel.trim(), realtimeModel: form.realtimeModel.trim(), voice: form.voice.trim(), maxSessionMinutes: Number(form.maxSessionMinutes), startupGreeting: Boolean(form.startupGreeting), weatherLocation, elevenVoiceId: (form.elevenVoiceId || '').trim(), ...(capabilities.jarvisSpeech ? { startAtLogin: Boolean(form.startAtLogin), standbyEnabled: Boolean(form.standbyEnabled), wakeClapEnabled: form.wakeClapEnabled !== false, wakeVoiceEnabled: form.wakeVoiceEnabled !== false, greetingMusicEnabled: form.greetingMusicEnabled !== false, receptionOutfitEnabled: Boolean(form.receptionOutfitEnabled), receptionVoiceEnabled: Boolean(form.receptionVoiceEnabled), continuousVoiceEnabled: Boolean(form.continuousVoiceEnabled && form.receptionVoiceEnabled) } : {}), ...(capabilities.ultronBridge ? { ultronEnabled: Boolean(form.ultronEnabled) } : {}), ...(apiKey ? { apiKey: apiKey.trim() } : {}), ...(elevenApiKey ? { elevenApiKey: elevenApiKey.trim() } : {}) });
       setApiKey(''); setElevenApiKey('');
       const data = await bridge.boot();
       if (data.settings.profileId !== settings.profileId) { setMessages([]); setActions([]); setWeatherAttribution(undefined); }
@@ -780,23 +834,23 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     try { await bridge?.saveSettings({ profileId }); const data = await bridge!.boot(); setSettings(data.settings); setForm(data.settings); setSnapshot(normalizeSnapshot(data.snapshot)); setMessages([]); setActions([]); stopCamera(); setDrawer(null); } catch (e) { showError(e); }
   }
 
-  const status = demoPlaying ? { label: playbackKind === 'greeting' ? 'SAUDAÇÃO JARVIS' : 'AMOSTRA DA VOZ JARVIS' } : greetingBusy ? { label: 'PREPARANDO SAUDAÇÃO' } : micTesting ? { label: 'TESTE DE MICROFONE' } : states[effectiveMode] || states.idle;
+  const status = demoPlaying ? { label: playbackKind === 'greeting' ? 'SAUDAÇÃO JARVIS' : playbackKind === 'ultron' ? 'NARRAÇÃO JARVIS' : 'AMOSTRA DA VOZ JARVIS' } : greetingBusy ? { label: 'PREPARANDO SAUDAÇÃO' } : ultronBusy ? { label: 'PREPARANDO NARRAÇÃO' } : micTesting ? { label: 'TESTE DE MICROFONE' } : states[effectiveMode] || states.idle;
   const profileMemories = snapshot.memories.filter(m => !m.profileId || m.profileId === settings.profileId);
   const activity = [...actions, ...snapshot.tasks.filter(t => !actions.some(a => a.id === t.id))].slice(0, 30);
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 05.3</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="icon-button fullscreen-button" type="button" aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'} aria-pressed={fullscreen} title={fullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia (F11)'} onClick={() => { void fullscreenController.current?.toggle(); }}><Icon name={fullscreen ? 'fullscreen-exit' : 'fullscreen'} size={18}/></button><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
+    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 06.0</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="icon-button fullscreen-button" type="button" aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'} aria-pressed={fullscreen} title={fullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia (F11)'} onClick={() => { void fullscreenController.current?.toggle(); }}><Icon name={fullscreen ? 'fullscreen-exit' : 'fullscreen'} size={18}/></button><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
     <main className="workspace">
       <nav className="rail" aria-label="Painéis"><button className={drawer === 'context' ? 'selected' : ''} title="Contexto" aria-label="Contexto" aria-expanded={drawer === 'context'} onClick={() => setDrawer('context')}><Icon name="context"/><span>CONTEXTO</span></button><button className={drawer === 'memory' ? 'selected' : ''} title="Memória" aria-label="Memória" onClick={() => setDrawer('memory')}><Icon name="memory"/><span>MEMÓRIA</span></button><button className={drawer === 'activity' ? 'selected' : ''} title="Atividades" aria-label="Atividades" onClick={() => setDrawer('activity')}><Icon name="activity"/><span>REGISTRO</span></button><button className={drawer === 'presence' ? 'selected' : ''} title="Presença e perfis" aria-label="Presença e perfis" onClick={() => setDrawer('presence')}><Icon name="camera"/><span>PRESENÇA</span></button><div className="rail-spacer"/><button title="Configurações" aria-label="Configurações" onClick={openSettings}><Icon name="settings"/><span>AJUSTES</span></button></nav>
       <section className="core-column" aria-label="Núcleo Jarvis">
         <div className="reactor-stage">
           <canvas ref={canvas} role="img" aria-label={`Núcleo orbital azul Jarvis. ${status.label}.`}/>
           <div className="stage-label top-left"><span>ENTRADA</span><b>{demoPlaying ? 'ARQUIVO DE ÁUDIO LOCAL' : micTesting ? 'TESTE LOCAL ATIVO' : standbyArmed ? 'MICROFONE LOCAL · ESPERA' : voiceActive ? voiceConnected ? 'MICROFONE ATIVO' : 'PREPARANDO ÁUDIO' : 'TEXTO DISPONÍVEL'}</b><div className="signal-bars" ref={micMeter} aria-hidden="true">{Array.from({ length: 9 }, (_, i) => <i key={i} style={{ '--bar': `${20 + (i % 4) * 21}%` } as React.CSSProperties}/>)}</div></div>
-          <div className="stage-label top-right"><span>MODELO</span><b>{demoPlaying ? playbackKind === 'greeting' ? 'SAUDAÇÃO ELEVENLABS' : 'AMOSTRA ELEVENLABS' : voiceActive ? settings.realtimeModel || 'NÃO DEFINIDO' : settings.textModel || 'NÃO DEFINIDO'}</b><small>{demoPlaying ? 'VOZ PERSONALIZADA · AMOSTRA' : voiceActive ? 'ÁUDIO EM TEMPO REAL' : 'OPENAI · RESPOSTA PROGRESSIVA'}</small></div>
+          <div className="stage-label top-right"><span>MODELO</span><b>{demoPlaying ? playbackKind === 'greeting' ? 'SAUDAÇÃO ELEVENLABS' : playbackKind === 'ultron' ? 'NARRAÇÃO ELEVENLABS' : 'AMOSTRA ELEVENLABS' : voiceActive ? settings.realtimeModel || 'NÃO DEFINIDO' : settings.textModel || 'NÃO DEFINIDO'}</b><small>{demoPlaying ? playbackKind === 'demo' ? 'VOZ PERSONALIZADA · AMOSTRA' : 'VOZ JARVIS PERSONALIZADA' : voiceActive ? 'ÁUDIO EM TEMPO REAL' : 'OPENAI · RESPOSTA PROGRESSIVA'}</small></div>
           <div className="stage-label bottom-left"><span>CONTEXTO</span><b>{`${profileMemories.length} MEMÓRIA${profileMemories.length === 1 ? '' : 'S'} NO PERFIL`}</b><small>Perfil: {settings.profileId}</small></div>
           <div className="stage-label bottom-right"><span>ESPAÇO DE TRABALHO</span><b>{settings.workspaceRoot ? 'PASTA DEFINIDA' : 'NENHUMA PASTA DEFINIDA'}</b><button className="text-link" onClick={openSettings}>{settings.workspaceRoot ? 'Ver permissões' : 'Configurar acesso'} <span>↗</span></button></div>
           <div className="reactor-status" aria-live="polite"><span className="status-line"/><strong>{status.label}</strong></div>
         </div>
-        <div className="core-controls"><button className="voice-button welcome-button" disabled={!bridge?.startupGreeting || !booted || voiceActive || micTesting || micStarting || !!runId || (playbackKind === 'demo' && (demoPlaying || demoStarting))} onClick={beginJarvis}><Icon name={greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'stop' : 'speaker'} size={19}/><span>{greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'Parar recepção' : 'Iniciar Jarvis'}<small>Saudação, tempo atual e previsão</small></span></button><button className={`voice-button ${voiceActive ? 'enabled' : ''}`} disabled={!bridge || !booted || !!runId || demoPlaying || demoStarting || greetingBusy || micPending} onClick={toggleVoice}><Icon name={voiceActive ? 'stop' : 'mic'} size={19}/>{voiceActive ? 'Encerrar voz' : 'Iniciar conversa por voz'}<span className="keycap">{voiceActive ? 'ON' : 'MIC'}</span></button><button className="quiet-button interrupt" disabled={!runId && !voiceActive && !demoPlaying && !demoStarting && !greetingBusy} onClick={cancel}><Icon name="stop" size={15}/>Interromper</button></div>
+        <div className="core-controls"><button className="voice-button welcome-button" disabled={!bridge?.startupGreeting || !booted || ultronBusy || voiceActive || micTesting || micStarting || !!runId || (playbackKind === 'demo' && (demoPlaying || demoStarting))} onClick={beginJarvis}><Icon name={greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'stop' : 'speaker'} size={19}/><span>{greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'Parar recepção' : 'Iniciar Jarvis'}<small>Saudação, tempo atual e previsão</small></span></button><button className={`voice-button ${voiceActive ? 'enabled' : ''}`} disabled={!bridge || !booted || !!runId || demoPlaying || demoStarting || greetingBusy || micPending} onClick={toggleVoice}><Icon name={voiceActive ? 'stop' : 'mic'} size={19}/>{voiceActive ? 'Encerrar voz' : 'Iniciar conversa por voz'}<span className="keycap">{voiceActive ? 'ON' : 'MIC'}</span></button><button className="quiet-button interrupt" disabled={!runId && !voiceActive && !demoPlaying && !demoStarting && !greetingBusy} onClick={cancel}><Icon name="stop" size={15}/>Interromper</button></div>
         <div className="hardware-tools">{settings.standbyEnabled && capabilities.jarvisSpeech && <><button onClick={toggleStandby} disabled={voiceActive || !!runId || demoPlaying || demoStarting || greetingBusy || micTesting || micPending}>{standbyArmed ? 'Pausar espera' : 'Ativar espera'}</button><span>·</span></>}<button disabled={!micStarting && (voiceActive || !!runId || micPending || demoPlaying || demoStarting || greetingBusy)} onClick={toggleMicTest}><Icon name="mic" size={13}/>{micStarting ? 'Cancelar teste' : micPending ? 'Permissão pendente' : micTesting ? 'Encerrar teste local' : 'Testar microfone'}</button><span>·</span><button onClick={() => setDrawer('presence')}><Icon name="camera" size={13}/>Testar câmera</button></div>
         {(voiceActive || micTesting || standbyArmed || cameraOn) && <div className="capture-indicators">{(voiceActive || micTesting || standbyArmed) && <span><Icon name="mic" size={11}/>{standbyArmed ? 'Escuta local de ativação' : 'Microfone ativo'}</span>}{cameraOn && <span><Icon name="camera" size={11}/>Câmera ativa</span>}</div>}
       </section>
@@ -829,8 +883,8 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
 <p className="field-note">{capabilities.localTest ? 'A chave fica apenas na memória do servidor local até encerrá-lo.' : 'A chave é guardada pelo aplicativo com a proteção do sistema.'} Não a envie na conversa.</p>
 <label>Identificador da voz ElevenLabs<input value={form.elevenVoiceId || ''} onChange={e => setForm({ ...form, elevenVoiceId: e.target.value })} placeholder="ID da voz configurada na sua conta" spellCheck={false}/></label>
 <details className="weather-settings"><summary>Cidade do boletim {settings.weatherLocation?.name ? `· ${settings.weatherLocation.name}` : '· configurar'}</summary><label>Cidade<input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="Cidade e região" maxLength={120}/></label><div className="field-grid"><label>Latitude<input type="number" step="any" min="-90" max="90" value={locationLatitude} onChange={e => setLocationLatitude(e.target.value)} placeholder="Coordenada da cidade"/></label><label>Longitude<input type="number" step="any" min="-180" max="180" value={locationLongitude} onChange={e => setLocationLongitude(e.target.value)} placeholder="Coordenada da cidade"/></label></div><p className="field-note">A cidade é uma configuração privada. As coordenadas permitem consultar a previsão correta sem solicitar sua localização ao navegador.</p></details>
-<button type="button" className="quiet-button" disabled={!bridge?.startupGreeting || (demoPlaying && playbackKind !== 'greeting') || micTesting || micStarting} onClick={() => { if (greetingBusy || (demoPlaying && playbackKind === 'greeting') || (demoStarting && playbackKind === 'greeting')) void cancel(); else void startGreeting(false); }}><Icon name={greetingBusy || (demoPlaying && playbackKind === 'greeting') ? 'stop' : 'speaker'} size={16}/>{greetingBusy || ((demoPlaying || demoStarting) && playbackKind === 'greeting') ? 'Parar saudação' : 'Testar saudação'}</button>
-<button type="button" className="quiet-button sample-settings-button" disabled={voiceActive || micTesting || micStarting || !!runId || greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting))} onClick={toggleDemo}><Icon name={(demoPlaying || demoStarting) && playbackKind === 'demo' ? 'stop' : 'speaker'} size={16}/>{(demoPlaying || demoStarting) && playbackKind === 'demo' ? 'Parar amostra' : 'Amostra fixa da voz'}</button>
+<button type="button" className="quiet-button" disabled={!bridge?.startupGreeting || ultronBusy || (demoPlaying && playbackKind !== 'greeting') || micTesting || micStarting} onClick={() => { if (greetingBusy || (demoPlaying && playbackKind === 'greeting') || (demoStarting && playbackKind === 'greeting')) void cancel(); else void startGreeting(false); }}><Icon name={greetingBusy || (demoPlaying && playbackKind === 'greeting') ? 'stop' : 'speaker'} size={16}/>{greetingBusy || ((demoPlaying || demoStarting) && playbackKind === 'greeting') ? 'Parar saudação' : 'Testar saudação'}</button>
+<button type="button" className="quiet-button sample-settings-button" disabled={ultronBusy || voiceActive || micTesting || micStarting || !!runId || greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting))} onClick={toggleDemo}><Icon name={(demoPlaying || demoStarting) && playbackKind === 'demo' ? 'stop' : 'speaker'} size={16}/>{(demoPlaying || demoStarting) && playbackKind === 'demo' ? 'Parar amostra' : 'Amostra fixa da voz'}</button>
 <p className="field-note greeting-test-note">A saudação e a conversa usam a mesma voz ElevenLabs, com efeito fixo e velocidade de 95%. Salve alterações antes de testar.</p>
 </fieldset><fieldset disabled={!bridge || !capabilities.jarvisSpeech || voiceActive || !!runId || saving}>
 <legend>03 / INÍCIO E ESPERA</legend>
@@ -850,7 +904,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
 <label className="greeting-toggle"><input type="checkbox" checked={form.greetingMusicEnabled !== false} onChange={e => setForm({ ...form, greetingMusicEnabled: e.target.checked })}/><span>Música durante a saudação</span></label>
 <div className="setting-row"><div><strong>Trilha de abertura</strong><p>{settings.hasGreetingMusic ? 'Arquivo privado pronto' : 'Aguardando arquivo de áudio'}</p></div><button className="quiet-button" type="button" disabled={!capabilities.desktop || !bridge?.chooseGreetingMusic} onClick={selectGreetingMusic}><Icon name="folder" size={16}/>Escolher áudio</button></div>
 <p className="field-note">MP3, WAV, OGG ou M4A, até 20 MB. A música fica neste computador, toca em volume baixo e termina com a saudação.</p>
-</fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>04 / PERFIL</legend><label>Identificador do perfil<input value={form.profileId} onChange={e => setForm({ ...form, profileId: e.target.value })} maxLength={64} required/></label><p className="field-note">Cada perfil mantém suas próprias memórias. A troca encerra o histórico de conversa exibido.</p></fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>05 / ACESSO LOCAL</legend><div className="setting-row"><div><strong>Pasta de trabalho</strong><p>{settings.workspaceRoot || 'Nenhuma pasta selecionada'}</p></div><button className="quiet-button" type="button" disabled={capabilities.localTest} onClick={selectWorkspace}><Icon name="folder" size={16}/>Escolher</button></div><div className="setting-row"><div><strong>Aplicativos permitidos</strong><p>{settings.apps.length ? settings.apps.map(a => a.label).join(' · ') : 'Nenhum aplicativo autorizado'}</p></div><button className="quiet-button" type="button" disabled={capabilities.localTest} onClick={selectApp}><Icon name="plus" size={16}/>Adicionar</button></div><p className="field-note">Escritas em arquivos e abertura de aplicativos passam por autorização. Não há acesso livre ao terminal.</p></fieldset>{(voiceActive || runId) && <p className="inline-note">Encerre a sessão atual para alterar estas configurações.</p>}<div className="drawer-actions"><button className="quiet-button" type="button" onClick={() => { setDrawer(null); setApiKey(''); setElevenApiKey(''); }}>Cancelar</button><button type="submit" className="primary-button" disabled={!bridge || saving || voiceActive || !!runId}>{saving ? 'Salvando…' : 'Salvar configuração'}<Icon name="arrow" size={16}/></button></div></form></Panel>}
+</fieldset>{capabilities.ultronBridge && <fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>CONEXÃO PRIVADA COM ULTRON</legend><label className="greeting-toggle"><input type="checkbox" checked={Boolean(form.ultronEnabled)} onChange={e => setForm({ ...form, ultronEnabled: e.target.checked })}/><span>Permitir que Ultron use o Jarvis neste computador</span></label><p className="field-note">Permite consultar o estado, obter o tempo atual, abrir o navegador padrão, acessar o site solicitado e narrar texto pela ponte privada. Não conecta o microfone ao Dot nem transfere suas memórias. Salve para aplicar.</p></fieldset>}<fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>04 / PERFIL</legend><label>Identificador do perfil<input value={form.profileId} onChange={e => setForm({ ...form, profileId: e.target.value })} maxLength={64} required/></label><p className="field-note">Cada perfil mantém suas próprias memórias. A troca encerra o histórico de conversa exibido.</p></fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving}><legend>05 / ACESSO LOCAL</legend><div className="setting-row"><div><strong>Pasta de trabalho</strong><p>{settings.workspaceRoot || 'Nenhuma pasta selecionada'}</p></div><button className="quiet-button" type="button" disabled={capabilities.localTest} onClick={selectWorkspace}><Icon name="folder" size={16}/>Escolher</button></div><div className="setting-row"><div><strong>Aplicativos permitidos</strong><p>{settings.apps.length ? settings.apps.map(a => a.label).join(' · ') : 'Nenhum aplicativo autorizado'}</p></div><button className="quiet-button" type="button" disabled={capabilities.localTest} onClick={selectApp}><Icon name="plus" size={16}/>Adicionar</button></div><p className="field-note">Escritas em arquivos e abertura de aplicativos passam por autorização. Não há acesso livre ao terminal.</p></fieldset>{(voiceActive || runId) && <p className="inline-note">Encerre a sessão atual para alterar estas configurações.</p>}<div className="drawer-actions"><button className="quiet-button" type="button" onClick={() => { setDrawer(null); setApiKey(''); setElevenApiKey(''); }}>Cancelar</button><button type="submit" className="primary-button" disabled={!bridge || saving || voiceActive || !!runId}>{saving ? 'Salvando…' : 'Salvar configuração'}<Icon name="arrow" size={16}/></button></div></form></Panel>}
     {drawer === 'memory' && <Panel title="O que permanece." eyebrow={`MEMÓRIA / ${settings.profileId}`} onClose={() => setDrawer(null)}><div className="drawer-content"><p className="drawer-intro">Preferências e informações que você escolheu guardar. Você pode ler, adicionar e apagar cada registro.</p><form className="memory-form" onSubmit={saveMemory}><label htmlFor="memory-input">Nova memória</label><textarea id="memory-input" placeholder="Ex.: prefiro respostas curtas em português." value={memoryDraft} onChange={e => setMemoryDraft(e.target.value)} maxLength={4000} rows={3}/><button className="primary-button" disabled={!bridge || !memoryDraft.trim() || memoryBusy}><Icon name="plus" size={16}/>{memoryBusy ? 'Salvando…' : 'Guardar memória'}</button></form><div className="section-label">REGISTROS / {profileMemories.length.toString().padStart(2, '0')}</div>{!profileMemories.length && <div className="empty-panel"><Icon name="memory" size={32}/><h3>Uma página em branco.</h3><p>As memórias deste perfil aparecerão aqui.</p></div>}{profileMemories.map(memory => <article className="memory-card" key={memory.id}><div><p>{detail(memory)}</p><small>{time(memory.updatedAt || memory.createdAt)}</small></div><button className="icon-button" aria-label={`Apagar memória: ${detail(memory).slice(0, 60)}`} onClick={() => deleteMemory(memory.id)}><Icon name="trash" size={17}/></button></article>)}{snapshot.procedures.length > 0 && <><div className="section-label">PROCEDIMENTOS REVISÁVEIS</div>{snapshot.procedures.map(procedure => <article className="memory-card" key={procedure.id}><div><strong>{procedure.name || 'Procedimento'}</strong><p>{procedure.text || procedure.summary}</p><small>{humanStatus(procedure.status)}</small></div></article>)}</>}</div></Panel>}
     {drawer === 'activity' && <Panel title="Cada passo, visível." eyebrow="REGISTRO DE ATIVIDADES" onClose={() => setDrawer(null)}><div className="drawer-content"><p className="drawer-intro">Ações propostas, autorizações e resultados. Interromper uma tarefa evita os próximos passos; efeitos já concluídos permanecem registrados.</p>{!activity.length && <div className="empty-panel"><Icon name="activity" size={32}/><h3>Nenhuma ação por enquanto.</h3><p>Quando Jarvis usar uma ferramenta, você acompanhará o resultado aqui.</p></div>}<ol className="timeline">{activity.map(action => <li key={action.id}><span className={`timeline-dot ${action.status}`}/><div className="timeline-meta"><span>{humanStatus(action.status)}</span><time>{time(action.updatedAt || action.createdAt)}</time></div><strong>{detail(action)}</strong>{action.name && action.name !== detail(action) && <small>{action.name}</small>}{Boolean(action.error || action.reason) && <p>{String(action.error || action.reason)}</p>}</li>)}</ol></div></Panel>}
     {drawer === 'presence' && <Panel title="Reconhecer sua presença." eyebrow="CÂMERA / PROCESSAMENTO LOCAL" onClose={() => setDrawer(null)}><div className="drawer-content"><p className="drawer-intro">Ative a câmera para reconhecer um rosto cadastrado e escolher o perfil da conversa. Os quadros são enviados apenas ao serviço facial local.</p><div className={`camera-preview ${cameraOn ? 'on' : ''}`}>{cameraOn ? <video ref={video} muted autoPlay playsInline aria-label="Prévia local da câmera"/> : <><Icon name="camera" size={38}/><span>CÂMERA DESLIGADA</span></>}<div className="camera-bracket tl"/><div className="camera-bracket tr"/><div className="camera-bracket bl"/><div className="camera-bracket br"/></div><div className="camera-actions"><button className={cameraOn ? 'quiet-button' : 'primary-button'} disabled={!bridge || visionBusy} onClick={cameraOn ? stopCamera : startCamera}><Icon name={cameraOn ? 'stop' : 'camera'} size={17}/>{visionBusy ? 'Preparando…' : cameraOn ? 'Desligar câmera' : 'Ativar câmera local'}</button></div>{visionStatus?.available === false && <div className="inline-note">{visionStatus.reason || 'O reconhecimento facial requer os modelos locais. Consulte o guia de instalação do projeto.'}</div>}{cameraOn && visionStatus?.available && <><div className="face-result"><span className="eyebrow">{faceResult?.profileId ? 'PERFIL RECONHECIDO' : 'IDENTIFICAÇÃO'}</span><strong>{faceResult?.name || (faceResult?.faceCount > 1 ? 'Mantenha apenas um rosto no quadro' : 'Aguardando reconhecimento…')}</strong>{faceResult?.reason && <p>{faceResult.reason}</p>}{faceResult?.profileId && <button className="quiet-button" disabled={voiceActive || !!runId} onClick={() => useFaceProfile(faceResult.profileId)}>Usar perfil {faceResult.profileId}<Icon name="arrow" size={16}/></button>}</div><div className="section-label">CADASTRAR NO PERFIL ATUAL</div><label className="face-name">Seu nome<input value={faceName} onChange={e => setFaceName(e.target.value)} maxLength={64} placeholder="Como Jarvis deve chamar você"/></label><button className="primary-button" onClick={enrollFace} disabled={!faceName.trim() || enrolling}>{enrolling ? `Capturando ${enrollmentProgress}/3…` : `Cadastrar em ${settings.profileId}`}</button></>}{visionStatus?.profiles?.length > 0 && <><div className="section-label">ROSTOS CADASTRADOS</div>{visionStatus.profiles.map((profile: any) => <article className="memory-card" key={profile.profileId}><div><strong>{profile.name}</strong><small>{profile.profileId}</small></div><button className="icon-button" aria-label={`Apagar rosto de ${profile.name}`} onClick={() => deleteFace(profile.profileId)}><Icon name="trash" size={17}/></button></article>)}</>}<p className="field-note presence-note"><Icon name="shield" size={14}/>O reconhecimento personaliza a experiência. Autorizações de ações continuam dependendo da sua decisão.</p></div></Panel>}

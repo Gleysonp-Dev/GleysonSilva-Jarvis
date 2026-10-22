@@ -1,5 +1,7 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
+A 0.6.0 prepara a ponte privada Ultron → Jarvis local com cinco ferramentas MCP. Validar protocolo, permissão local explícita, acesso em tarefa compatível e resultados físicos separadamente. Verificação local: 491 testes, 480 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox e zero skips; TypeScript/build aprovados. O plugin privado foi instalado e habilitado pela CLI oficial, com listagem conferida. CI/pacote, recarregamento em nova conversa, habilitação da ponte e teste pelo próprio Dot permanecem pendentes. [Fluxo e limites](ultron.md).
+
 A 0.5.3 dispensa somente a segunda confirmação de `apps_open/browser`. Testar pedido explícito de navegador padrão, zero cartões de autorização, despacho único e cancelamento antes/durante a fila. URLs específicas e outros aplicativos devem continuar aguardando a decisão. O autor confirmou abertura após clicar em Autorizar na versão anterior; isso não comprova o novo ramo automático. [CI b856f89 da 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302) aprovado: **415/415 testes, zero falhas/skips**, TypeScript, build, pacote e abertura real do Jarvis, incluindo entrada/saída de tela cheia. A dispensa foi verificada com fronteiras substituídas; a abertura automática do navegador no destino ainda deve ser ensaiada.
 
 A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a conversa. A validação do pacote entra e sai pelo botão real; veja [Tela cheia](fullscreen.md). [CI 4e90ff5 da 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223) aprovado: **413/413 testes, zero falhas/skips**, TypeScript, build, pacote e entrada/saída de tela cheia pelo botão real no aplicativo Windows. A base anterior é a 0.5.1: correção da abertura do navegador padrão sem cadastro manual e preparação antecipada do comentário de roupa durante a saudação. Preserva recepção por duas palmas após login, entrada/renovação opcional da conversa por voz, núcleo, voz, painel limpo, contexto e ferramentas da 0.4.0. [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovado: **402/402 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. Os ensaios físicos da correção ainda estão pendentes. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, com os limites do ensaio físico registrados em [Validação](validation.md). Os **343 testes, zero falhas/skips, TypeScript, build, pacote e abertura nativa real aprovados no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** são evidência daquela versão. Resultados históricos não comprovam a revisão nova, latência, identificação, som audível, fechamento durante áudio ou ativação por dispositivos.
@@ -24,7 +26,20 @@ A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a c
 
 O [registro de validação](validation.md) apresenta os limites e o histórico, incluindo o roteiro curto aprovado pelo autor. **A nova sequência integrada com login, palmas, música, roupa e conversa contínua ainda exige ensaio físico.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
 
+## Ponte privada Ultron — roteiro 0.6.0
+
+1. Com configuração limpa, confirmar `ultronEnabled: false` e ausência de conexão acessível. O teste HTTP não deve permitir habilitar a capacidade nativa. Instalar o plugin não deve marcar a opção do Jarvis.
+2. Conferir manifesto, servidor STDIO e lista exata: `jarvis_status`, `jarvis_weather`, `jarvis_open_browser`, `jarvis_open_website`, `jarvis_speak`. Pacote privado completo, sem token de descoberta, chaves, banco, rostos, voz de referência ou música.
+3. Abrir o Jarvis e habilitar a opção nativa em Ajustes. Consultar estado sem expor dados de credenciais e clima atual com a cidade já configurada, horários e fonte. Desabilitar/fechar deve recusar chamadas posteriores e cancelar trabalho pendente.
+4. Solicitar uma abertura genérica: o navegador padrão deve receber o Google. Para site específico, usar o endereço exato pedido em `jarvis_open_website`, com e sem esquema, sem substituí-lo por pesquisa ou página inicial. Rejeitar esquema incompatível e entrada adicional. Distinguir despacho de janela observada.
+5. Narrar uma frase autorizada de até 600 caracteres. Antes do evento de fim do áudio, não aceitar recibo de sucesso. Confirmar voz configurada, 0,95×/altura preservada/efeito 0,78, pulso e ausência de música/transcrição/nova captura. Som efetivamente ouvido é um resultado separado.
+6. Com conversa, recepção, teste de microfone ou tarefa digitada ativos, tentar narrar: deve retornar ocupado antes de TTS e preservar a atividade existente. Interromper durante síntese/reprodução, cancelar pelo cliente, trocar perfil/configuração e fechar; nenhum áudio tardio deve voltar.
+7. Testar cliente sem autorização, metadados inválidos, payload excedido, chamada repetida e timeout, sem ecoar tokens ou repetir efeitos. Validar que a ponte não oferece shell, leitura de arquivos, câmera ou entrada de mensagens ao Dot.
+8. Em nova tarefa local compatível, verificar se o Ultron recebe as ferramentas e consegue uma chamada autorizada. Registrar essa evidência independentemente dos testes simulados; a instalação local não comprova disponibilidade na conversa principal na nuvem.
+
 ## Testes automáticos
+
+O roteiro manual da ponte está na seção **Ponte privada Ultron — roteiro 0.6.0** acima. Os testes do protocolo não substituem a validação do acesso pelo Dot.
 
 Na raiz do projeto, use Node 24 ou superior:
 
@@ -44,6 +59,7 @@ Não é necessário instalar OpenCV ou baixar modelos para os testes de protocol
 
 | Camada | Cobertura automática | Limite da evidência |
 | --- | --- | --- |
+| Ultron local 0.6.0 | MCP limitado, validação/autoridade da ponte, estado ocupado antes de TTS, correlação, ACK de fim do áudio e cancelamento. | Transporte/serviços substituídos não comprovam instalação, disponibilidade no Dot, navegador visível ou som ouvido. |
 | OpenAI SSE | Deltas progressivos, fragmentos UTF-8, heartbeats, JSON inválido, resposta incompleta e uso de tokens. | Respostas de rede simuladas; não mede um modelo. |
 | Ferramentas via modelo | Continuação com itens completos, chamadas conhecidas, argumentos JSON, IDs repetidos e limite de turnos. | Valida protocolo e delegação; não comprova software externo. |
 | Interrupção | Abort chega a transporte e runtime, inclusive aprovação pendente; não ocorre novo turno após cancelamento/timeout. | Efeitos já realizados dependem do registro do executor. |
@@ -188,7 +204,7 @@ Use o pacote 0.5.1 e o [guia de comandos](desktop-access.md). Os 343 testes e ab
 | “Abra o navegador” com campo de navegador sem cadastro e inventário vazio | Confirmação legível mostra navegador padrão e `https://www.google.com/`; após autorizar, Windows usa sua associação padrão. Não exigir caminho de EXE ou cadastro em Ajustes. |
 | Negar, cancelar ou falhar ao abrir o navegador padrão | Nenhuma chamada externa após negar/cancelar; falha não anunciada como conclusão. Despacho aceito sem observar janela permanece **Enviada ao Windows**. |
 | Pedir foco para navegador genérico | Indisponibilidade explícita; não confundir despacho de abertura com foco verificado. |
-| Pedir Chrome/Edge/Firefox pelo nome ou uma URL específica | Nome usa descoberta/ID observado; URL usa navegador dedicado com carregamento verificado. Não trocar o navegador padrão do Windows automaticamente. |
+| Pedir Chrome/Edge/Firefox pelo nome ou uma URL específica | Nome usa descoberta/ID observado; URL exata usa o navegador padrão, sem segundo clique em Autorizar; resultado apenas despachado permanece `unverified`, sem comprovação de carregamento. Não trocar o navegador padrão do Windows automaticamente. |
 | Procurar/abrir app instalado, incluindo nomes semelhantes | Descoberta sem lançamento; escolha clara, confirmação com nome correto e resultado distinguindo processo, janela ou só despacho. |
 | Abrir Downloads e pasta de outro volume local | Destino mostrado antes da abertura; Explorador correto. Organizar/ler arquivos fora da pasta de trabalho continua indisponível. |
 | Negar/cancelar lançamento ou consulta | Nenhum efeito novo após a decisão; sem reaproveitar autorização em nova chamada. |

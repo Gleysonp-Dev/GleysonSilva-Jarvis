@@ -1,0 +1,28 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "jarvis-ultron",
+  "version": "0.6.0",
+  "description": "Ferramentas locais do Jarvis para consultas e ações solicitadas pelo proprietário.",
+  "author": {
+    "name": "Gleyson Silva"
+  },
+  "repository": "https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis",
+  "license": "Apache-2.0",
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "Jarvis · Ultron",
+        "shortDescription": "Consulte o clima, abra sites e use a voz Jarvis.",
+        "longDescription": "Ponte privada para o Jarvis aberto no Windows. Disponibiliza cinco ferramentas: estado, tempo atual da cidade configurada, abertura do navegador padrão, abertura do site solicitado e narração de texto. Não envia mensagens ao Dot nem acessa suas memórias.",
+        "developerName": "Gleyson Silva",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "defaultPrompt": [
+          "Consulte o estado da ponte local do Jarvis.",
+          "Use o Jarvis para consultar o tempo atual da cidade configurada."
+        ]
+      }
+    }
+  }
+}

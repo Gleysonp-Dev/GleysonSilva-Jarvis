@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, renameSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-export const defaults = { profileId:'default', textModel:'gpt-5.4-mini', realtimeModel:'gpt-realtime', voice:'marin', maxSessionMinutes:10, apps:[], startupGreeting:true, weatherLocation:null, elevenVoiceId:'', startAtLogin:false, standbyEnabled:false, wakeClapEnabled:true, wakeVoiceEnabled:true, greetingMusicEnabled:true, receptionOutfitEnabled:false, receptionVoiceEnabled:false, continuousVoiceEnabled:false };
+export const defaults = { profileId:'default', textModel:'gpt-5.4-mini', realtimeModel:'gpt-realtime', voice:'marin', maxSessionMinutes:10, apps:[], startupGreeting:true, weatherLocation:null, elevenVoiceId:'', startAtLogin:false, standbyEnabled:false, wakeClapEnabled:true, wakeVoiceEnabled:true, greetingMusicEnabled:true, receptionOutfitEnabled:false, receptionVoiceEnabled:false, continuousVoiceEnabled:false, ultronEnabled:false };
 export function validateSettings(value) {
   if(!value || typeof value!=='object' || Array.isArray(value)) throw new Error('Configuração inválida.');
   const result = {};
@@ -12,7 +12,7 @@ export function validateSettings(value) {
   if(value.voice!==undefined){if(!['alloy','ash','ballad','coral','echo','sage','shimmer','verse','marin','cedar'].includes(value.voice))throw new Error('Voz inválida.');result.voice=value.voice;}
   if(value.maxSessionMinutes!==undefined){const n=value.maxSessionMinutes;if(!Number.isInteger(n)||n<1||n>30)throw new Error('A sessão deve durar de 1 a 30 minutos.');result.maxSessionMinutes=n;}
   if(value.startupGreeting!==undefined){if(typeof value.startupGreeting!=='boolean')throw new Error('Escolha se deseja a saudação ao iniciar.');result.startupGreeting=value.startupGreeting;}
-  for(const key of ['startAtLogin','standbyEnabled','wakeClapEnabled','wakeVoiceEnabled','greetingMusicEnabled','receptionOutfitEnabled','receptionVoiceEnabled','continuousVoiceEnabled'])if(value[key]!==undefined){if(typeof value[key]!=='boolean')throw new Error('A opção de início, espera ou áudio deve ser verdadeira ou falsa.');result[key]=value[key];}
+  for(const key of ['startAtLogin','standbyEnabled','wakeClapEnabled','wakeVoiceEnabled','greetingMusicEnabled','receptionOutfitEnabled','receptionVoiceEnabled','continuousVoiceEnabled','ultronEnabled'])if(value[key]!==undefined){if(typeof value[key]!=='boolean')throw new Error('A opção de início, espera ou áudio deve ser verdadeira ou falsa.');result[key]=value[key];}
   if(value.elevenVoiceId!==undefined){if(typeof value.elevenVoiceId!=='string'||!/^([A-Za-z0-9_-]{1,128})?$/.test(value.elevenVoiceId))throw new Error('Identificador de voz ElevenLabs inválido.');result.elevenVoiceId=value.elevenVoiceId;}
   if(value.weatherLocation!==undefined){
     const loc=value.weatherLocation;

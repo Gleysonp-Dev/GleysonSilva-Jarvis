@@ -1,4 +1,8 @@
-# Aplicativos, pastas, web e clima — revisão 0.5.3
+# Aplicativos, pastas, web e clima — revisão 0.6.0
+
+Na 0.6.0, o pedido explícito de abrir um site também segue diretamente ao navegador padrão do Windows, sem outro clique em **Autorizar**. `browser_open` preserva o endereço HTTP(S) pedido e completa somente HTTPS quando recebe um domínio sem esquema. Não troca o destino por uma pesquisa ou pela página inicial do Google. Essa abertura não autoriza leitura da página, login, formulários ou outras ações. A ponte privada [Ultron → Jarvis](ultron.md) usa a mesma rota para `jarvis_open_website`.
+
+O aplicativo não usa uma janela dedicada para essa navegação. O despacho aceito fica como **Enviada ao Windows**, sem alegar que a página foi carregada ou observada. A leitura de seleção do navegador externo não está disponível. As revisões a seguir registram a evolução histórica; suas confirmações e resultados não substituem a política atual.
 
 A 0.4.0 acrescenta descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao clima. Essas ferramentas podem ser solicitadas por texto ou durante a conversa com a voz Jarvis configurada. O núcleo aprovado da 0.3.1, reprodução a 0,95×, efeito metálico 0,78, música privada e painel limpo são preservados.
 
@@ -20,7 +24,8 @@ O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/acti
 | “Abra o Spotify que você encontrou.” | `apps_launch` usa um ID da descoberta feita neste perfil; a abertura exige confirmação. |
 | “Abra a pasta Downloads.” | `folders_open` resolve a pasta conhecida e mostra o destino para confirmar a abertura no Explorador. |
 | “Abra a pasta D:\Projetos.” | `folders_open` confere o caminho absoluto local existente e pede confirmação. A unidade e a pasta precisam existir e estar acessíveis à conta Windows. |
-| “Abra https://example.org no navegador.” | `browser_open` pede confirmação, abre o endereço HTTP(S) no navegador dedicado e verifica o carregamento. Isso não comprova leitura do conteúdo pelo assistente. |
+| “Abra https://example.org no navegador.” | `browser_open` encaminha esse endereço ao navegador padrão do Windows, sem confirmação extra. O resultado informa despacho, sem comprovar carregamento ou leitura. |
+| “Acesse example.org.” | `browser_open` usa `https://example.org/` no navegador padrão, sem substituir por Google ou busca. |
 | “Leia o texto desta página: https://example.org.” | `web_read` pede confirmação e consulta o texto público do endereço, sem usar uma sessão autenticada. |
 | “Pesquise na web as novidades sobre um assunto.” | `web_search` pede confirmação e faz uma busca hospedada na OpenAI, retornando texto e fontes. |
 | “Como está o tempo agora na minha cidade configurada?” | `weather_current` solicita uma consulta atual à Open-Meteo e retorna condição, previsão de hoje e horários. |
@@ -59,7 +64,9 @@ Essa abertura não aceita URLs, compartilhamentos UNC, caminhos de dispositivo, 
 
 ## Abrir um endereço e ler uma página são operações diferentes
 
-`browser_open` abre um endereço HTTP(S) no navegador dedicado do Jarvis, pede confirmação e verifica o carregamento. Essa rota é diferente de abrir o navegador padrão do Windows sem indicar uma URL. Ela não concede ao Jarvis acesso ao login, cookies ou abas do navegador pessoal do usuário.
+`browser_open` encaminha ao navegador padrão o endereço HTTP(S) pedido explicitamente, sem uma segunda confirmação. Um domínio sem esquema recebe HTTPS; um destino ambíguo exige esclarecer o endereço, sem inventar outro. Essa rota usa a integração externa do Windows e permanece `unverified` quando há apenas confirmação de despacho. Não verifica carregamento, não lê a página e não concede ao Jarvis acesso ao login, cookies ou abas do navegador pessoal.
+
+`browser_read_selected` não consegue ler a seleção no navegador externo. O Jarvis deve informar essa limitação sem alegar que viu a aba ou o trecho. Compartilhar um texto na conversa ou pedir leitura pública pela ferramenta apropriada são fluxos separados.
 
 `web_read` faz uma leitura HTTP(S) separada de texto público, após confirmação do endereço e do envio do conteúdo necessário à IA. O leitor valida a URL, o conjunto de endereços DNS e os redirecionamentos; o transporte usa o destino público validado. Destinos privados, locais, de metadados e esquemas incompatíveis são recusados. A URL não pode conter credenciais.
 
@@ -89,4 +96,4 @@ Depois de `web_read`, `web_search` ou `weather_current`, aparecem até seis link
 
 A última consulta permanece até outra consulta trazer suas fontes. A troca de perfil ou reset limpa os links. A interface rejeita URLs fora de HTTP(S), credenciais, controles e títulos/endereços fora dos limites; respostas de execuções antigas ou canceladas não devem repovoar a sessão nova. Clicar em uma fonte abre o endereço validado pelo mecanismo externo do aplicativo.
 
-Descoberta de aplicativo é leitura. O pedido explícito de abrir o navegador padrão tem a dispensa estreita descrita acima; abertura de outros aplicativos/pastas, abertura de URLs específicas e consultas web preservam confirmações por operação. A consulta à cidade já configurada usa o endpoint meteorológico fixo. Nenhuma dessas capacidades cria shell livre, automação visual universal, navegação com login ou autorização permanente para ler qualquer arquivo do computador.
+Descoberta de aplicativo é leitura. Pedidos explícitos para abrir o navegador padrão ou um endereço HTTP(S) têm a dispensa descrita acima; abertura de outros aplicativos/pastas, leitura de página, pesquisa web e alterações em arquivos preservam confirmações por operação. A consulta à cidade já configurada usa o endpoint meteorológico fixo. Nenhuma dessas capacidades cria shell livre, automação visual universal, navegação com login ou autorização permanente para ler qualquer arquivo do computador.

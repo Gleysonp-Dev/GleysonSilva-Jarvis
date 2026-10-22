@@ -1,12 +1,22 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Atualização 0.5.3 — navegador padrão direto
+## Atualização 0.6.0 — integração privada com Ultron
 
-Código atual **0.5.3**, indicador **MVP / 05.3**. O pedido explícito “abra o navegador” abre o navegador padrão no Google sem segunda autorização. A exceção não se estende a URLs específicas ou outros aplicativos. [CI b856f89 da 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302) aprovado: **415/415 testes, zero falhas/skips**, TypeScript, build, pacote e abertura real do Jarvis, incluindo entrada/saída de tela cheia. As versões anteriores abaixo são históricas. Feche a versão anterior por X/Sair antes de abrir o novo executável e preserve a configuração privada.
+Código em preparação **0.6.0**, indicador **MVP / 06.0**. A ponte MCP é opcional e começa desligada. Expõe somente estado, clima atual configurado, navegador padrão no Google, site HTTP(S) solicitado e narração de texto pela voz Jarvis. Não conecta o microfone ao Dot nem transfere identidade, memória ou sessão do Ultron.
+
+**CI e pacote 0.6.0 pendentes de registro.** A verificação local teve 491 testes, 480 aprovados, as mesmas 11 falhas EPERM conhecidas de links/junções no sandbox e zero skips; TypeScript e build passaram. O plugin privado foi instalado e habilitado pela CLI oficial e conferido na listagem, sem recarregar esta conversa, habilitar a ponte no Jarvis ou chamar o Dot. Os artefatos históricos abaixo não incluem esta integração. Preserve configurações privadas e feche a versão anterior antes de testar o código novo; não apague chaves, voz, cidade ou música. O teste real pelo Ultron é uma etapa própria, ainda não confirmada.
+
+Além do Jarvis, o servidor STDIO exige Node.js 24 no computador Windows e um cliente local compatível. Leia [Integração privada Ultron → Jarvis](docs/ultron.md): revise o pacote, configure um marketplace privado e instale pela interface suportada. Preparar o catálogo não instala o plugin. No Jarvis, habilite **Ajustes → Conexão privada com Ultron → Permitir que Ultron use o Jarvis neste computador** e salve somente quando for testar. Nenhum arquivo privado de descoberta ou credencial deve entrar no pacote.
+
+O Ultron pode precisar criar uma tarefa local no computador conectado. O PC deve estar online com o ChatGPT aberto; instalação em Codex não comprova disponibilidade na conversa principal do Dot. Confirme as cinco ferramentas na tarefa antes de prometer o fluxo. Não use cookies, automação de login ou uma API pessoal não documentada como alternativa.
+
+## Base 0.5.3 — navegador padrão direto (histórico)
+
+Código dessa revisão histórica **0.5.3**, indicador **MVP / 05.3**. O pedido explícito “abra o navegador” abre o navegador padrão no Google sem segunda autorização. A exceção não se estende a URLs específicas ou outros aplicativos. [CI b856f89 da 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302) aprovado: **415/415 testes, zero falhas/skips**, TypeScript, build, pacote e abertura real do Jarvis, incluindo entrada/saída de tela cheia. As versões anteriores abaixo são históricas. Feche a versão anterior por X/Sair antes de abrir o novo executável e preserve a configuração privada.
 
 O aviso de segurança do Windows para Electron é independente. Esta revisão não modifica o Firewall, cria exceções de rede, desliga alertas ou pede acesso de administrador. A autorização de rede, se necessária e desejada no equipamento, é uma decisão local separada e deve identificar o executável correto do Jarvis. A foto sozinha não confirma o processo/caminho ou a regra aplicada. [Diagnóstico](docs/desktop-access.md).
 
-## Pacote Windows 0.5.3
+## Pacote Windows 0.5.3 — histórico
 
 [Pacote Windows 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302/artifacts/12316996601) baixado e conferido. EXE **104.021.514 bytes**, SHA-256 `484ef104c1647ff47ec84c43fbfa085f204faf5b9e9f3025476616e77c019398`. ZIP **104.031.894 bytes**, SHA-256 `1605ed7ba38cdc939e4d7afee52a9c4a0d8bb97564cff47cc5f69a6088399cfb`. Retenção até 18 de janeiro de 2027, horário de Nova York; artefato temporário do GitHub, sem assinatura de release.
 
@@ -14,11 +24,11 @@ Extraia o ZIP e abra **GleysonSilva-Jarvis-0.5.3-Windows.exe**, após fechar a v
 
 ## Atualização 0.5.2 — tela cheia (histórico)
 
-Revisão atual do código: **0.5.2**, indicador **MVP / 05.2**. [CI 4e90ff5 da 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223) aprovado: **413/413 testes, zero falhas/skips**, TypeScript, build, pacote e entrada/saída de tela cheia pelo botão real no aplicativo Windows. Os pacotes anteriores abaixo são históricos e não incluem o botão novo. Feche o Jarvis anterior por X/Sair antes de executar a nova versão. Os dados privados usam o mesmo diretório; preserve chaves, voz, cidade e música existentes.
+Código da revisão histórica: **0.5.2**, indicador **MVP / 05.2**. [CI 4e90ff5 da 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223) aprovado: **413/413 testes, zero falhas/skips**, TypeScript, build, pacote e entrada/saída de tela cheia pelo botão real no aplicativo Windows. Os pacotes anteriores abaixo são históricos e não incluem o botão novo. Feche o Jarvis anterior por X/Sair antes de executar a nova versão. Os dados privados usam o mesmo diretório; preserve chaves, voz, cidade e música existentes.
 
 O botão de expandir no canto superior direito e **F11** alternam a tela cheia; **Esc** sai. Valide o retorno à janela durante uma conversa, sem repetir a recepção ou interromper o áudio. A opção vale para a janela atual e não altera a inicialização com o Windows. No navegador, depende do suporte à API de tela cheia. [Detalhes](docs/fullscreen.md).
 
-## Pacote Windows 0.5.2
+## Pacote Windows 0.5.2 — histórico
 
 [Pacote Windows 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223/artifacts/12315892272) baixado e conferido. EXE **104.021.454 bytes**, SHA-256 `2c991916429b4ddd462a21fd2d277ce8fdb28f3ccd6294829911fef6c545cf49`. ZIP **104.031.845 bytes**, SHA-256 `efcfa48a2dc208301842a09562732da4886dc2553934d764742e1dfa77d3bd4b`. Retenção até 18 de janeiro de 2027, horário de Nova York; artefato temporário do GitHub, sem assinatura de release.
 
@@ -57,7 +67,7 @@ Tela aberta, conexão, captura, som ouvido, reconhecimento e ação no Windows s
 
 ## 1. Inspecionar o ambiente
 
-1. Leia README, package.json e instruções locais aplicáveis. Confirme branch `main`, versão e commit utilizados. Para validar as novas ferramentas, use a revisão 0.4.0; o EXE 0.3.1 é a base anterior e não contém esse incremento.
+1. Leia README, package.json e instruções locais aplicáveis. Confirme branch `main`, versão e commit utilizados. Para validar a ponte privada, use o código 0.6.0 e registre seu commit; os EXEs 0.5.3 e anteriores não incluem esse incremento.
 2. Confirme Windows, Node 24 ou superior e npm; SQLite usa o runtime integrado.
 3. Não imprima variáveis de ambiente, credenciais ou arquivos privados.
 4. Use uma pasta de ensaio descartável para testar ferramentas.

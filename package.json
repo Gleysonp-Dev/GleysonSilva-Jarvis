@@ -1,6 +1,6 @@
 {
   "name": "gleysonsilva-jarvis",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "private": true,
   "description": "Assistente pessoal Windows com inteligência OpenAI, voz ElevenLabs, espera local e HUD ciano.",
   "type": "module",
@@ -47,6 +47,7 @@
       "apps/desktop/preload.cjs",
       "apps/desktop/platform/**",
       "packages/**",
+      "plugins/jarvis-ultron/**",
       "dist/**",
       "package.json"
     ],

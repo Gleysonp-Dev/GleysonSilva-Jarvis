@@ -89,3 +89,13 @@ test('camera reception, automatic voice and continuous renewal require explicit 
  assert.equal(restored.getSecret(),'test-openai');assert.equal(restored.getElevenSecret(),'test-eleven');assert.equal(restored.get().elevenVoiceId,'TestVoice');
 });
 
+
+test('private Ultron access defaults off, persists explicit choice and rejects coercion atomically',t=>{
+ const {store,dir,crypto}=fixture(t);
+ assert.equal(defaults.ultronEnabled,false); assert.equal(store.public().ultronEnabled,false);
+ store.save({ultronEnabled:true,apiKey:'private-original'});
+ assert.equal(new SettingsStore(dir,crypto).public().ultronEnabled,true);
+ for(const value of ['true',0,1,null,{},[]])assert.throws(()=>store.save({ultronEnabled:value,apiKey:'replacement'}));
+ assert.equal(store.get().ultronEnabled,true);assert.equal(store.getSecret(),'private-original');
+ store.save({ultronEnabled:false});assert.equal(new SettingsStore(dir,crypto).get().ultronEnabled,false);
+});

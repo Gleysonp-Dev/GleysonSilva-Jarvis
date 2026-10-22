@@ -5,6 +5,7 @@ import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { transform } from 'esbuild';
 import { ReceptionObservation, ReceptionError } from '../packages/reception/index.mjs';
+import { UltronCommands, UltronCommandError } from '../packages/ultron/commands.mjs';
 
 const require = createRequire(import.meta.url);
 const mainURL = new URL('../apps/desktop/main.mjs', import.meta.url);
@@ -14,10 +15,10 @@ const { code } = await transform(source, { format: 'cjs', target: 'node24', defi
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
 
-async function fixture(t, { blockWake = false, resetFailure = false, lateContext = false, lateOutfit = false } = {}) {
+async function fixture(t, { blockWake = false, resetFailure = false, lateContext = false, lateOutfit = false, ultronEnabled = false } = {}) {
   const calls = { mute: 0, destroy: 0, hide: 0, speechReset: 0, wakeStop: 0, visionClose: 0, runtimeClose: 0, trayDestroy: 0, quit: 0, cancelledRuns: [], signals: [], errors: [], fullscreen: [], sent: [] };
   const wake = deferred(), context = deferred(), outfit = deferred(), ipc = new Map(), windows = [], trays = [];
-  const current = { profileId: 'default', standbyEnabled: true, startAtLogin: false, wakeVoiceEnabled: true, startupGreeting: true, apps: [], elevenVoiceId: 'testVoice' };
+  const current = { profileId: 'default', standbyEnabled: true, startAtLogin: false, wakeVoiceEnabled: true, startupGreeting: true, apps: [], elevenVoiceId: 'testVoice', ultronEnabled };
   const app = new EventEmitter();
   Object.assign(app, { isPackaged: true, setName() {}, enableSandbox() {}, requestSingleInstanceLock: () => true, whenReady: async () => {}, getPath: () => 'C:\\fake-private-data', isReady: () => true,
     quit() { const event = { prevented: false, preventDefault() { this.prevented = true; } }; this.emit('before-quit', event); if (!event.prevented) calls.quit++; }, exit() { throw new Error('Unexpected forced exit.'); } });
@@ -42,8 +43,8 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
   class Tray { constructor() { trays.push(this); } setToolTip() {} on() {} setContextMenu(menu) { this.menu = menu; } destroy() { calls.trayDestroy++; } }
   const settings = class { get() { return structuredClone(current); } write(value) { Object.assign(current, value); } save(value) { Object.assign(current, value); } public() { return { ...current }; } getSecret() { return 'fake-key'; } getElevenSecret() { return 'fake-key'; } };
   const blocking = (_input, { signal }) => new Promise((resolve, reject) => { calls.signals.push(signal); signal.addEventListener('abort', () => reject(new Error('cancelled')), { once: true }); });
-  let adapters;
-  const runtime = { cancel(id) { calls.cancelledRuns.push(id); }, approve() {}, async close() { calls.runtimeClose++; }, getSnapshot() { return { memories: [], tasks: [], procedures: [] }; } };
+  let adapters, ultronHandle;
+  const runtime = { cancel(id) { calls.cancelledRuns.push(id); }, approve() {}, async call(input, options) { (calls.ultronTools ??= []).push({ input, options }); return { ok: true, status: 'unverified', summary: 'Dispatched' }; }, async close() { calls.runtimeClose++; }, getSnapshot() { return { memories: [], tasks: [], procedures: [] }; } };
   const session = { setPermissionRequestHandler() {}, setPermissionCheckHandler() {}, setDevicePermissionHandler() {}, on() {} };
   const mocks = {
     electron: { app, BrowserWindow: Window, Tray, Menu: { buildFromTemplate: value => value }, nativeImage: { createFromBuffer: () => ({}) }, dialog: {}, ipcMain: { handle: (name, handler) => ipc.set(name, handler) }, protocol: { registerSchemesAsPrivileged() {}, handle() {} }, safeStorage: {}, session: { defaultSession: session }, shell: { async openExternal(url) { (calls.external ??= []).push(url); } } },
@@ -51,6 +52,8 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
     '../../packages/runtime/index.mjs': { createRuntime: options => { adapters = options.platformAdapters; return runtime; } },
     '../../packages/openai/index.mjs': { OpenAIService: class { respond = blocking; searchWeb = async (input, options) => { calls.search = { input, options }; return { text: 'Search test', sources: [] }; }; describeOutfit = async (input, options) => { calls.outfit = { input, options }; return lateOutfit ? outfit.promise : { text: 'Roupa de teste.', observedAt: Date.now() }; }; }, OpenAIServiceError: class extends Error {} },
     '../../packages/reception/index.mjs': { ReceptionObservation, ReceptionError },
+    '../../packages/ultron/commands.mjs': { UltronCommands, UltronCommandError },
+    '../../packages/ultron/index.mjs': { async createUltronBridge({ handle }) { calls.ultronCreates = (calls.ultronCreates ?? 0) + 1; ultronHandle = handle; return { async close() { calls.ultronCloses = (calls.ultronCloses ?? 0) + 1; } }; } },
     '../../packages/web/index.mjs': { WebService: class { read = async (input, options) => { calls.website = { input, options }; return { text: 'Website test', sources: [] }; }; } },
     './settings.mjs': { SettingsStore: settings, validateSettings: value => value },
     './platform/windows.mjs': { createWindowsAdapters: () => ({}) },
@@ -70,8 +73,52 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
   const window = windows[0];
   const invoke = (name, input) => ipc.get('jarvis:' + name)({ sender: window.webContents, senderFrame: window.webContents.mainFrame }, input);
   t.after(async () => { wake.resolve(); await module.exports.requestShutdown('test_cleanup'); });
-  return { calls, app, window, trays, invoke, invokeFrom: (event, name, input) => ipc.get('jarvis:' + name)(event, input), adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, shutdown: module.exports.requestShutdown };
+  return { calls, app, window, trays, invoke, invokeFrom: (event, name, input) => ipc.get('jarvis:' + name)(event, input), invokeUltron: (method, args = {}, scope = {}) => ultronHandle(method, args, { id: crypto.randomUUID(), ...scope }), adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, shutdown: module.exports.requestShutdown };
 }
+
+test('Ultron stays disabled until explicitly saved and exposes only the five bounded capabilities', async t => {
+  const f = await fixture(t);
+  assert.equal(f.calls.ultronCreates, undefined); assert.equal((await f.invoke('boot')).capabilities.ultronBridge, true);
+  await f.invoke('saveSettings', { ultronEnabled: true }); assert.equal(f.calls.ultronCreates, 1);
+  const status = await f.invokeUltron('status');
+  assert.equal(status.connected, true); assert.equal(status.voiceConfigured, true); assert.equal(JSON.stringify(status).includes('fake-key'), false);
+  assert.deepEqual(status.tools, ['status', 'weather', 'open_browser', 'open_url', 'speak']);
+  await assert.rejects(f.invokeUltron('shell', { command: 'anything' }), /inválida/);
+  await assert.rejects(f.invokeUltron('open_browser', { url: 'https://example.org' }), /inválida/);
+  assert.equal((await f.invokeUltron('open_browser')).status, 'unverified');
+  assert.equal(f.calls.ultronTools.length, 1); assert.deepEqual(f.calls.ultronTools[0].input.args, { appId: 'browser' });
+  assert.equal((await f.invokeUltron('open_url', { url: 'para-meditacao-app.com' })).status, 'unverified');
+  assert.equal(f.calls.ultronTools[1].input.name, 'browser_open');
+  assert.deepEqual(f.calls.ultronTools[1].input.args, { url: 'https://para-meditacao-app.com/' });
+  for (const url of ['file:///C:/private.txt', 'javascript:alert(1)', 'https://user:password@example.org/']) await assert.rejects(f.invokeUltron('open_url', { url }), /inválida/);
+  assert.equal(f.calls.ultronTools.length, 2);
+  assert.equal((await f.invokeUltron('weather')).status, 'ok'); assert.equal(f.calls.weather.options.refresh, true);
+  await f.invoke('saveSettings', { ultronEnabled: false }); assert.equal(f.calls.ultronCloses, 1);
+  await assert.rejects(f.invokeUltron('status'), /Ative/);
+});
+
+test('Ultron speech completes only after the trusted renderer receipt and reset rejects late speech', async t => {
+  const f = await fixture(t, { ultronEnabled: true });
+  const pending = f.invokeUltron('speak', { text: 'Teste privado de voz.' });
+  const event = f.calls.sent.at(-1)[1]; assert.equal(event.type, 'ultron.speak');
+  await assert.rejects(f.invokeFrom({ sender: {}, senderFrame: f.window.webContents.mainFrame }, 'ultronPlaybackResult', { requestId: event.requestId, played: true }), /origem/);
+  assert.equal(await f.invoke('ultronPlaybackResult', { requestId: event.requestId, played: true }), true);
+  assert.deepEqual(await pending, { ok: true, played: true, evidence: 'renderer_audio_ended' });
+  const next = f.invokeUltron('speak', { text: 'Este trecho será cancelado.' });
+  const late = f.calls.sent.at(-1)[1], rejected = assert.rejects(next, /interrompida/);
+  await f.invoke('saveSettings', { profileId: 'other' }); await rejected;
+  assert.equal(await f.invoke('ultronPlaybackResult', { requestId: late.requestId, played: true }), false);
+  assert(f.calls.sent.some(([, value]) => value.type === 'ultron.cancel' && value.requestId === late.requestId));
+});
+
+test('Interromper and shutdown cancel Ultron work without clearing the opt-in preference', async t => {
+  const f = await fixture(t, { ultronEnabled: true });
+  const pending = f.invokeUltron('speak', { text: 'Teste de interrupção.' }); const rejected = assert.rejects(pending, /interrompida/);
+  assert.deepEqual(await f.invoke('cancelUltron'), { cancelled: true }); await rejected;
+  assert.equal(f.preferences.ultronEnabled, true); assert.equal(f.calls.ultronCloses, undefined);
+  const another = f.invokeUltron('speak', { text: 'Teste de fechamento.' }); const stopped = assert.rejects(another, /interrompida/);
+  await f.shutdown('window_closed'); await stopped; assert.equal(f.calls.ultronCloses, 1);
+});
 
 test('fullscreen IPC enters, returns and publishes the actual native window state', async t => {
   const f = await fixture(t);
@@ -142,6 +189,17 @@ test('native runtime wires website, search and forced fresh weather without gree
   assert.deepEqual(f.calls.search.input, { query: 'current test' });
   await f.adapters.readWeather({ signal, refresh: false });
   assert.deepEqual(f.calls.weather.input, {}); assert.equal(f.calls.weather.options.refresh, true); assert.equal(f.calls.weather.options.signal, signal);
+});
+
+test('requested sites dispatch through the default Windows browser and never create a dedicated window', async t => {
+  const f = await fixture(t); const signal = new AbortController().signal;
+  assert.deepEqual(await f.adapters.openBrowser('https://para-meditacao-app.com/', { signal }), { dispatched: true, verified: false, url: 'https://para-meditacao-app.com/' });
+  assert.deepEqual(f.calls.external, ['https://para-meditacao-app.com/']);
+  await assert.rejects(f.adapters.readBrowserSelection(), /navegador externo/);
+  const cancelled = new AbortController(); cancelled.abort();
+  await assert.rejects(f.adapters.openBrowser('https://example.com/', { signal: cancelled.signal }), /cancelada/);
+  for (const url of ['file:///C:/private.txt', 'javascript:alert(1)', 'https://user:password@example.org/']) await assert.rejects(f.adapters.openBrowser(url));
+  assert.equal(f.calls.external.length, 1);
 });
 
 test('explicit source clicks open general HTTP(S) links but refuse files, protocols and credentials', async t => {
