@@ -1,6 +1,6 @@
 # Integração privada Ultron → Jarvis — 0.6.0
 
-Esta ponte permite que um agente autorizado use cinco ferramentas do Jarvis aberto no Windows. O Ultron continua sendo o Dot pessoal no ChatGPT; o Jarvis conserva sua interface e a voz já configurada. A ponte começa desligada e não envia mensagens ao Ultron. O plugin privado 0.6.0 foi instalado e habilitado pela CLI oficial, com estado conferido na listagem. As ferramentas ainda não foram recarregadas na conversa ativa, a ponte no Jarvis não foi habilitada e não houve chamada real pelo Dot. CI e pacote 0.6.0 continuam pendentes.
+Esta ponte permite que um agente autorizado use cinco ferramentas do Jarvis aberto no Windows. O Ultron continua sendo o Dot pessoal no ChatGPT; o Jarvis conserva sua interface e a voz já configurada. A ponte começa desligada e não envia mensagens ao Ultron. O [CI 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovou 491/491 testes, TypeScript, build, pacote e abertura nativa do Jarvis. Windows e plugin foram baixados e conferidos. O plugin privado foi instalado e habilitado pela CLI oficial; o MCP instalado completou o handshake, anunciou as cinco ferramentas e retornou NOT_RUNNING com a ponte indisponível. As ferramentas ainda não foram recarregadas na conversa ativa, a ponte no Jarvis não foi habilitada e não houve chamada real pelo Dot.
 
 Não foi encontrado um endpoint oficial documentado para um aplicativo externo conversar com um Dot pessoal existente preservando sua identidade e memória. A documentação descreve [canais de mensagens](https://learn.chatgpt.com/docs/dots/channels) e a possibilidade de o Dot usar [plugins e um computador conectado](https://learn.chatgpt.com/docs/dots/computers-and-apps). Este projeto usa essa segunda direção de integração.
 
@@ -74,7 +74,9 @@ Não existe fallback por cookies, automação de login, envio a um canal de mens
 
 ## Validação e desligamento
 
-Verificação local do código: 491 testes, 480 aprovados, 11 falhas EPERM conhecidas do sandbox em links/junções, zero skips; TypeScript e build aprovados. Esse resultado e a instalação privada confirmada não substituem o CI, o ensaio do pacote Windows ou a chamada feita pelo próprio Ultron. Veja [registro de validação](validation.md).
+Verificação no [CI 2adf71d](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109): **491/491 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa do Jarvis. O ensaio local separado teve 480 aprovados e 11 falhas EPERM conhecidas de links/junções no sandbox. A instalação privada e o handshake MCP confirmados não comprovam uma operação com a ponte ativa ou uso pelo Dot. Veja [registro de validação](validation.md) e [pacotes/hashes](../AI_INSTALL.md#pacotes-060-conferidos).
+
+Na máquina de validação, a ponte permanece desligada: o ambiente recusou escrita no diretório privado em AppData. A ativação foi encaminhada ao usuário para realizar pela interface do Jarvis 0.6.0. Não houve consulta meteorológica/navegação ao vivo ou frase efetivamente ouvida por essa ponte.
 
 Registrar separadamente: manifesto/configuração legíveis; handshake MCP e lista exata das cinco ferramentas; ponte desligada e Jarvis fechado; pedido de estado e clima; uma abertura genérica de navegador; um site exato, com e sem HTTPS explícito; reprodução observada de uma frase autorizada; interrupção ou aplicativo ocupado; teste feito pelo próprio Ultron. Testes simulados do protocolo não comprovam som ouvido ou uso pelo Dot.
 

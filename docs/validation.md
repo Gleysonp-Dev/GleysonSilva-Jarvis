@@ -1,12 +1,16 @@
 # Validação do MVP
 
-## Revisão 0.6.0 — ponte privada Ultron, validação pendente
+## Revisão 0.6.0 — CI e pacotes conferidos; operações ao vivo pendentes
 
 Implementação de cinco ferramentas MCP por execução local: estado, clima atual, navegador padrão, site solicitado e narração. A ponte começa desligada, exige habilitação explícita no Jarvis e mantém a direção Ultron → Jarvis. Não há endpoint pessoal do Dot, migração de memória ou envio automático de microfone/câmera por essa ponte.
 
 Os testes de renderer exercitam recusa antes de TTS quando o aplicativo está ocupado, correlação, confirmação apenas após fim do áudio, cancelamento em síntese/reprodução, perfil/reset/fechamento e liberação única das URLs. Verificação local consolidada: **491 testes, 480 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox e zero skips**. TypeScript e build passaram. Os testes bloqueados mantêm a mesma limitação observada nas versões anteriores; não foram retirados ou enfraquecidos.
 
-O plugin privado **0.6.0 foi instalado e habilitado** pelo comando oficial de instalação de plugins; a listagem do cliente confirmou esse estado. Isso não recarregou as ferramentas nesta conversa ativa, não habilitou a ponte no Jarvis e não produziu uma chamada real do Dot. **CI e pacote/hash 0.6.0 permanecem pendentes.** A disponibilidade em uma nova conversa/tarefa local e o ensaio pelo Ultron ainda precisam ser registrados. Resultados históricos abaixo não validam essa revisão.
+[CI 2adf71d da 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109), commit `2adf71d10f12c8e7ffd0375655bedb4f11a96f17`, aprovado em **22 de outubro de 2026, às 16h58, America/New_York**: **491/491 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real do Jarvis. O [job 120083394474](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109/job/120083394474) confirmou `ready/window/dom/preload/boot/fullscreen/packaged` verdadeiros. O perfil de ensaio não usou credenciais ou dispositivos do autor.
+
+[Windows 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109/artifacts/12459041061) e [plugin 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109/artifacts/12458926386) foram baixados e conferidos por tamanho/SHA-256. A extração aceitou somente as duas entradas esperadas de cada artefato externo e as seis entradas do ZIP interno do plugin. [Valores e retenção](../AI_INSTALL.md#pacotes-060-conferidos).
+
+O plugin privado **0.6.0 foi instalado e habilitado** pela CLI oficial, confirmado na listagem. Os cinco arquivos verificados da cópia instalada correspondem aos fontes. O MCP instalado completou o handshake com versão 0.6.0, anunciou as cinco ferramentas e retornou honestamente **NOT_RUNNING** na consulta de status com a ponte indisponível. Isso não recarregou as ferramentas nesta conversa ativa, não habilitou a ponte no Jarvis e não produziu chamada real do Dot. O acesso de escrita ao diretório privado em AppData foi recusado neste ambiente; a ativação deve ser feita pelo usuário na interface do Jarvis. Não houve fala, consulta meteorológica, navegação ao vivo ou captura pela ponte. O ensaio pelo próprio Ultron continua pendente.
 
 Registrar separadamente o handshake e a lista das cinco ferramentas, o uso com ponte desligada, o clima com fonte, o navegador genérico e um site exato com/sem HTTPS, a frase efetivamente ouvida e o comportamento de interrupção/ocupado. Uma resposta de despacho ao Windows não prova janela aberta; o recibo de fim do áudio não prova som ouvido. Ver [Ultron](ultron.md) e [Plano de testes](test-plan.md).
 
