@@ -4,11 +4,26 @@
 
 A recepção atual é **Windows → espera local → duas palmas → música e saudação com clima → comandos por voz**, conforme as opções salvas. O comentário de roupa foi retirado da interface, do preset e dos endpoints ativos. O aplicativo não pede câmera nem envia imagem à OpenAI ao iniciar a recepção. A preferência antiga `receptionOutfitEnabled: true` é migrada para `false`; preserve voz, chaves, cidade, música, login e demais escolhas. A câmera manual e o reconhecimento local em Presença continuam disponíveis.
 
-A 0.6.2 também altera o tratamento de anúncios, vídeo oculto, observação inicial do player e expiração do YouTube. Anúncios aguardam sua conclusão natural, sem clicar para pular; expirar a tentativa preserva a janela, enquanto cancelamento, troca de perfil e saída continuam interrompendo o fluxo. **CI, pacote e ensaio ao vivo da 0.6.2 ainda estão pendentes.** A verificação local teve 534 testes, 523 aprovados e 11 falhas EPERM conhecidas no sandbox, zero skips; TypeScript e build passaram. [Detalhes](docs/validation.md). Não use o pacote histórico abaixo como se contivesse esta correção. [Recepção](docs/startup-greeting.md) e [YouTube](docs/youtube.md).
+A 0.6.2 também altera o tratamento de anúncios, vídeo oculto, observação inicial do player e expiração do YouTube. Anúncios aguardam sua conclusão natural, sem clicar para pular; expirar a tentativa preserva a janela, enquanto cancelamento, troca de perfil e saída continuam interrompendo o fluxo. [CI 20d1cd8 da 0.6.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39873055096) aprovado: **534/534 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa com player em HTTPS local e áudio silenciado. **O novo ensaio físico da recepção, YouTube ao vivo e som ouvido continuam pendentes.** A verificação local teve 534 testes, 523 aprovados e 11 falhas EPERM conhecidas no sandbox, zero skips; TypeScript e build passaram. [Detalhes](docs/validation.md). Os pacotes de versões anteriores são históricos e não contêm esta correção. [Recepção](docs/startup-greeting.md) e [YouTube](docs/youtube.md).
 
 Na 0.6.1, o usuário confirmou a busca real no YouTube e relatou que o vídeo não começou a tocar. A causa dessa falha ainda não foi determinada no computador de destino; não atribua o relato a anúncio, conta ou navegador sem evidência. O [CI 0f293d0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovou **529/529 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa com player em página HTTPS local e áudio silenciado. Isso não confirmou reprodução ao vivo ou som ouvido. A 0.6.1 permanece registrada com seus hashes a seguir.
 
 O usuário confirmou que duas palmas ativaram a recepção na 0.6.0. Esse resultado não substitui um ensaio após novo login/reinício do Windows. O plugin Jarvis · Ultron permanece 0.6.0 com cinco ferramentas; as três ferramentas YouTube pertencem à conversa nativa.
+
+## Pacote Windows 0.6.2 conferido
+
+Baixe o [Windows 0.6.2 da execução 39873055096](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39873055096/artifacts/12466994007). ZIP e executável foram baixados e conferidos por tamanho e SHA-256; a extração aceitou somente o EXE esperado e seu arquivo de checksum.
+
+| Arquivo conferido | Tamanho em bytes | SHA-256 |
+| --- | ---: | --- |
+| ZIP do artefato Windows | 104.049.330 | `8ba89d2ffe60b6b1b135f2af37653a84d315676db46b0d8f6cbb46b04a0c1089` |
+| GleysonSilva-Jarvis-0.6.2-Windows.exe | 104.038.521 | `ea6587b5ff8531998a64531e4c11cdeda4987e5fae7b9c7fa091572d3cf172b1` |
+
+O [job 120151897176](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39873055096/job/120151897176), commit `20d1cd8d5cfb433c0028980216df6f678ac4792c`, confirmou `ready/window/dom/preload/boot/fullscreen/youtube/packaged` verdadeiros em **22 de outubro de 2026, às 19h41, America/New_York**. O teste de player usou página HTTPS local, mídia PCM e áudio silenciado; não comprova YouTube ao vivo, som ouvido ou a recepção física.
+
+Retenção até **20 de janeiro de 2027, às 18h37, America/New_York**. É artefato temporário do GitHub Actions, que pode exigir login; não é release assinada nem link permanente. O workflow também gerou um artefato do plugin; sua versão permanece **0.6.0** e ele não foi baixado nem reinstalado nesta atualização.
+
+Feche a versão anterior por **X/Sair**, extraia o ZIP e abra **GleysonSilva-Jarvis-0.6.2-Windows.exe**. Confira **MVP / 06.2**; preserve chaves, voz, cidade, trilha e cadastro facial. Uma preferência antiga de roupa é migrada para falso, sem nova clonagem ou captura de câmera na recepção. Teste duas palmas, saudação→voz e, no YouTube, buscar, tocar, pausar e continuar. A busca da 0.6.1 foi confirmada, mas a reprodução falhou por causa ainda indeterminada; o teste novo deve registrar vídeo correto e som ouvido separadamente. [Recepção](docs/startup-greeting.md), [YouTube](docs/youtube.md) e [validação](docs/validation.md).
 
 ## Pacote Windows 0.6.1 conferido
 
@@ -19,7 +34,7 @@ O usuário confirmou que duas palmas ativaram a recepção na 0.6.0. Esse result
 | ZIP do artefato Windows | 104.049.083 | `7d42b1916442bec925b64e74f50c3af44e87fdbcecd672f617416224170db795` |
 | GleysonSilva-Jarvis-0.6.1-Windows.exe | 104.038.318 | `092fff3bd06f929ec35218318cbcb06a15f9c672e34756e3295d19d5ad973a1f` |
 
-Retenção até **20 de janeiro de 2027, às 16h29, America/New_York**. É um download temporário do GitHub Actions e pode exigir login; não é um link permanente de release. Não houve novo pacote do plugin Ultron: mantenha a versão 0.6.0 quando usar a conexão privada opcional.
+Retenção até **20 de janeiro de 2027, às 16h29, America/New_York**. É um download temporário do GitHub Actions e pode exigir login; não é um link permanente de release. A versão do plugin Ultron permanece 0.6.0 quando usar a conexão privada opcional.
 
 Para reproduzir o ensaio histórico da 0.6.1, feche a versão anterior por **X/Sair**, extraia o ZIP e confira **MVP / 06.1**. O usuário já confirmou busca real e relatou falha ao tocar; pausa, retomada e som ouvido não estão aprovados. A validação da correção exige o pacote 0.6.2 quando ele estiver disponível e conferido. [Roteiro completo](docs/youtube.md).
 

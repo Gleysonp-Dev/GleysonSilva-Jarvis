@@ -4,7 +4,7 @@ O fluxo configurável é **login Windows → espera local → duas palmas → m�
 
 Histórico: [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado no destino continua pendente. A aprovação de **343 testes e abertura nativa no [CI da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110)** pertence à versão anterior. Login real, palmas no ambiente de uso, câmera e conversa prolongada precisam de evidência própria em [Validação](validation.md).
 
-Histórico: a 0.5.1 preparava um comentário de roupa durante a saudação, funcionalidade retirada na 0.6.2. Seu [CI b8c6c8f](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovou **402/402 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa daquela revisão. O usuário confirmou palmas na sessão 0.6.0; novo login real e a sequência atual ainda precisam de evidência própria. **CI, pacote e ensaio físico 0.6.2 pendentes.**
+Histórico: a 0.5.1 preparava um comentário de roupa durante a saudação, funcionalidade retirada na 0.6.2. Seu [CI b8c6c8f](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovou **402/402 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa daquela revisão. O usuário confirmou palmas na sessão 0.6.0; novo login real e a sequência atual ainda precisam de evidência própria. CI e pacote 0.6.2 aprovados; o ensaio físico da revisão continua pendente. [Registro](validation.md).
 
 ## Configurar uma instalação
 

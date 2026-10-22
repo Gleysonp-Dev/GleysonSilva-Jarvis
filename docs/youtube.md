@@ -8,7 +8,7 @@ O controlador aguarda anúncios terminarem naturalmente dentro do prazo da tenta
 
 O prazo padrão é de **15 segundos por tentativa**; um anúncio ou carregamento maior pode ultrapassá-lo. A pessoa pode resolver a tela e solicitar novamente tocar/continuar quando o conteúdo estiver disponível. Login, consentimento e CAPTCHA continuam exigindo intervenção humana. Esses ajustes tratam caminhos possíveis de falha; não demonstram que um anúncio causou o relato da 0.6.1.
 
-**CI, pacote Windows e ensaio real da 0.6.2 ainda estão pendentes.** A verificação local está registrada em [Validação](validation.md). [Registro](validation.md). A recepção dessa revisão também deixa de capturar imagem ou comentar roupa e passa da saudação à voz quando habilitada. [Recepção](startup-greeting.md).
+[CI 20d1cd8 da 0.6.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39873055096) aprovado com **534/534 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa com player em HTTPS local e áudio silenciado. [Windows 0.6.2 conferido](../AI_INSTALL.md#pacote-windows-062-conferido). **O ensaio do YouTube ao vivo e som ouvido continuam pendentes.** Prova, limites e verificação local estão em [Validação](validation.md). A recepção dessa revisão também deixa de capturar imagem ou comentar roupa e passa da saudação à voz quando habilitada. [Recepção](startup-greeting.md).
 
 ## Como pedir
 
@@ -44,8 +44,8 @@ As três ferramentas desta revisão pertencem à conversa nativa do Jarvis, tant
 
 ## O que falta validar
 
-O cenário nativo aprovado da **0.6.1** usou uma página HTTPS local, mídia PCM e áudio silenciado. As evidências `ready/window/dom/preload/boot/fullscreen/youtube/packaged` são daquela execução. O ensaio posterior do usuário confirmou a busca ao vivo e relatou falha ao tocar. Não foi registrada causa, reprodução correta, som ouvido ou pausa/retomada aprovados. O [registro](validation.md) separa os resultados históricos da correção 0.6.2 ainda pendente.
+O cenário nativo aprovado da **0.6.1** usou uma página HTTPS local, mídia PCM e áudio silenciado. As evidências `ready/window/dom/preload/boot/fullscreen/youtube/packaged` são daquela execução. O ensaio posterior do usuário confirmou a busca ao vivo e relatou falha ao tocar. Não foi registrada causa, reprodução correta, som ouvido ou pausa/retomada aprovados. O [registro](validation.md) separa os resultados históricos da correção 0.6.2 aprovada no CI, cujo novo ensaio ao vivo continua pendente.
 
-No pacote 0.6.2 quando estiver disponível e conferido, repetir busca, escolha, reprodução, pausa e retomada por voz e texto. Conferir vídeo correto e som ouvido separadamente. Ensaiar anúncio curto que termina naturalmente, anúncio que ultrapassa o prazo, vídeo oculto residual, expiração com janela preservada, ID antigo/de outro perfil, cancelamento, fechamento e intervenção exigida pelo site. Não pular publicidade, aceitar login/consentimento ou declarar sucesso sem evidência. Registrar versão, horário e resultado sem divulgar histórico pessoal ou credenciais.
+No pacote 0.6.2 conferido, repetir busca, escolha, reprodução, pausa e retomada por voz e texto. Conferir vídeo correto e som ouvido separadamente. Ensaiar anúncio curto que termina naturalmente, anúncio que ultrapassa o prazo, vídeo oculto residual, expiração com janela preservada, ID antigo/de outro perfil, cancelamento, fechamento e intervenção exigida pelo site. Não pular publicidade, aceitar login/consentimento ou declarar sucesso sem evidência. Registrar versão, horário e resultado sem divulgar histórico pessoal ou credenciais.
 
 O usuário confirmou a ativação por duas palmas na 0.6.0. Esse relato pertence à espera/recepção daquela sessão e não valida o fluxo YouTube ou um novo login do Windows. A prova automática e o ensaio físico devem permanecer separados no [plano de testes](test-plan.md) e na [validação](validation.md).

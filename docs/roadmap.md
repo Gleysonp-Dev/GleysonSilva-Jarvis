@@ -2,7 +2,7 @@
 
 ## Revisão atual 0.6.2 — recepção simples e nova validação do YouTube
 
-Retirar câmera/comentário de roupa da recepção e migrar a preferência antiga para `false`, preservando Presença manual, voz, clima, música e login configurado. Validar a sequência **duas palmas → música/saudação → comandos por voz**, sem imagem enviada à OpenAI. No YouTube, rever espera natural de anúncio, player de conteúdo visível, comparação inicial de progresso e preservação da janela em timeout; cancelamento e perfil continuam interrompendo. O usuário confirmou busca na 0.6.1, mas relatou falha ao tocar; a causa ainda não foi determinada. **CI, pacote e ensaio ao vivo 0.6.2 pendentes.** A verificação local está registrada em [Validação](validation.md). [Validação](validation.md) e [YouTube](youtube.md).
+Retirar câmera/comentário de roupa da recepção e migrar a preferência antiga para `false`, preservando Presença manual, voz, clima, música e login configurado. Validar a sequência **duas palmas → música/saudação → comandos por voz**, sem imagem enviada à OpenAI. No YouTube, rever espera natural de anúncio, player de conteúdo visível, comparação inicial de progresso e preservação da janela em timeout; cancelamento e perfil continuam interrompendo. O usuário confirmou busca na 0.6.1, mas relatou falha ao tocar; a causa ainda não foi determinada. CI e pacote 0.6.2 aprovados; o ensaio ao vivo continua pendente. [Validação](validation.md) e [YouTube](youtube.md).
 
 As seções de versões anteriores registram o histórico, incluindo o comentário de roupa existente na 0.5.x. Esse recurso não deve ser reativado na instalação atual.
 

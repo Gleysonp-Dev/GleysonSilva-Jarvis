@@ -86,7 +86,7 @@ Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância
 
 ## Estado de validação
 
-A verificação local da 0.6.2 está registrada em [Validação](validation.md); CI, pacote e ensaio físico ainda estão pendentes. O usuário confirmou palmas na 0.6.0; isso não comprova novo login, todos os dispositivos ou a conversa prolongada. Conferir que uma configuração antiga de roupa não abre câmera, que a saudação passa à voz e que Presença mantém sua captura manual. [Registro](validation.md).
+CI, pacote e verificação local da 0.6.2 estão registrados em [Validação](validation.md); o ensaio físico continua pendente. O usuário confirmou palmas na 0.6.0; isso não comprova novo login, todos os dispositivos ou a conversa prolongada. Conferir que uma configuração antiga de roupa não abre câmera, que a saudação passa à voz e que Presença mantém sua captura manual. [Registro](validation.md).
 
 Histórico: o [CI b8c6c8f da 0.5.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39529034939) aprovou **402/402 testes**, TypeScript/build/pacote e abertura nativa. A análise de roupa daquela versão foi retirada; o resultado anterior não valida a ausência de câmera nem o novo fluxo 0.6.2.
 

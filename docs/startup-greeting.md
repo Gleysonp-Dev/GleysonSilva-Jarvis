@@ -2,7 +2,7 @@
 
 A recepção segue **duas palmas → música e saudação com clima → conversa por voz**, quando essa última opção estiver habilitada. Na 0.6.2, o comentário de roupa e a captura automática de imagem foram retirados. Iniciar ao entrar no Windows, espera e conversa contínua continuam sendo escolhas da instalação. Veja [Espera e login](standby.md).
 
-A preferência antiga `receptionOutfitEnabled: true` é migrada para `false`. Não existe controle de roupa no preset atual nem endpoints ativos `observeOutfit`/`cancelOutfit`; a recepção não pede câmera ou envia imagem à OpenAI. A câmera manual e o cadastro/reconhecimento local em Presença são preservados. **CI, pacote e ensaio físico da 0.6.2 ainda pendentes.** [Registro](validation.md).
+A preferência antiga `receptionOutfitEnabled: true` é migrada para `false`. Não existe controle de roupa no preset atual nem endpoints ativos `observeOutfit`/`cancelOutfit`; a recepção não pede câmera ou envia imagem à OpenAI. A câmera manual e o cadastro/reconhecimento local em Presença são preservados. CI e pacote 0.6.2 aprovados; o ensaio físico continua pendente. [Registro](validation.md).
 
 Histórico: [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real. O ensaio físico integrado desta sequência ainda deve ser registrado em [Validação](validation.md). Os **343 testes e a abertura nativa aprovados na 0.4.0** são evidência da versão anterior, não da nova recepção.
 

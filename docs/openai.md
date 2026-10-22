@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: OpenAI
 
-O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrada falada e geração de texto. A resposta audível vem da ElevenLabs com a voz configurada; o áudio de saída OpenAI fica desativado. Na 0.6.2, a recepção não analisa roupa nem envia imagem à OpenAI: música/saudação com clima passam à conversa por voz quando habilitada. A preferência antiga de roupa é migrada para `false`. Câmera manual e reconhecimento local permanecem separados. As ferramentas YouTube, web, clima, aplicativos e pastas são preservadas. CI, pacote e ensaio ao vivo da 0.6.2 ainda pendentes. [Registro](validation.md).
+O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrada falada e geração de texto. A resposta audível vem da ElevenLabs com a voz configurada; o áudio de saída OpenAI fica desativado. Na 0.6.2, a recepção não analisa roupa nem envia imagem à OpenAI: música/saudação com clima passam à conversa por voz quando habilitada. A preferência antiga de roupa é migrada para `false`. Câmera manual e reconhecimento local permanecem separados. As ferramentas YouTube, web, clima, aplicativos e pastas são preservadas. CI e pacote 0.6.2 aprovados; o ensaio ao vivo continua pendente. [Registro](validation.md).
 
 O modelo solicita ferramentas; o executor local valida argumentos, verifica a pasta autorizada, apresenta a confirmação necessária e registra o resultado. Uma resposta gerada não prova que uma ação aconteceu.
 
