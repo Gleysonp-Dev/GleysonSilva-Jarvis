@@ -12,7 +12,7 @@ async function fixture(t){
  t.after(()=>rm(directory,{recursive:true,force:true}));return {executable};
 }
 function childProcess(){const child=new EventEmitter();child.stdout=new PassThrough();child.stderr=new PassThrough();return child;}
-function report(token,overrides={}){return {token,ready:true,window:true,dom:true,preload:true,boot:true,fullscreen:true,packaged:true,...overrides};}
+function report(token,overrides={}){return {token,ready:true,window:true,dom:true,preload:true,boot:true,fullscreen:true,youtube:true,packaged:true,...overrides};}
 
 test('native runner gives the child an empty isolated profile, strips cloud keys and accepts only full proof',async t=>{
  const {executable}=await fixture(t);let options,profile;
@@ -21,12 +21,12 @@ test('native runner gives the child an empty isolated profile, strips cloud keys
   assert.equal(selected.shell,false);assert.equal(selected.windowsHide,true);for(const key of Object.keys(selected.env))assert.equal(/^(OPENAI_API_KEY|ELEVENLABS_API_KEY|ELECTRON_RUN_AS_NODE|NODE_OPTIONS)$/i.test(key),false);
   const child=childProcess();setImmediate(async()=>{assert.deepEqual(await readdir(profile),[]);child.stdout.write('ordinary internal log\nJARVIS_NATIVE_SMOKE='+JSON.stringify(report(selected.env.JARVIS_SMOKE_TOKEN))+'\n');child.emit('close',0);});return child;
  }});
- assert.deepEqual(result,{ready:true,window:true,dom:true,preload:true,boot:true,fullscreen:true,packaged:true});assert.equal(options.env.KEEP,'kept');assert.match(options.env.JARVIS_SMOKE_TOKEN,/^[a-f0-9]{64}$/);await assert.rejects(access(profile));
+ assert.deepEqual(result,{ready:true,window:true,dom:true,preload:true,boot:true,fullscreen:true,youtube:true,packaged:true});assert.equal(options.env.KEEP,'kept');assert.match(options.env.JARVIS_SMOKE_TOKEN,/^[a-f0-9]{64}$/);await assert.rejects(access(profile));
 });
 
 test('an unrelated marker, partial UI or development process cannot pass the packaged smoke',async t=>{
  const {executable}=await fixture(t);
- for(const change of [{token:'wrong-token'},{dom:false},{preload:false},{boot:false},{fullscreen:false},{packaged:false}]){
+ for(const change of [{token:'wrong-token'},{dom:false},{preload:false},{boot:false},{fullscreen:false},{youtube:false},{packaged:false}]){
   let profile;
   await assert.rejects(runNativeSmoke({executable,spawnImpl(command,args,options){
    profile=options.env.JARVIS_SMOKE_DATA_DIR;const child=childProcess();setImmediate(()=>{child.stdout.write('JARVIS_NATIVE_SMOKE='+JSON.stringify(report(options.env.JARVIS_SMOKE_TOKEN,change))+'\n');child.emit('close',0);});return child;
@@ -43,4 +43,13 @@ test('a deadlocked main times out, terminates only its child and cleans the disp
 test('the runner never treats a successful marker followed by a crash as a passing launch',async t=>{
  const {executable}=await fixture(t);
  await assert.rejects(runNativeSmoke({executable,spawnImpl(command,args,options){const child=childProcess();setImmediate(()=>{child.stdout.write('JARVIS_NATIVE_SMOKE='+JSON.stringify(report(options.env.JARVIS_SMOKE_TOKEN))+'\n');child.emit('close',1);});return child;}}),/encerrou com falha/);
+});
+
+test('YouTube native smoke diagnostics expose only fixed stage codes from the authenticated child',async t=>{
+ const {executable}=await fixture(t);
+ for(const code of ['JARVIS_YOUTUBE_FIXTURE_SEARCH_FAILED','C:/private/secret']){
+  await assert.rejects(runNativeSmoke({executable,spawnImpl(_command,_args,options){const child=childProcess();setImmediate(()=>{child.stdout.write('JARVIS_NATIVE_SMOKE='+JSON.stringify({token:options.env.JARVIS_SMOKE_TOKEN,ready:false,error:code})+'\n');child.emit('close',1);});return child;}}),error=>{
+   assert.doesNotMatch(error.message,/private|secret/);assert.equal(error.message.includes('JARVIS_YOUTUBE_FIXTURE_SEARCH_FAILED'),code.startsWith('JARVIS_'));return true;
+  });
+ }
 });

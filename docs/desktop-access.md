@@ -1,8 +1,10 @@
-# Aplicativos, pastas, web e clima — revisão 0.6.0
+# Aplicativos, pastas, web e clima — revisão 0.6.1
+
+A 0.6.1 acrescenta três ferramentas específicas para pedidos de YouTube na conversa nativa por voz ou texto: `youtube_search`, `youtube_play` e `youtube_control`. A busca encontra até oito vídeos observados; tocar exige um ID descoberto, e tocar/pausar precisam de evidência do player em uma janela controlada do Jarvis. Esse fluxo não controla a aba do YouTube aberta no navegador padrão. [Comandos, teste e limites](youtube.md). CI, pacote e ensaio físico da 0.6.1 ainda pendentes.
 
 Na 0.6.0, o pedido explícito de abrir um site também segue diretamente ao navegador padrão do Windows, sem outro clique em **Autorizar**. `browser_open` preserva o endereço HTTP(S) pedido e completa somente HTTPS quando recebe um domínio sem esquema. Não troca o destino por uma pesquisa ou pela página inicial do Google. Essa abertura não autoriza leitura da página, login, formulários ou outras ações. A ponte privada [Ultron → Jarvis](ultron.md) usa a mesma rota para `jarvis_open_website`.
 
-O aplicativo não usa uma janela dedicada para essa navegação. O despacho aceito fica como **Enviada ao Windows**, sem alegar que a página foi carregada ou observada. A leitura de seleção do navegador externo não está disponível. As revisões a seguir registram a evolução histórica; suas confirmações e resultados não substituem a política atual.
+A abertura genérica de sites não usa uma janela dedicada. O despacho aceito fica como **Enviada ao Windows**, sem alegar que a página foi carregada ou observada. A leitura de seleção do navegador externo não está disponível. As revisões a seguir registram a evolução histórica; suas confirmações e resultados não substituem a política atual.
 
 A 0.4.0 acrescenta descoberta de aplicativos instalados, abertura de pastas locais e consultas explícitas à web e ao clima. Essas ferramentas podem ser solicitadas por texto ou durante a conversa com a voz Jarvis configurada. O núcleo aprovado da 0.3.1, reprodução a 0,95×, efeito metálico 0,78, música privada e painel limpo são preservados.
 
@@ -26,6 +28,9 @@ O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/acti
 | “Abra a pasta D:\Projetos.” | `folders_open` confere o caminho absoluto local existente e pede confirmação. A unidade e a pasta precisam existir e estar acessíveis à conta Windows. |
 | “Abra https://example.org no navegador.” | `browser_open` encaminha esse endereço ao navegador padrão do Windows, sem confirmação extra. O resultado informa despacho, sem comprovar carregamento ou leitura. |
 | “Acesse example.org.” | `browser_open` usa `https://example.org/` no navegador padrão, sem substituir por Google ou busca. |
+| “Pesquise no YouTube vídeos sobre astronomia.” | `youtube_search` usa a janela controlada e devolve até oito IDs/títulos/canais observados. Um pedido somente de busca não inicia reprodução. |
+| “Toque o primeiro vídeo que encontrou.” | `youtube_play` recebe o ID daquele resultado da última busca no perfil e verifica o player; não inventa um endereço ou escolhe um vídeo ambíguo. |
+| “Pause o vídeo do YouTube.” | `youtube_control` com `action:'pause'` atua no player da janela controlada. Para continuar, usa `action:'play'`; não controla o navegador externo. |
 | “Leia o texto desta página: https://example.org.” | `web_read` pede confirmação e consulta o texto público do endereço, sem usar uma sessão autenticada. |
 | “Pesquise na web as novidades sobre um assunto.” | `web_search` pede confirmação e faz uma busca hospedada na OpenAI, retornando texto e fontes. |
 | “Como está o tempo agora na minha cidade configurada?” | `weather_current` solicita uma consulta atual à Open-Meteo e retorna condição, previsão de hoje e horários. |
@@ -65,6 +70,8 @@ Essa abertura não aceita URLs, compartilhamentos UNC, caminhos de dispositivo, 
 ## Abrir um endereço e ler uma página são operações diferentes
 
 `browser_open` encaminha ao navegador padrão o endereço HTTP(S) pedido explicitamente, sem uma segunda confirmação. Um domínio sem esquema recebe HTTPS; um destino ambíguo exige esclarecer o endereço, sem inventar outro. Essa rota usa a integração externa do Windows e permanece `unverified` quando há apenas confirmação de despacho. Não verifica carregamento, não lê a página e não concede ao Jarvis acesso ao login, cookies ou abas do navegador pessoal.
+
+Pedir **“abra o YouTube”** pode abrir apenas o site por essa rota. Para encontrar e tocar um vídeo, peça a busca ou reprodução no YouTube: as três ferramentas específicas usam a janela controlada descrita no [guia](youtube.md). Elas não tornam `browser_open` uma automação geral de sites. Login/consentimento/CAPTCHA e escolhas ambíguas interrompem o fluxo automático para intervenção do usuário.
 
 `browser_read_selected` não consegue ler a seleção no navegador externo. O Jarvis deve informar essa limitação sem alegar que viu a aba ou o trecho. Compartilhar um texto na conversa ou pedir leitura pública pela ferramenta apropriada são fluxos separados.
 

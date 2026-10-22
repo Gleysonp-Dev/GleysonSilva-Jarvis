@@ -21,6 +21,9 @@ import { GreetingMusicStore } from './greeting-music.mjs';
 import { TRAY_ICON } from './tray-icon.mjs';
 import { createUltronBridge } from '../../packages/ultron/index.mjs';
 import { UltronCommands, UltronCommandError } from '../../packages/ultron/commands.mjs';
+import { YouTubeController } from './youtube.mjs';
+import { createYouTubeWindowFactory } from './youtube-window.mjs';
+import { runYouTubeFixtureSmoke } from './youtube-smoke.mjs';
 
 const PRODUCT = 'Projeto GleysonSilva-Jarvis';
 const APP_ORIGIN = 'jarvis://app';
@@ -71,7 +74,7 @@ if (process.argv.includes('--jarvis-smoke')) {
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let mainWindow, settings, runtime, provider, vision, startupService, contextService, contextFlight, reception, speech, musicStore, wakeService, tray;
+let mainWindow, settings, runtime, provider, vision, startupService, contextService, contextFlight, reception, speech, musicStore, wakeService, tray, youtube;
 let startupStatus = { available: false, enabled: false }, standbyActive = false;
 let generation = 0, shuttingDown = false, cleanupPromise, shutdownPromise, shutdownComplete = false, textRunId;
 let ultronBridge, ultronFlight, ultronCommands;
@@ -148,6 +151,7 @@ function newRun(runId, profileId, kind) {
 async function clearSessions(reason) {
   generation++;
   const ultronStopped = stopUltronBridge();
+  youtube?.close();
   speech?.reset();
   reception?.reset();
   const wakeStopped = wakeService?.stop(); standbyActive = false; updateTray();
@@ -435,8 +439,13 @@ async function startApplication() {
   let workspaceRoot = settings.get().workspaceRoot || fallbackWorkspace;
   const windows = createWindowsAdapters({ getApps: () => settings.get().apps, openExternal: url => shell.openExternal(webURL(url)),
     openPath: folder => shell.openPath(folder), getKnownFolder: name => app.getPath(name) });
+  youtube = new YouTubeController({ getProfileId: () => settings.get().profileId,
+    createWindow: createYouTubeWindowFactory({ BrowserWindow, session, product: PRODUCT }) });
   const web = new WebService();
   const adapters = { ...windows, openBrowser, readBrowserSelection, openProject,
+    searchYouTube: (query, options) => youtube.search(query, options),
+    playYouTube: (videoId, options) => youtube.play(videoId, options),
+    controlYouTube: (action, options) => youtube.control(action, options),
     readWebsite: (input, options) => web.read(input, options),
     searchWeb: (input, options) => provider.searchWeb(input, options),
     readWeather: options => startupService.readWeather({}, { ...options, refresh: true }) };
@@ -451,7 +460,7 @@ async function startApplication() {
   startupService = new StartupGreetingService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() });
   ultronCommands = new UltronCommands({
     getSettings: () => ({ ...settings.get(), hasElevenKey: Boolean(settings.getElevenSecret()) }),
-    getVersion: () => app.getVersion?.() || '0.6.0', emit: publish,
+    getVersion: () => app.getVersion?.() || '0.6.1', emit: publish,
     isWindowAvailable: () => Boolean(mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()),
     readWeather: options => startupService.readWeather({}, options),
     openBrowser: ({ signal }) => runtime.call({ id: randomUUID(), runId: `ultron-${randomUUID()}`, profileId: settings.get().profileId, name: 'apps_open', args: { appId: 'browser' } }, { signal }),
@@ -521,15 +530,16 @@ async function startApplication() {
       return { dom, preload, fullscreen, boot: !!(data && typeof data.settings?.profileId === 'string' && Array.isArray(data.snapshot?.memories) && Array.isArray(data.snapshot?.tasks) && typeof data.capabilities?.desktop === 'boolean') };
     })()`, false), 20000, 'JARVIS_SMOKE_TIMEOUT');
     if (!result?.dom || !result?.preload || !result?.boot || !result?.fullscreen) throw new Error('JARVIS_SMOKE_NOT_READY');
+    result.youtube = await runYouTubeFixtureSmoke({ BrowserWindow, session, product: PRODUCT });
     process.stdout.write(`JARVIS_NATIVE_SMOKE=${JSON.stringify({ token: smoke.token, ready: app.isReady(), window: !mainWindow.isDestroyed(), ...result, packaged: app.isPackaged })}\n`);
     await cleanup('smoke_test'); app.exit(0);
   }
 }
 
-async function handleStartupFailure() {
+async function handleStartupFailure(error) {
   const message = 'Não foi possível iniciar o Jarvis. O aplicativo será encerrado. Tente abrir novamente; se o problema persistir, informe o código JARVIS_STARTUP_FAILED.';
   console.error('[Jarvis] JARVIS_STARTUP_FAILED');
-  if (smoke) process.stdout.write(`JARVIS_NATIVE_SMOKE=${JSON.stringify({ token: smoke.token, ready: false, error: 'JARVIS_STARTUP_FAILED' })}\n`);
+  if (smoke) process.stdout.write(`JARVIS_NATIVE_SMOKE=${JSON.stringify({ token: smoke.token, ready: false, error: /^JARVIS_YOUTUBE_FIXTURE_(SEARCH|PLAY|PAUSE|RESUME)_FAILED$/.test(error?.message || '') ? error.message : 'JARVIS_STARTUP_FAILED' })}\n`);
   else try { dialog.showErrorBox(PRODUCT, message); } catch { /* The fixed diagnostic above is also available to the launcher. */ }
   try { await cleanup('startup_failed'); } catch { /* Exit still releases native resources when initialization was incomplete. */ }
   app.exit(1);

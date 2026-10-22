@@ -65,6 +65,9 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
     './startup.mjs': { configureStartup: () => ({ available: true, enabled: false }), isStandbyLaunch: () => false, WindowsWakeService: class { async stop() { calls.wakeStop++; if (blockWake) await wake.promise; } } },
     './greeting-music.mjs': { GreetingMusicStore: class { available() { return false; } } },
     './tray-icon.mjs': { TRAY_ICON: '' },
+    './youtube-window.mjs': { createYouTubeWindowFactory: () => () => { throw new Error('Unexpected YouTube window.'); } },
+    './youtube-smoke.mjs': { runYouTubeFixtureSmoke: () => { throw new Error('Unexpected smoke fixture.'); } },
+    './youtube.mjs': { YouTubeController: class { search = async (query, options) => { calls.youtubeSearch = { query, options }; return { verified: true, results: [] }; }; play = async (videoId, options) => { calls.youtubePlay = { videoId, options }; return { verified: true }; }; control = async (action, options) => { calls.youtubeControl = { action, options }; return { verified: true }; }; close() { calls.youtubeClose = (calls.youtubeClose ?? 0) + 1; } } },
   };
   const module = { exports: {} };
   const process = { platform: 'win32', argv: ['Jarvis.exe'], env: {}, resourcesPath: 'C:\\fake-engine', stdout: { write() {} } };
@@ -189,6 +192,18 @@ test('native runtime wires website, search and forced fresh weather without gree
   assert.deepEqual(f.calls.search.input, { query: 'current test' });
   await f.adapters.readWeather({ signal, refresh: false });
   assert.deepEqual(f.calls.weather.input, {}); assert.equal(f.calls.weather.options.refresh, true); assert.equal(f.calls.weather.options.signal, signal);
+});
+
+test('YouTube adapters forward the current operation scope and close before slow shutdown cleanup', async t => {
+  const f = await fixture(t, { blockWake: true }), signal = new AbortController().signal, options = { signal, profileId: 'default' };
+  await f.adapters.searchYouTube('Banda Música', options);
+  await f.adapters.playYouTube('abcdefghijk', options);
+  await f.adapters.controlYouTube('pause', options);
+  assert.deepEqual(f.calls.youtubeSearch, { query: 'Banda Música', options });
+  assert.deepEqual(f.calls.youtubePlay, { videoId: 'abcdefghijk', options });
+  assert.deepEqual(f.calls.youtubeControl, { action: 'pause', options });
+  const stopped = f.shutdown('window_closed'); assert.equal(f.calls.youtubeClose, 1);
+  f.releaseWake(); await stopped;
 });
 
 test('requested sites dispatch through the default Windows browser and never create a dedicated window', async t => {

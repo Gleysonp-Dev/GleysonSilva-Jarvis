@@ -1,5 +1,7 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
+A 0.6.1 prepara três ferramentas YouTube para conversa nativa por voz/texto: busca de até oito resultados reais, tocar por ID observado e tocar/pausar com evidência do player. CI, pacote e ensaio físico desta revisão estão pendentes. A janela controlada não opera abas do navegador pessoal; o plugin Ultron permanece 0.6.0 com cinco ferramentas. [Contrato e limites](youtube.md).
+
 A 0.6.0 prepara a ponte privada Ultron → Jarvis local com cinco ferramentas MCP. Validar protocolo, permissão local explícita, acesso em tarefa compatível e resultados físicos separadamente. Verificação local: 491 testes, 480 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox e zero skips; TypeScript/build aprovados. O plugin privado foi instalado e habilitado pela CLI oficial, com listagem conferida. O [CI 2adf71d](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovou 491/491 testes, zero falhas/skips, TypeScript/build/pacote e abertura nativa do Jarvis; Windows e plugin foram baixados e conferidos. Handshake MCP instalado 0.6.0 e recusa inicial NOT_RUNNING foram verificados. Após o usuário ativar a conexão na interface, cinco ferramentas ficaram disponíveis nesta conversa e o status real confirmou `connected: true`, versão 0.6.0 e cidade/voz configuradas. A chamada real de abertura do site solicitado retornou despacho `unverified`, sem comprovar a janela. Clima e voz ao vivo pela ponte e teste pelo próprio Dot permanecem pendentes; o Dot pessoal não foi chamado. [Fluxo e limites](ultron.md).
 
 A 0.5.3 dispensa somente a segunda confirmação de `apps_open/browser`. Testar pedido explícito de navegador padrão, zero cartões de autorização, despacho único e cancelamento antes/durante a fila. URLs específicas e outros aplicativos devem continuar aguardando a decisão. O autor confirmou abertura após clicar em Autorizar na versão anterior; isso não comprova o novo ramo automático. [CI b856f89 da 0.5.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39534111302) aprovado: **415/415 testes, zero falhas/skips**, TypeScript, build, pacote e abertura real do Jarvis, incluindo entrada/saída de tela cheia. A dispensa foi verificada com fronteiras substituídas; a abertura automática do navegador no destino ainda deve ser ensaiada.
@@ -23,8 +25,22 @@ A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a c
 | Voz Realtime anterior | Resposta ouvida pelo usuário, em marin. | Nova rota de saída ElevenLabs com o clone desejado. |
 | Saudação/áudio | Narração aprovada a 0,95× com altura preservada e efeito metálico fixo 0,78. | Conversa nova, login ou ativação automática. |
 | Ajustes no navegador | Opções nativas de login/palavra desabilitadas; espera exige voz/chave/cidade; opções salvas preservadas. | Funcionamento do registro de login ou reconhecedor Windows. |
+| Palmas 0.6.0 | O usuário confirmou ativação física por duas palmas na sessão testada. | Novo login/reinício do Windows, todos os ambientes e o fluxo YouTube 0.6.1. |
 
 O [registro de validação](validation.md) apresenta os limites e o histórico, incluindo o roteiro curto aprovado pelo autor. **A nova sequência integrada com login, palmas, música, roupa e conversa contínua ainda exige ensaio físico.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
+
+## YouTube nativo — roteiro 0.6.1
+
+1. No aplicativo nativo com **MVP / 06.1**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
+2. Pedir um dos resultados e conferir que `youtube_play` usa exatamente o ID observado no perfil. Um ID inventado, de outro perfil ou formato incompatível deve ser recusado antes da reprodução.
+3. Confirmar o vídeo correto e o estado do player. Registrar separadamente vídeo carregado, estado de reprodução e som efetivamente ouvido; nenhum desses resultados pode ser deduzido só do despacho de navegação.
+4. Pedir pausa e retomada e conferir o estado real do player. Os comandos devem atuar somente na janela controlada, sem operar abas externas ou outro player.
+5. Pedir somente para abrir youtube.com e confirmar que a rota genérica continua no navegador padrão. A abertura não deve ser anunciada como pesquisa ou reprodução.
+6. Ensaiar pedido ambíguo, lista vazia, vídeo removido/restrito, anúncio, falha de rede, login, consentimento e CAPTCHA. O Jarvis deve informar o limite ou pedir intervenção, sem clicar automaticamente em aceite/login ou anunciar vídeo tocando sem evidência.
+7. Cancelar durante busca/reprodução, fechar a janela e trocar perfil/reset. Observar limpeza, recusa de resultados/IDs antigos e ausência de retomada ou fala tardia. Conferir continuidade da voz/recepção e preservação dos ajustes privados.
+8. Conferir que o plugin Ultron instalado continua anunciando somente as cinco ferramentas anteriores, sem ferramentas YouTube. Registrar os ensaios do Dot em separado.
+
+Os testes automáticos devem cobrir contratos fechados, consulta limitada, IDs observados por perfil, estados do player, cancelamento e falhas com fronteiras substituídas. Essa cobertura não substitui o ensaio real do site. [Detalhes](youtube.md).
 
 ## Ponte privada Ultron — roteiro 0.6.0
 

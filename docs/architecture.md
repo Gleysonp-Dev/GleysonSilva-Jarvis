@@ -1,12 +1,14 @@
 # Arquitetura — Projeto GleysonSilva-Jarvis
 
+A revisão 0.6.1 prepara pesquisa e reprodução de YouTube pela conversa nativa do Jarvis. `youtube_search`, `youtube_play` e `youtube_control` passam pelo runtime e por um controlador de janela Electron específico. A rota genérica `browser_open` continua abrindo o navegador padrão sem controle de suas abas. O plugin privado Ultron permanece 0.6.0 com cinco ferramentas; não recebe as três ferramentas YouTube. CI/pacote e ensaio físico desta revisão ainda pendentes. [YouTube](youtube.md).
+
 A 0.6.0 acrescenta uma ponte privada opcional para **Ultron → Jarvis local**. O plugin reúne skill e servidor MCP STDIO; o cliente chama um named pipe local autenticado, e o processo principal vincula as operações ao perfil/configuração atuais. A ponte começa desligada e oferece cinco ferramentas limitadas: estado, clima atual, abertura genérica do navegador, abertura do site solicitado e narração. Não exporta identidade ou memória do Dot nem oferece entrada de mensagens ao Dot pessoal. O plugin privado 0.6.0 está instalado e habilitado; listagem, handshake e recusa inicial NOT_RUNNING foram conferidos. Depois da ativação feita pelo usuário, cinco ferramentas MCP ficaram disponíveis nesta conversa e o status real confirmou conexão com cidade/voz configuradas. O [CI 2adf71d](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovou 491/491 testes, TypeScript/build/pacote e abertura nativa do Jarvis; os artefatos foram baixados e conferidos. Uma chamada de abertura do site solicitado retornou despacho `unverified`, sem verificar a janela. A ponte está conectada nesta máquina; não houve chamada pelo Dot pessoal ou testes de clima/voz ao vivo por essa integração. [Guia](ultron.md).
 
 Na 0.5.3, `apps_open/browser` dispensa a segunda autorização para a abertura solicitada do navegador padrão no destino fixo Google. Continua na fila serializada, com argumentos imutáveis, cancelamento, proteção contra duplicação e relato de despacho sem alegar verificação da janela. As outras ferramentas mantêm a política anterior. Não altera as regras do Firewall do Windows.
 
 A 0.5.2 acrescenta controle local da janela em tela cheia por botão/F11, saída por Esc e sincronização do estado nativo. A bridge aceita somente o booleano pela origem/frame principal confiável; esse controle de interface não passa pelo modelo nem altera a conversa. [CI 4e90ff5 da 0.5.2](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39531815223) aprovado: **413/413 testes, zero falhas/skips**, TypeScript, build, pacote e entrada/saída de tela cheia pelo botão real no aplicativo Windows. [Detalhes](fullscreen.md).
 
-O MVP 0.6.0 separa interface, leitura de contexto/web, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. A recepção encadeia saudação com música, um quadro opcional para comentar roupa e entrada opcional em conversa contínua. A preparação da roupa começa durante a reprodução da saudação, mas a narração aguarda seu fim. A abertura genérica de navegador usa o padrão do Windows sem cadastro manual de executável. Preserva o núcleo 0.3.1 aprovado pelo autor, a voz e os acessos desktop/web da 0.4.0. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador.
+O MVP 0.6.1 separa interface, leitura de contexto/web, comunicação com modelos, síntese de fala, política de execução e reconhecimento facial. A recepção encadeia saudação com música, um quadro opcional para comentar roupa e entrada opcional em conversa contínua. A preparação da roupa começa durante a reprodução da saudação, mas a narração aguarda seu fim. A abertura genérica de navegador usa o padrão do Windows sem cadastro manual de executável. Preserva o núcleo 0.3.1 aprovado pelo autor, a voz e os acessos desktop/web da 0.4.0. O modelo interpreta e propõe ferramentas; o executor decide quais operações aceita e registra o resultado. Texto gerado não confirma efeito no computador.
 
 O [CI 475f3f4 da 0.4.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39523160110) aprovou **343/343 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real daquela versão. [CI fced652 da 0.5.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39526640376) aprovado: **388/388 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa real, com os limites do ensaio físico registrados em [Validação](validation.md). Guia de comandos preservados em [Acesso desktop e web](desktop-access.md).
 
@@ -43,6 +45,7 @@ flowchart LR
     Runtime --> Files[Pasta autorizada]
     Runtime --> Apps[Adaptadores Windows]
     Runtime --> Browser[Navegador do sistema]
+    Runtime --> YouTube[Janela YouTube controlada e isolada]
     Runtime --> Folders[Explorador: pasta local]
     Runtime --> Web[Leitor de texto público / DNS validado]
     Runtime --> Search[Pesquisa hospedada OpenAI]
@@ -61,6 +64,7 @@ flowchart LR
 | Controlador de fala | Texto limitado, síntese ElevenLabs, correlação e cancelamento por geração. | Poder de executar ferramentas ou trocar silenciosamente de voz. |
 | ContextService | Clima e atividade local observados, com fonte, horário e estados parciais. | Perfil recebido da interface, autoridade para agir ou acesso a chaves de voz. |
 | Runtime | Limites de pasta, confirmação, idempotência, efeitos e registro persistente. | Instruções embutidas em arquivos, seleção de página ou texto de memória. |
+| Controlador YouTube | Pesquisa observada, IDs vinculados ao perfil e evidência do player para tocar/pausar na janela própria. | Abas/cookies do navegador pessoal, IDs inventados ou instruções da página para executar outras ferramentas. |
 | Leitor web | Texto público HTTP(S), DNS/destino, redirecionamentos, tamanho e prazo limitados. | Cookies, login, JavaScript ou instruções encontradas na página. |
 | Worker facial | Detectar, alinhar e extrair vetores de um quadro. | Nomes, chaves, banco de tarefas ou acesso à rede. |
 
@@ -89,6 +93,12 @@ O fluxo abaixo é a conversa normal do Jarvis com a API OpenAI. A ponte Ultron t
 7. O adaptador executa e informa sucesso verificado, falha ou resultado não verificado. O serviço entrega o resultado ao modelo para a continuação.
 
 O provider limita turnos, quantidade de ferramentas e prazo total. Repetir uma chamada já registrada não repete automaticamente seu efeito. Erros externos e nativos são convertidos em mensagens curtas; cabeçalhos, chave e corpos brutos não voltam à interface.
+
+## YouTube na conversa nativa — 0.6.1
+
+`youtube_search` aceita consulta de até 300 caracteres e devolve até oito vídeos únicos observados, com ID, título, canal e URL canônica. Os textos recebidos são dados não confiáveis. Um pedido somente de busca não inicia vídeo. `youtube_play` aceita somente um ID de vídeo com 11 caracteres observado na última busca do controlador no perfil atual. `youtube_control` aceita somente `play` ou `pause` e atua no player dessa janela. Pedidos explícitos dessas operações dispensam um segundo cartão de autorização; isso não amplia outras permissões do runtime.
+
+A janela YouTube não recebe a bridge da interface e não usa o login/cookies do navegador pessoal. O controlador precisa relacionar ID e URL do vídeo ao estado observado do player. Reprodução exige mídia pronta, player não pausado e progresso entre duas observações; pausa exige estado pausado. Um despacho ou carregamento de página, sozinho, não confirma reprodução. Um estado compatível do player também não prova som ouvido pelo usuário. Login, consentimento, CAPTCHA, seleção ambígua e conteúdo indisponível exigem resposta honesta e intervenção da pessoa. O fluxo não automatiza outros sites nem abas externas. [Contrato e validação](youtube.md).
 
 ## Voz, pulsação e interrupção
 

@@ -1,5 +1,11 @@
 # Validação do MVP
 
+## Revisão 0.6.1 — YouTube em preparação; CI e ensaio físico pendentes
+
+Esta revisão prepara três ferramentas na conversa nativa por voz/texto: `youtube_search` para até oito resultados observados; `youtube_play` para um ID previamente encontrado no perfil; `youtube_control` para tocar/pausar com evidência do player. A janela YouTube é separada da abertura genérica no navegador padrão e não dá controle das abas ou da conta pessoal. O plugin privado Ultron continua 0.6.0 com suas cinco ferramentas.
+
+**CI, pacote Windows e ensaio físico da 0.6.1 ainda pendentes.** A prova 491/491, os hashes e a abertura nativa registrados a seguir pertencem à 0.6.0. Devem ser ensaiados pesquisa real, escolha, reprodução/pausa observadas, bloqueio de login/consentimento/CAPTCHA, cancelamento, troca de perfil e preservação da voz/recepção. Ver [YouTube](youtube.md) e [plano de testes](test-plan.md).
+
 ## Revisão 0.6.0 — CI e pacotes conferidos; operações ao vivo pendentes
 
 Implementação de cinco ferramentas MCP por execução local: estado, clima atual, navegador padrão, site solicitado e narração. A ponte começa desligada, exige habilitação explícita no Jarvis e mantém a direção Ultron → Jarvis. Não há endpoint pessoal do Dot, migração de memória ou envio automático de microfone/câmera por essa ponte.
@@ -16,7 +22,7 @@ Depois, o usuário confirmou abrir o Jarvis 0.6.0 e ativar a conexão pela inter
 
 Uma chamada real de `jarvis_open_website` com o domínio explicitamente solicitado retornou `ok: true` e `status: "unverified"`: a abertura foi solicitada ao navegador, mas a página/janela não foi verificada. Não se registrou leitura do site, login, fala, consulta meteorológica ou captura pela ponte. **Essas chamadas partiram desta conversa; o Dot pessoal Ultron não foi chamado nem enviou pedidos.** Seu ensaio próprio e os testes de clima/voz ao vivo continuam pendentes.
 
-Uma tentativa real de `jarvis_speak` com uma frase curta retornou **BUSY**, sem confirmação de reprodução. A chamada não foi repetida e preservou a conversa/recepção existentes; o som pela ponte continua pendente. A interface mostrava espera local armada, e os ajustes de início no login, espera e palmas estavam habilitados; a palavra de ativação estava desabilitada. Isso não comprova ativação física por duas palmas na 0.6.0: o teste do usuário ainda aguarda resultado. Nenhuma alteração de código foi feita a partir dessas observações.
+Uma tentativa real de `jarvis_speak` com uma frase curta retornou **BUSY**, sem confirmação de reprodução. A chamada não foi repetida e preservou a conversa/recepção existentes; o som pela ponte continua pendente. A interface mostrava espera local armada, e os ajustes de início no login, espera e palmas estavam habilitados; a palavra de ativação estava desabilitada. Depois, o usuário confirmou que as palmas funcionaram na 0.6.0. Esse relato valida a ativação física observada nessa sessão; não comprova reinício real do Windows nem todos os cenários da recepção. Nenhuma alteração de código foi feita a partir dessas observações.
 
 Registrar separadamente o handshake e a lista das cinco ferramentas, o uso com ponte desligada, o clima com fonte, o navegador genérico e um site exato com/sem HTTPS, a frase efetivamente ouvida e o comportamento de interrupção/ocupado. Uma resposta de despacho ao Windows não prova janela aberta; o recibo de fim do áudio não prova som ouvido. Ver [Ultron](ultron.md) e [Plano de testes](test-plan.md).
 

@@ -7,7 +7,7 @@ import { spawn, execFile } from 'node:child_process';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const MARKER = 'JARVIS_NATIVE_SMOKE=';
-const CHECKS = ['ready', 'window', 'dom', 'preload', 'boot', 'fullscreen'];
+const CHECKS = ['ready', 'window', 'dom', 'preload', 'boot', 'fullscreen', 'youtube'];
 const EXCLUDED_ENV = new Set(['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'ELECTRON_RUN_AS_NODE', 'NODE_OPTIONS']);
 
 function validReport(report, token, expectedPackaged) {
@@ -39,7 +39,7 @@ export async function runNativeSmoke({ executable = path.join(ROOT, 'release', '
   let child;
   try {
     const report = await new Promise((resolve, reject) => {
-      let completed = false, stopped = false, buffer = '', outputBytes = 0, confirmed;
+      let completed = false, stopped = false, buffer = '', outputBytes = 0, confirmed, diagnostic = '';
       const finish = async (error, value) => {
         if (completed) return;
         completed = true;
@@ -66,13 +66,14 @@ export async function runNativeSmoke({ executable = path.join(ROOT, 'release', '
           try {
             const value = JSON.parse(line.slice(MARKER.length));
             if (validReport(value, token, expectedPackaged)) confirmed = value;
+            else if (value?.token === token && /^JARVIS_YOUTUBE_FIXTURE_(SEARCH|PLAY|PAUSE|RESUME)_FAILED$/.test(value.error || '')) diagnostic = ` (${value.error})`;
           } catch { /* A marker is accepted only with the process nonce and all real checks. */ }
         }
       });
       child.once('error', () => { void finish(new Error('O processo do ensaio nativo falhou ao iniciar.')); });
       child.once('close', code => {
         stopped = true;
-        if (code !== 0) { void finish(new Error('O aplicativo nativo encerrou com falha.')); return; }
+        if (code !== 0) { void finish(new Error('O aplicativo nativo encerrou com falha.' + diagnostic)); return; }
         if (!confirmed) { void finish(new Error('A abertura nativa não confirmou janela, interface e comunicação interna.')); return; }
         void finish(null, Object.fromEntries([...CHECKS, 'packaged'].map(key => [key, confirmed[key]])));
       });

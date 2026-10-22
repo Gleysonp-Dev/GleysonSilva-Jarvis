@@ -1,8 +1,18 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Atualização 0.6.0 — integração privada com Ultron
+## Revisão 0.6.1 em preparação — YouTube na conversa nativa
 
-Código **0.6.0**, indicador **MVP / 06.0**. A ponte MCP é opcional e começa desligada. Expõe somente estado, clima atual configurado, navegador padrão no Google, site HTTP(S) solicitado e narração de texto pela voz Jarvis. Não conecta o microfone ao Dot nem transfere identidade, memória ou sessão do Ultron.
+Indicador esperado **MVP / 06.1**. Os pedidos por voz ou texto usam três ferramentas novas: `youtube_search({query})`, `youtube_play({videoId})` e `youtube_control({action:'play'|'pause'})`. A busca entrega até oito resultados realmente observados; tocar exige um ID dessa descoberta no perfil atual. Pesquisa, escolha e reprodução são etapas distintas: abrir youtube.com no navegador padrão continua sendo apenas uma abertura de site.
+
+O fluxo YouTube usa uma janela controlada pelo Jarvis e não herda o login, cookies ou abas do navegador pessoal. Pedidos de login, consentimento, CAPTCHA ou uma escolha ambígua devem ser entregues ao usuário; não autorize cliques automáticos para ultrapassá-los. Anúncios, bloqueios e disponibilidade do vídeo podem impedir reprodução. [Roteiro e limites](docs/youtube.md).
+
+**CI, pacote Windows e ensaio físico da 0.6.1 pendentes.** Não apresente o pacote 0.6.0 abaixo como se contivesse estas ferramentas. Preserve os ajustes privados, feche a versão anterior por X/Sair e confira a versão antes do teste. O plugin Jarvis · Ultron permanece 0.6.0 e oferece as mesmas cinco ferramentas; as ferramentas YouTube são da conversa nativa, sem atualização do MCP nesta revisão.
+
+O usuário confirmou que duas palmas ativaram a recepção na 0.6.0. Esse resultado da sessão não substitui um ensaio após novo login/reinício do Windows.
+
+## Base 0.6.0 — integração privada com Ultron
+
+Código da base conferida **0.6.0**, indicador **MVP / 06.0**. A ponte MCP é opcional e começa desligada. Expõe somente estado, clima atual configurado, navegador padrão no Google, site HTTP(S) solicitado e narração de texto pela voz Jarvis. Não conecta o microfone ao Dot nem transfere identidade, memória ou sessão do Ultron.
 
 [CI 2adf71d da 0.6.0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovado: **491/491 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa do Jarvis com tela cheia. O plugin privado foi instalado e habilitado pela CLI oficial e conferido por handshake MCP 0.6.0. Depois da ativação feita pelo usuário na interface, as cinco ferramentas ficaram disponíveis nesta conversa no turno seguinte, sem reiniciar o host. O status confirmou conexão real com cidade e voz configuradas; uma abertura de site retornou despacho `unverified`, sem confirmação da janela. Não houve chamada ao Dot pessoal nem teste de voz ou clima ao vivo pela ponte. Os artefatos históricos abaixo não incluem esta integração. Preserve configurações privadas e feche a versão anterior antes de testar o código novo; não apague chaves, voz, cidade ou música. O teste real pelo Ultron é uma etapa própria, ainda não confirmada.
 
