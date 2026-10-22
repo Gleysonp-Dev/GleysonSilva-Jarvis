@@ -1,14 +1,27 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Revisão 0.6.1 em preparação — YouTube na conversa nativa
+## Revisão 0.6.1 — YouTube na conversa nativa
 
-Indicador esperado **MVP / 06.1**. Os pedidos por voz ou texto usam três ferramentas novas: `youtube_search({query})`, `youtube_play({videoId})` e `youtube_control({action:'play'|'pause'})`. A busca entrega até oito resultados realmente observados; tocar exige um ID dessa descoberta no perfil atual. Pesquisa, escolha e reprodução são etapas distintas: abrir youtube.com no navegador padrão continua sendo apenas uma abertura de site.
+Código **0.6.1**, indicador **MVP / 06.1**. Os pedidos por voz ou texto usam três ferramentas novas: `youtube_search({query})`, `youtube_play({videoId})` e `youtube_control({action:'play'|'pause'})`. A busca entrega até oito resultados realmente observados; tocar exige um ID dessa descoberta no perfil atual. Pesquisa, escolha e reprodução são etapas distintas: abrir youtube.com no navegador padrão continua sendo apenas uma abertura de site.
 
 O fluxo YouTube usa uma janela controlada pelo Jarvis e não herda o login, cookies ou abas do navegador pessoal. Pedidos de login, consentimento, CAPTCHA ou uma escolha ambígua devem ser entregues ao usuário; não autorize cliques automáticos para ultrapassá-los. Anúncios, bloqueios e disponibilidade do vídeo podem impedir reprodução. [Roteiro e limites](docs/youtube.md).
 
-**CI, pacote Windows e ensaio físico da 0.6.1 pendentes.** Não apresente o pacote 0.6.0 abaixo como se contivesse estas ferramentas. Preserve os ajustes privados, feche a versão anterior por X/Sair e confira a versão antes do teste. O plugin Jarvis · Ultron permanece 0.6.0 e oferece as mesmas cinco ferramentas; as ferramentas YouTube são da conversa nativa, sem atualização do MCP nesta revisão.
+[CI 0f293d0 da 0.6.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovado: **529/529 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa. O player foi ensaiado em página HTTPS local com mídia PCM e áudio silenciado; isso não comprova o YouTube ao vivo ou som ouvido. **O ensaio real do usuário permanece pendente.** O Windows 0.6.1 foi baixado e conferido na seção a seguir; o pacote 0.6.0 não contém estas ferramentas. Preserve os ajustes privados, feche a versão anterior por X/Sair e confira a versão antes do teste. O plugin Jarvis · Ultron permanece 0.6.0 e oferece as mesmas cinco ferramentas; as ferramentas YouTube são da conversa nativa, sem atualização do MCP nesta revisão.
 
 O usuário confirmou que duas palmas ativaram a recepção na 0.6.0. Esse resultado da sessão não substitui um ensaio após novo login/reinício do Windows.
+
+## Pacote Windows 0.6.1 conferido
+
+Baixe o [Windows 0.6.1 da execução 39857691300](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300/artifacts/12459274688). ZIP e executável foram baixados e conferidos; a extração limitou-se às duas entradas esperadas.
+
+| Arquivo conferido | Tamanho em bytes | SHA-256 |
+| --- | ---: | --- |
+| ZIP do artefato Windows | 104.049.083 | `7d42b1916442bec925b64e74f50c3af44e87fdbcecd672f617416224170db795` |
+| GleysonSilva-Jarvis-0.6.1-Windows.exe | 104.038.318 | `092fff3bd06f929ec35218318cbcb06a15f9c672e34756e3295d19d5ad973a1f` |
+
+Retenção até **20 de janeiro de 2027, às 16h29, America/New_York**. É um download temporário do GitHub Actions e pode exigir login; não é um link permanente de release. Não houve novo pacote do plugin Ultron: mantenha a versão 0.6.0 quando usar a conexão privada opcional.
+
+Feche a versão anterior por **X/Sair**, extraia o ZIP e abra **GleysonSilva-Jarvis-0.6.1-Windows.exe**. Confira **MVP / 06.1** e preserve os ajustes privados. Para o ensaio real pendente, peça **“Pesquise no YouTube Thunderstruck do AC/DC”**, escolha um resultado observado e teste tocar, pausar e continuar. Observe vídeo correto, estado do player e som ouvido separadamente. Login, consentimento, CAPTCHA e anúncio pedem intervenção; o Jarvis não deve ultrapassá-los automaticamente. [Roteiro completo](docs/youtube.md).
 
 ## Base 0.6.0 — integração privada com Ultron
 

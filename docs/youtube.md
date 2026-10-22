@@ -1,6 +1,6 @@
 # YouTube na conversa nativa — 0.6.1
 
-A revisão 0.6.1 prepara pesquisa, escolha e reprodução de YouTube pelo Jarvis nativo no Windows. Os mesmos comandos podem ser solicitados por texto ou durante a conversa por voz configurada. **CI, pacote Windows e ensaio físico desta revisão ainda estão pendentes.** Os resultados 491/491 e downloads 0.6.0 do [registro de validação](validation.md) não comprovam estas ferramentas novas.
+A revisão 0.6.1 acrescenta pesquisa, escolha e reprodução de YouTube pelo Jarvis nativo no Windows. Os mesmos comandos podem ser solicitados por texto ou durante a conversa por voz configurada. [CI 0f293d0 da 0.6.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovado: **529/529 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa com player real exercitado em página HTTPS local e áudio silenciado. [Windows 0.6.1 conferido](../AI_INSTALL.md#pacote-windows-061-conferido). **O YouTube ao vivo e som ouvido pelo usuário continuam pendentes.** O cenário local não substitui esse ensaio; os resultados 491/491 da 0.6.0 no [registro de validação](validation.md) são históricos.
 
 ## Como pedir
 
@@ -35,6 +35,8 @@ Não há promessa de automação geral de navegador, controle de qualquer site, 
 As três ferramentas desta revisão pertencem à conversa nativa do Jarvis, tanto por texto quanto por voz. O plugin privado **Jarvis · Ultron 0.6.0 continua com cinco ferramentas**: estado, clima, abertura do navegador, abertura de site e narração. Não há ferramentas YouTube no MCP desta revisão, nem uma API para enviar mensagens ao Dot pessoal. [Guia da conexão privada](ultron.md).
 
 ## O que falta validar
+
+O cenário nativo aprovado usou uma página HTTPS local de teste, mídia PCM e áudio silenciado. As evidências `ready/window/dom/preload/boot/fullscreen/youtube/packaged` pertencem à execução 0.6.1; não são uma consulta ao YouTube ao vivo ou confirmação auditiva. O [registro](validation.md) separa esse resultado do ensaio do usuário.
 
 Executar a pesquisa real, escolher um resultado, observar o vídeo correto, ouvir o áudio e confirmar pausa/retomada no Windows. Ensaiar também lista vazia, ID antigo/de outro perfil, cancelamento, fechamento, anúncio, indisponibilidade e intervenção exigida pelo site. Registrar versão, horário e resultado, sem publicar histórico pessoal ou credenciais.
 

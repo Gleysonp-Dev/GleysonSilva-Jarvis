@@ -1,6 +1,6 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-A 0.6.1 prepara três ferramentas YouTube para conversa nativa por voz/texto: busca de até oito resultados reais, tocar por ID observado e tocar/pausar com evidência do player. CI, pacote e ensaio físico desta revisão estão pendentes. A janela controlada não opera abas do navegador pessoal; o plugin Ultron permanece 0.6.0 com cinco ferramentas. [Contrato e limites](youtube.md).
+A 0.6.1 acrescenta três ferramentas YouTube para conversa nativa por voz/texto: busca de até oito resultados reais, tocar por ID observado e tocar/pausar com evidência do player. [CI 0f293d0 da 0.6.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovado: 529/529 testes, zero falhas/skips, TypeScript/build/pacote e abertura nativa com player real em página HTTPS local e áudio silenciado. [Windows conferido](../AI_INSTALL.md#pacote-windows-061-conferido); o ensaio do YouTube ao vivo e som ouvido continuam pendentes. A janela controlada não opera abas do navegador pessoal; o plugin Ultron permanece 0.6.0 com cinco ferramentas. [Contrato e limites](youtube.md).
 
 A 0.6.0 prepara a ponte privada Ultron → Jarvis local com cinco ferramentas MCP. Validar protocolo, permissão local explícita, acesso em tarefa compatível e resultados físicos separadamente. Verificação local: 491 testes, 480 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox e zero skips; TypeScript/build aprovados. O plugin privado foi instalado e habilitado pela CLI oficial, com listagem conferida. O [CI 2adf71d](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovou 491/491 testes, zero falhas/skips, TypeScript/build/pacote e abertura nativa do Jarvis; Windows e plugin foram baixados e conferidos. Handshake MCP instalado 0.6.0 e recusa inicial NOT_RUNNING foram verificados. Após o usuário ativar a conexão na interface, cinco ferramentas ficaram disponíveis nesta conversa e o status real confirmou `connected: true`, versão 0.6.0 e cidade/voz configuradas. A chamada real de abertura do site solicitado retornou despacho `unverified`, sem comprovar a janela. Clima e voz ao vivo pela ponte e teste pelo próprio Dot permanecem pendentes; o Dot pessoal não foi chamado. [Fluxo e limites](ultron.md).
 
@@ -19,6 +19,7 @@ A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a c
 | Revisão 0.2.3 | 229 testes, TypeScript, build, pacote e abertura nativa real aprovados no CI; handlers de fechamento e filtros testados com Electron/OS/sinais substituídos. | Encerramento durante áudio e novos filtros no equipamento do usuário. |
 | Revisão 0.3.1 | 264 testes e abertura nativa aprovados; núcleo recebeu aceite visual do autor. | Login, detecção de palmas e imagem de roupa. |
 | Revisão 0.4.0 | 343 testes e abertura nativa aprovados; pacote conferido por hash. | Recepção 0.5.0, nova chamada de imagem e renovação de voz. |
+| Revisão 0.6.1 | 529/529 testes, TypeScript/build/pacote e abertura nativa aprovados; player real em página HTTPS local com mídia PCM e áudio silenciado. ZIP/EXE conferidos. | YouTube ao vivo, vídeos disponíveis na conta/região, som ouvido e ensaio por voz no equipamento do usuário. |
 | Texto OpenAI | Pergunta real respondida corretamente. | Benchmark, custo e latência comparável. |
 | Microfone | Captura com nível e liberação observadas. | Detector de palmas ou palavra. |
 | Câmera | Prévia real 640×480 e parada. | Reconhecimento: OpenCV e pesos ausentes. |
@@ -75,6 +76,7 @@ Não é necessário instalar OpenCV ou baixar modelos para os testes de protocol
 
 | Camada | Cobertura automática | Limite da evidência |
 | --- | --- | --- |
+| YouTube nativo 0.6.1 | Contratos e observação por perfil, estados do player, bloqueios/cancelamento com fronteiras substituídas; cenário nativo de DOM/player em página HTTPS local. | A mídia PCM silenciada do teste não comprova consulta/reprodução no YouTube ao vivo nem som ouvido. |
 | Ultron local 0.6.0 | MCP limitado, validação/autoridade da ponte, estado ocupado antes de TTS, correlação, ACK de fim do áudio e cancelamento. | Transporte/serviços substituídos não comprovam instalação, disponibilidade no Dot, navegador visível ou som ouvido. |
 | OpenAI SSE | Deltas progressivos, fragmentos UTF-8, heartbeats, JSON inválido, resposta incompleta e uso de tokens. | Respostas de rede simuladas; não mede um modelo. |
 | Ferramentas via modelo | Continuação com itens completos, chamadas conhecidas, argumentos JSON, IDs repetidos e limite de turnos. | Valida protocolo e delegação; não comprova software externo. |
