@@ -2,9 +2,9 @@
 
 ## Revisão 0.7.0 — Fire TV em validação
 
-O código acrescenta abertura de aplicativos e comandos de controle remoto na Fire TV pela conversa nativa. **O pacote Windows 0.7.0, o pareamento pela interface e o teste por voz ainda estão pendentes.** O cliente Node isolado, após a correção de fechamento tardio de stream, consultou a TV e enviou uma única solicitação para abrir a Netflix instalada; o usuário confirmou a abertura na tela. Isso não valida o novo aplicativo. Não apresente o pacote, os hashes ou os 576 testes da 0.6.5 como prova desta integração. A suíte local desta etapa teve **641 testes, 630 aprovados, as mesmas 11 falhas EPERM do sandbox e zero skips**; TypeScript/build passaram. Seleção automática de perfil Netflix ainda não foi implementada ou aprovada. [Estado e limites](docs/validation.md#revisão-070--fire-tv-em-validação).
+O código acrescenta abertura de aplicativos e comandos de controle remoto na Fire TV pela conversa nativa. [CI 4cacd6b](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39898026057) aprovado: **641/641 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. O pacote 0.7.0 abaixo foi baixado e conferido. **Pareamento pela interface e teste por voz no novo aplicativo permanecem pendentes.** No cliente Node isolado, o usuário confirmou abertura da Netflix e entrada com um único OK após destacar manualmente um perfil; isso não valida o caminho do aplicativo nem seleção automática pelo nome. [Estado e limites](docs/validation.md#revisão-070--fire-tv-em-validação).
 
-Quando o novo pacote estiver conferido, feche a versão anterior por **X/Sair** e confira **MVP / 07.0**. Preserve as configurações privadas de voz, música, cidade e chaves. A TV começa desabilitada no pacote público; não há IP, rede ou chave de pareamento do proprietário no repositório.
+Feche a versão anterior por **X/Sair**, abra o pacote conferido abaixo e confira **MVP / 07.0**. Preserve as configurações privadas de voz, música, cidade e chaves. A TV começa desabilitada no pacote público; não há IP, rede ou chave de pareamento do proprietário no repositório.
 
 1. Habilite **Depuração ADB** na própria Fire TV e mantenha TV/computador na mesma rede local. Este fluxo não instala aplicativos e não exige habilitar fontes desconhecidas.
 2. Encerre a sessão de voz do Jarvis; em **Ajustes → TV · Fire TV**, marque **Controlar Fire TV pela rede**, preencha o **IP da TV** e salve.
@@ -14,6 +14,17 @@ Quando o novo pacote estiver conferido, feche a versão anterior por **X/Sair** 
 Catálogo inicial: Netflix, Prime Video, YouTube, Disney+, Max e Spotify, somente com pacote conhecido instalado. Há doze comandos fixos: Início, Voltar, quatro setas, OK, aumentar/diminuir volume, mudo, tocar e pausar. Telas de login/perfil e reprodução de títulos não são automatizadas. O [guia Fire TV](docs/fire-tv.md) explica limites, rede e revogação. Identificação de pessoas pela voz permanece adiada. O plugin privado Ultron continua 0.6.0 com cinco ferramentas; esta integração não acrescenta TV ao MCP.
 
 Para escolher um perfil Netflix, observe a TV e solicite setas/OK individualmente, ou use o controle remoto. A tela testada não expôs nomes acessíveis nem uma captura válida; não há seleção automática pelo nome ou por posição presumida.
+
+## Pacote Windows 0.7.0 conferido
+
+Baixe o [Windows 0.7.0 da execução 39898026057](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39898026057/artifacts/12477951734). ZIP e EXE foram baixados e verificados; a extração aceitou somente o executável esperado e seu checksum, que corresponde ao SHA-256 calculado.
+
+| Arquivo conferido | Tamanho em bytes | SHA-256 |
+| --- | ---: | --- |
+| ZIP do artefato Windows | 104.054.877 | `c3175527161904ca599d7ec0877a4ecbd5fb74b07cffb14c1031ed47f7147339` |
+| GleysonSilva-Jarvis-0.7.0-Windows.exe | 104.045.505 | `9b3c166e88a9f05a753ce2256092f71246f5ddf923bee16bdd9e0b98a8e472c8` |
+
+O [job 120232865600](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39898026057/job/120232865600), commit `4cacd6b74528047c924a5604924b55aeea3581ef`, confirmou `ready/window/dom/preload/boot/fullscreen/youtube/packaged` verdadeiros em **23 de outubro de 2026, às 00h03, America/New_York**. O YouTube foi exercitado em HTTPS local com áudio silenciado; não é um teste da TV física. Retenção até **20 de janeiro de 2027, às 23h00, America/New_York**. Artefato temporário do GitHub Actions, que pode exigir login; não é release assinada ou link permanente. O plugin 0.6.0 também foi gerado, sem nova instalação.
 
 ## Revisão 0.6.5 — CI, pacote e busca→vídeo→som conferidos
 
