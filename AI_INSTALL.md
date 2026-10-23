@@ -6,9 +6,24 @@ O controlador prioriza a lupa moderna observada na página controlada. Envia a c
 
 O reteste real do pacote **0.6.3 falhou**: o site abriu, a consulta permaneceu no campo/autocomplete da página inicial e não tocou. O envio anterior por formulário pode não efetivar a busca em uma aplicação dinâmica; a regressão controlada reproduziu esse caso. Isso é compatível com a imagem, sem comprovar anúncio, conta ou VAD como causa física. [Diagnóstico e limites](docs/validation.md).
 
-Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. **CI, pacote Windows e novo ensaio real ainda pendentes.** A nova fixture de formulário gerenciado será executada no CI. As contagens **558/558**, hashes e artefatos 0.6.3 abaixo são históricos e não comprovam a nova correção. O plugin permanece 0.6.0; preserve as configurações existentes, voz, trilha e câmera manual em Presença. A recepção continua sem câmera automática.
+Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. [CI 8c40a15 da 0.6.4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39878604368) aprovado: **568/568 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. **O novo ensaio real 0.6.4 ainda está pendente; o reteste 0.6.3 permanece reprovado.** A fixture de formulário/botão gerenciados por JavaScript foi executada no CI em HTTPS local com mídia PCM e áudio silenciado; não comprova o YouTube real. As contagens **558/558**, hashes e artefatos 0.6.3 abaixo são históricos e não comprovam a nova correção. O plugin permanece 0.6.0; preserve as configurações existentes, voz, trilha e câmera manual em Presença. A recepção continua sem câmera automática.
 
-Quando o pacote 0.6.4 estiver disponível e conferido, teste pesquisar por voz/texto, observar a lista real, tocar um resultado, pedir outra busca a partir do vídeo e tocar um resultado novo. Testar bloqueio, cancelamento e intervenção manual sem aceitar login/consentimento automaticamente. [Roteiro](docs/test-plan.md) e [YouTube](docs/youtube.md).
+Com o pacote 0.6.4 conferido, teste pesquisar por voz/texto, observar a lista real, tocar um resultado, pedir outra busca a partir do vídeo e tocar um resultado novo. Testar bloqueio, cancelamento e intervenção manual sem aceitar login/consentimento automaticamente. [Roteiro](docs/test-plan.md) e [YouTube](docs/youtube.md).
+
+## Pacote Windows 0.6.4 conferido
+
+Baixe o [Windows 0.6.4 da execução 39878604368](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39878604368/artifacts/12468559872). ZIP e executável foram baixados e conferidos por tamanho e SHA-256; a extração aceitou somente o EXE esperado e seu arquivo de checksum.
+
+| Arquivo conferido | Tamanho em bytes | SHA-256 |
+| --- | ---: | --- |
+| ZIP do artefato Windows | 104.050.206 | `f204b9bd04d991623beec7f2e95f666e5ada11b4b90e506850586edf8c23c467` |
+| GleysonSilva-Jarvis-0.6.4-Windows.exe | 104.039.503 | `2ba77fb7781d13d6c603042217bf84d5f333828a458222476c36a4be363bbac6` |
+
+O [job 120170243806](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39878604368/job/120170243806), commit `8c40a15ba86aa2cbe89932c372d47c0cc515aba6`, confirmou `ready/window/dom/preload/boot/fullscreen/youtube/packaged` verdadeiros em **22 de outubro de 2026, às 20h34, America/New_York**. O teste executou clique na lupa com navegação gerenciada por JavaScript e `/watch` → nova busca → segundo ID reproduzido. Foi uma fixture HTTPS local com mídia PCM e áudio silenciado; não comprova envio de busca, reprodução ou som no YouTube real.
+
+Retenção até **20 de janeiro de 2027, às 19h31, America/New_York**. É artefato temporário do GitHub Actions, que pode exigir login; não é release assinada nem link permanente. O workflow também gerou artefato do plugin **0.6.0**, que não foi baixado ou reinstalado nesta atualização.
+
+Feche a versão anterior por **X/Sair**, extraia o ZIP e abra **GleysonSilva-Jarvis-0.6.4-Windows.exe**. Confira **MVP / 06.4**, preserve ajustes privados e repita busca, lista real, reprodução, nova busca e segundo vídeo por voz/texto. O reteste real 0.6.3 falhou; o resultado físico da 0.6.4 continua pendente. Não tratar o CI como esse aceite nem atribuir a falha anterior a VAD/anúncio. [YouTube](docs/youtube.md), [voz](docs/openai.md) e [validação](docs/validation.md).
 
 ## Base anterior 0.6.3 — busca recuperável e interrupção por voz correlacionada
 
