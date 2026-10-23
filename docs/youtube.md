@@ -1,8 +1,20 @@
-# YouTube na conversa nativa — 0.6.2
+# YouTube na conversa nativa — 0.6.3
+
+## Mudança 0.6.3 e estado da validação
+
+Uma nova busca pedida explicitamente pode recuperar a janela depois de um bloqueio transitório. A recuperação aguarda a fila e não amplia os destinos permitidos: continua somente HTTPS no YouTube. Login, consentimento e CAPTCHA permanecem para intervenção humana. Resultados antigos são substituídos pela nova descoberta no perfil; não reutilize IDs de uma busca anterior como se fossem os resultados novos.
+
+Na conversa por voz, durante ferramenta pendente, o início de atividade de fala silencia a narração, mas não cancela a busca ou reprodução sozinho. O cancelamento por fala espera texto não vazio correlacionado ao mesmo item e às execuções capturadas naquele início; não alcança uma execução nova que surgiu depois. A continuação do resultado espera a resolução da entrada pendente. Interromper, encerrar voz, perfil e saída continuam imediatos. [Contrato de voz](openai.md).
+
+Na 0.6.2, o usuário relatou vídeo ou anúncio parado e dificuldade posterior de acesso. O recorte de journal consultado depois mostrou duas buscas canceladas, sem `youtube_play` nesses trechos; não revela a causa do cancelamento nem prova que havia anúncio ou que VAD o provocou. A ponte estava NOT_RUNNING no momento posterior do diagnóstico. [Evidência e limites](validation.md).
+
+Verificação local 0.6.3 registrada em [Validação](validation.md): **558 testes, 547 aprovados, 11 falhas EPERM conhecidas, zero skips**; TypeScript/build aprovados. **CI, pacote e ensaio ao vivo ainda pendentes.** O cenário nativo previsto acrescenta nova busca a partir de uma página de vídeo e reprodução de um segundo resultado em HTTPS local; não é um teste do site ao vivo. A recepção continua sem câmera automática. Os resultados 0.6.2 abaixo são históricos.
+
+## Base anterior 0.6.2
 
 A 0.6.2 preserva pesquisa, escolha e reprodução de YouTube por texto/voz na janela controlada do Jarvis e ajusta a verificação do player. Na **0.6.1**, o usuário confirmou a pesquisa real, mas relatou que o vídeo **não começou a tocar**. A causa no computador de destino ainda não foi determinada. O [CI 0f293d0 da 0.6.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) aprovou **529/529 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa com player em página HTTPS local e áudio silenciado; isso não aprovou reprodução no site ao vivo ou som ouvido. [Pacote histórico 0.6.1](../AI_INSTALL.md#pacote-windows-061-conferido).
 
-## Mudança 0.6.2 e estado da validação
+## Comportamento preservado da 0.6.2
 
 O controlador aguarda anúncios terminarem naturalmente dentro do prazo da tentativa, sem clicar para pular publicidade, e não aceita o anúncio como prova do vídeo solicitado. Escolhe o elemento de vídeo de conteúdo visível e preserva a referência inicial necessária para verificar progresso. Se a tentativa expirar, mantém a janela para inspeção/intervenção manual; isso não é confirmação de reprodução nem uma tentativa automática indefinida. Cancelamento, troca de perfil e saída continuam interrompendo o fluxo.
 
@@ -46,6 +58,6 @@ As três ferramentas desta revisão pertencem à conversa nativa do Jarvis, tant
 
 O cenário nativo aprovado da **0.6.1** usou uma página HTTPS local, mídia PCM e áudio silenciado. As evidências `ready/window/dom/preload/boot/fullscreen/youtube/packaged` são daquela execução. O ensaio posterior do usuário confirmou a busca ao vivo e relatou falha ao tocar. Não foi registrada causa, reprodução correta, som ouvido ou pausa/retomada aprovados. O [registro](validation.md) separa os resultados históricos da correção 0.6.2 aprovada no CI, cujo novo ensaio ao vivo continua pendente.
 
-No pacote 0.6.2 conferido, repetir busca, escolha, reprodução, pausa e retomada por voz e texto. Conferir vídeo correto e som ouvido separadamente. Ensaiar anúncio curto que termina naturalmente, anúncio que ultrapassa o prazo, vídeo oculto residual, expiração com janela preservada, ID antigo/de outro perfil, cancelamento, fechamento e intervenção exigida pelo site. Não pular publicidade, aceitar login/consentimento ou declarar sucesso sem evidência. Registrar versão, horário e resultado sem divulgar histórico pessoal ou credenciais.
+No pacote 0.6.3 quando estiver disponível e conferido, repetir busca, escolha, reprodução, pausa e retomada por voz e texto; pedir nova busca a partir de um vídeo e tocar um resultado novo. Conferir vídeo correto e som ouvido separadamente. Ensaiar anúncio curto que termina naturalmente, anúncio que ultrapassa o prazo, vídeo oculto residual, expiração com janela preservada, ID antigo/de outro perfil, cancelamento, fechamento e intervenção exigida pelo site. Não pular publicidade, aceitar login/consentimento ou declarar sucesso sem evidência. Registrar versão, horário e resultado sem divulgar histórico pessoal ou credenciais.
 
 O usuário confirmou a ativação por duas palmas na 0.6.0. Esse relato pertence à espera/recepção daquela sessão e não valida o fluxo YouTube ou um novo login do Windows. A prova automática e o ensaio físico devem permanecer separados no [plano de testes](test-plan.md) e na [validação](validation.md).

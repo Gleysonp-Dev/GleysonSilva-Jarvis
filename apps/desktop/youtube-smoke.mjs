@@ -12,16 +12,19 @@ export async function runYouTubeFixtureSmoke({ BrowserWindow, session, product }
   wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(sampleRate, 24); wav.writeUInt32LE(sampleRate * 2, 28);
   wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(frames * 2, 40);
   const media = `data:audio/wav;base64,${wav.toString('base64')}`;
-  const videoId = 'abcdefghijk';
+  const videoId = 'abcdefghijk', secondVideoId = 'lmnopqrstuv';
+  const secondQuery = 'Fixture second band music';
   isolated.protocol.handle('https', request => {
     const url = new URL(request.url);
     if (url.hostname !== 'www.youtube.com') return new Response('Blocked', { status: 403 });
     const query = url.searchParams.get('search_query') ?? '';
     const search = `<form action="/results" method="get"><input name="search_query" aria-label="Search" value="${escape(query)}"><button type="submit">Search</button></form>`;
+    const selectedId = url.pathname === '/watch' ? url.searchParams.get('v') : query === secondQuery ? secondVideoId : videoId;
+    const title = selectedId === secondVideoId ? 'Second local fixture video' : 'Local fixture video';
     const body = url.pathname === '/watch'
-      ? `<h1><yt-formatted-string>Local fixture video</yt-formatted-string></h1><div id="movie_player"><video class="html5-main-video" controls muted src="${media}"></video></div>`
-      : `${search}${query ? `<ytd-video-renderer><a id="video-title" title="Local fixture video" href="/watch?v=${videoId}">Local fixture video</a><ytd-channel-name><a>Local fixture channel</a></ytd-channel-name></ytd-video-renderer>` : ''}`;
-    return new Response(`<!doctype html><html><head><title>Jarvis YouTube fixture</title></head><body>${body}</body></html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+      ? `<h1 class="title"><yt-formatted-string>${title}</yt-formatted-string></h1><div id="movie_player"><video class="html5-main-video" controls muted src="${media}"></video></div>`
+      : query ? `<ytd-video-renderer><a id="video-title" title="${title}" href="/watch?v=${selectedId}">${title}</a><ytd-channel-name><a>Local fixture channel</a></ytd-channel-name></ytd-video-renderer>` : '';
+    return new Response(`<!doctype html><html><head><title>Jarvis YouTube fixture</title></head><body><header>${search}</header>${body}</body></html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
   });
   isolated.protocol.handle('http', () => new Response('Blocked', { status: 403 }));
   const profileId = 'youtube-fixture';
@@ -37,6 +40,12 @@ export async function runYouTubeFixtureSmoke({ BrowserWindow, session, product }
     if (!paused.verified || paused.playing !== false) throw new Error('YOUTUBE_FIXTURE_PAUSE_FAILED');
     stage = 'RESUME'; const resumed = await controller.control('play', { profileId });
     if (!resumed.verified || resumed.playing !== true) throw new Error('YOUTUBE_FIXTURE_RESUME_FAILED');
+    // Exercise the same visible form from /watch, then choose only the newly observed result.
+    // Keep the existing fixed diagnostic stages and native-runner result contract.
+    stage = 'SEARCH'; const second = await controller.search(secondQuery, { profileId });
+    if (!second.verified || second.query !== secondQuery || second.results?.[0]?.videoId !== secondVideoId) throw new Error('YOUTUBE_FIXTURE_SEARCH_FAILED');
+    stage = 'PLAY'; const replayed = await controller.play(second.results[0].videoId, { profileId });
+    if (!replayed.verified || replayed.videoId !== secondVideoId || replayed.playing !== true || !Number.isFinite(replayed.currentTime)) throw new Error('YOUTUBE_FIXTURE_PLAY_FAILED');
     return true;
   } catch { throw new Error(`JARVIS_YOUTUBE_FIXTURE_${stage}_FAILED`); }
   finally { controller.close(); isolated.protocol.unhandle('https'); isolated.protocol.unhandle('http'); }

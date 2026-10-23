@@ -325,6 +325,68 @@ test('navigation denies popups and external hosts with both current and deprecat
   });
 });
 
+test('a new explicit search recovers a previous denied navigation without enabling the denied destination', async t => {
+  for (const eventName of ['will-navigate', 'will-redirect']) for (const shape of ['current', 'legacy', 'details']) await t.test(`${eventName} ${shape}`, async t => {
+    const f = fixture(t); await f.search('primeira seleção');
+    const deniedUrl = shape === 'legacy' ? 'https://example.org/' : 'https://accounts.google.com/login';
+    const code = shape === 'legacy' ? 'UNAVAILABLE' : 'CONSENT';
+    let prevented = false;
+    const event = { preventDefault() { prevented = true; }, ...(shape === 'current' ? { url: deniedUrl } : {}) };
+    f.windows[0].webContents.emit(eventName, event, ...(shape === 'legacy' ? [deniedUrl] : shape === 'details' ? [{ url: deniedUrl }] : []));
+    assert.equal(prevented, true);
+    await assert.rejects(f.play(FIRST), error => error.code === code);
+    f.windows[0].anchors.shift();
+    const result = await f.search('nova seleção');
+    assert.equal(result.verified, true); assert.equal(result.query, 'nova seleção');
+    assert.deepEqual(result.results.map(item => item.videoId), [SECOND]);
+    await assert.rejects(f.play(FIRST), error => error.code === 'INVALID');
+    assert.equal((await f.play(SECOND)).verified, true);
+    assert(f.calls.filter(call => Array.isArray(call) && call[0] === 'load').every(call => new URL(call[1]).origin === 'https://www.youtube.com'));
+    assert.equal(f.windows.length, 1);
+  });
+});
+
+test('a queued recovery search cannot hide the blocked navigation of the current request', async t => {
+  const gate = deferred(); let redirected = false;
+  const f = fixture(t, { scriptGate: gate, scriptGateKind: 'results', beforeScript({ kind, window }) {
+    if (kind === 'results' && !redirected) {
+      redirected = true;
+      window.webContents.emit('will-redirect', { url: 'https://consent.youtube.com/', preventDefault() {} });
+    }
+  } });
+  const first = assert.rejects(f.search('bloqueada'), error => error.code === 'CONSENT');
+  await until(() => f.calls.some(call => Array.isArray(call) && call[0] === 'execute' && call[3].includes('"kind":"results"')));
+  const second = f.search('recuperação solicitada'); gate.resolve();
+  await first; const recovered = await second;
+  assert.equal(recovered.verified, true); assert.equal(recovered.query, 'recuperação solicitada');
+  assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'submit').map(call => call[1]), ['bloqueada', 'recuperação solicitada']);
+  assert.equal(f.calls.includes('play-video'), false);
+});
+
+test('invalid and cancelled recovery searches cannot clear a prior navigation block', async t => {
+  const f = fixture(t); await f.search('seleção');
+  f.windows[0].webContents.emit('will-redirect', { url: 'https://accounts.google.com/login', preventDefault() {} });
+  await assert.rejects(f.search(' '), error => error.code === 'INVALID');
+  const abort = new AbortController(); abort.abort();
+  await assert.rejects(f.controller.search('cancelada', { ...f.scope(), signal: abort.signal }), error => error.code === 'CANCELLED');
+  await assert.rejects(f.play(FIRST), error => error.code === 'CONSENT');
+  assert.equal(f.windows[0].destroyed, false);
+  assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'submit').map(call => call[1]), ['seleção']);
+  assert.equal((await f.search('nova tentativa')).verified, true);
+});
+
+test('recovery still hands off a visible consent prompt and revalidates the current origin', async t => {
+  const f = fixture(t); await f.search('seleção');
+  f.options.consent = true;
+  f.windows[0].webContents.emit('will-redirect', { url: 'https://consent.youtube.com/', preventDefault() {} });
+  await assert.rejects(f.search('aviso continua'), error => error.code === 'CONSENT');
+  assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'submit').map(call => call[1]), ['seleção']);
+  f.options.consent = false; f.windows[0].url = 'https://example.org/';
+  f.windows[0].webContents.emit('will-navigate', { url: 'https://example.org/', preventDefault() {} });
+  const recovered = await f.search('origem revalidada'); assert.equal(recovered.verified, true);
+  assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'load').map(call => call[1]), ['https://www.youtube.com/', 'https://www.youtube.com/']);
+});
+
 test('native failures are redacted and the controller never falls back to ordinary page-world execution', async t => {
   const f = fixture(t); await f.search('teste');
   let ordinary = false; f.windows[0].webContents.executeJavaScript = () => { ordinary = true; };

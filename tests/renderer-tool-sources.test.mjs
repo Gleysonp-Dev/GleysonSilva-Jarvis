@@ -133,7 +133,7 @@ test('voice consultations expose compact source links outside the message log wi
   link.props.onClick({ preventDefault() { prevented = true; } }); await flush();
   assert.equal(prevented, true); assert.deepEqual(app.opened, ['https://example.org/research']);
   assert.equal(elements(tree).some(element => element.type === 'canvas'), true);
-  assert.match(text(tree), /MVP \/ 06\.2/);
+  assert.match(text(tree), /MVP \/ 06\.3/);
 });
 
 test('last sources persist until the next consultation and slower earlier runs cannot replace a newer result', async t => {

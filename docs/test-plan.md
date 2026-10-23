@@ -1,5 +1,11 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
+## Revisão 0.6.3 — recuperação e fala durante ferramentas
+
+Verificação local: **558 testes, 547 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox, zero skips**; TypeScript/build aprovados. Realtime **30/30** e controlador/runtime/fábrica YouTube **51/51**. **CI, pacote e ensaio ao vivo 0.6.3 pendentes.** A fixture nativa de `/watch`→nova busca→segundo vídeo será executada no CI, não foi exercitada no computador do usuário. As contagens 0.6.2 abaixo são históricas.
+
+No relato 0.6.2, vídeo/anúncio não tocou e depois não houve novo acesso. O journal limitado mostrou buscas canceladas, sem `youtube_play` nesses trechos; origem do cancelamento, estado de anúncio e relação com VAD não foram determinados. Os testes de código não devem ser apresentados como diagnóstico causal da máquina. [Registro](validation.md).
+
 A revisão atual **0.6.2** retira comentário de roupa e captura automática da recepção, migra a preferência antiga para `false` e preserva a câmera manual em Presença. Rever também anúncios, vídeo oculto, referência inicial de progresso e expiração da tentativa no YouTube: anúncio termina naturalmente, timeout mantém janela, cancelamento/perfil interrompem. CI e pacote 0.6.2 aprovados; prova e verificação local em [Validação](validation.md). O novo ensaio ao vivo continua pendente. Na 0.6.1, o usuário confirmou pesquisa e relatou que o vídeo não tocou; causa indeterminada. O [CI 0f293d0](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39857691300) e os **529/529 testes** são históricos, com player em HTTPS local e áudio silenciado. [YouTube](youtube.md) e [validação](validation.md).
 
 A 0.6.0 prepara a ponte privada Ultron → Jarvis local com cinco ferramentas MCP. Validar protocolo, permissão local explícita, acesso em tarefa compatível e resultados físicos separadamente. Verificação local: 491 testes, 480 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox e zero skips; TypeScript/build aprovados. O plugin privado foi instalado e habilitado pela CLI oficial, com listagem conferida. O [CI 2adf71d](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39852875109) aprovou 491/491 testes, zero falhas/skips, TypeScript/build/pacote e abertura nativa do Jarvis; Windows e plugin foram baixados e conferidos. Handshake MCP instalado 0.6.0 e recusa inicial NOT_RUNNING foram verificados. Após o usuário ativar a conexão na interface, cinco ferramentas ficaram disponíveis nesta conversa e o status real confirmou `connected: true`, versão 0.6.0 e cidade/voz configuradas. A chamada real de abertura do site solicitado retornou despacho `unverified`, sem comprovar a janela. Clima e voz ao vivo pela ponte e teste pelo próprio Dot permanecem pendentes; o Dot pessoal não foi chamado. [Fluxo e limites](ultron.md).
@@ -30,9 +36,9 @@ A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a c
 
 O [registro de validação](validation.md) apresenta os limites e o histórico, incluindo o roteiro curto aprovado pelo autor. **A sequência atual com login, palmas, música/saudação e conversa contínua, sem câmera automática, ainda exige ensaio físico.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
 
-## YouTube nativo — roteiro 0.6.2
+## YouTube nativo — roteiro 0.6.3
 
-1. No aplicativo nativo com **MVP / 06.2**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
+1. No aplicativo nativo com **MVP / 06.3**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
 2. Pedir um dos resultados e conferir que `youtube_play` usa exatamente o ID observado no perfil. Um ID inventado, de outro perfil ou formato incompatível deve ser recusado antes da reprodução.
 3. Confirmar o vídeo correto e o estado do player. Registrar separadamente vídeo carregado, estado de reprodução e som efetivamente ouvido; nenhum desses resultados pode ser deduzido só do despacho de navegação.
 4. Pedir pausa e retomada e conferir o estado real do player. Os comandos devem atuar somente na janela controlada, sem operar abas externas ou outro player.
@@ -42,6 +48,17 @@ O [registro de validação](validation.md) apresenta os limites e o histórico, 
 8. Conferir que o plugin Ultron instalado continua anunciando somente as cinco ferramentas anteriores, sem ferramentas YouTube. Registrar os ensaios do Dot em separado.
 
 Os testes automáticos devem cobrir contratos fechados, consulta limitada, IDs observados por perfil, estados do player, cancelamento e falhas com fronteiras substituídas. Essa cobertura não substitui o ensaio real do site. [Detalhes](youtube.md).
+
+## Recuperação e interrupção — roteiro 0.6.3
+
+1. Buscar, tocar um resultado e, a partir da página de vídeo, solicitar explicitamente nova busca. Escolher e tocar o segundo vídeo observado. Conferir que não reutiliza ID da busca anterior.
+2. Provocar bloqueio/transição de navegação na fixture; nova busca enfileirada deve tentar somente destinos HTTPS permitidos. Login, consentimento e CAPTCHA permanecem para intervenção humana. Cancelamento/perfil/saída continuam interrompendo.
+3. Durante ferramenta pendente, injetar `speech_started` sem transcrição, transcrição vazia, falha e texto de outro `item_id`. TTS pode parar, mas a ferramenta não deve ser cancelada por esses sinais.
+4. Durante a mesma condição, entregar transcrição não vazia correlacionada à fala. Cancelar somente as execuções/respostas capturadas no início, sem atingir um turno mais novo.
+5. Concluir a ferramenta enquanto fala/transcrição está pendente. Nenhuma continuação deve partir antes da resolução correspondente; duplicatas ou respostas atrasadas não criam ações extras.
+6. Testar Interromper, encerrar voz, troca de perfil/reset e X durante ferramentas e síntese. Cancelamento explícito deve ser imediato, sem aguardar transcrição.
+7. No ensaio físico, registrar ruído, TV/música e fala da pessoa separadamente. TV/música podem produzir transcrição não vazia; não prometer identificação de locutor ou rejeição de todo ruído.
+8. Conferir saudação→voz, música, preset 0,95×/efeito fixo, câmera manual em Presença e ausência de captura automática na recepção.
 
 ## Ponte privada Ultron — roteiro 0.6.0
 
@@ -80,7 +97,7 @@ Não é necessário instalar OpenCV ou baixar modelos para os testes de protocol
 | Ultron local 0.6.0 | MCP limitado, validação/autoridade da ponte, estado ocupado antes de TTS, correlação, ACK de fim do áudio e cancelamento. | Transporte/serviços substituídos não comprovam instalação, disponibilidade no Dot, navegador visível ou som ouvido. |
 | OpenAI SSE | Deltas progressivos, fragmentos UTF-8, heartbeats, JSON inválido, resposta incompleta e uso de tokens. | Respostas de rede simuladas; não mede um modelo. |
 | Ferramentas via modelo | Continuação com itens completos, chamadas conhecidas, argumentos JSON, IDs repetidos e limite de turnos. | Valida protocolo e delegação; não comprova software externo. |
-| Interrupção | Abort chega a transporte e runtime, inclusive aprovação pendente; não ocorre novo turno após cancelamento/timeout. | Efeitos já realizados dependem do registro do executor. |
+| Interrupção 0.6.3 | Sinal VAD durante ferramenta silencia TTS; cancelar exige texto não vazio correlacionado às execuções capturadas. Controles explícitos continuam imediatos; continuação aguarda a entrada pendente. | TV/música transcritas ainda podem interferir; testes não provam a causa do relato do usuário. |
 | Contexto de memória | Recuperação pelo perfil backend, limite de 8.000 caracteres e marcação como dado não confiável. | Não é treino de pesos nem defesa perfeita de linguagem natural; a política de ferramentas é a barreira efetiva. |
 | Continuidade de prévias | Um novo pedido recupera `planId` do backend, sem depender de IDs no texto; contexto limitado, isolamento de perfil e cancelamento antes de envio. | Referências não autorizam execução; planos, pasta e arquivos são revalidados pelo executor. |
 | Erros e chave | Falta de chave não abre rede; erros HTTP, transporte e ferramenta não ecoam a credencial de teste. | Credencial usada apenas no teste; não demonstra DPAPI real. |

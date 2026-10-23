@@ -1,10 +1,10 @@
-# Projeto GleysonSilva-Jarvis: voz e câmera — revisão 0.6.2
+# Projeto GleysonSilva-Jarvis: voz e câmera — revisão 0.6.3
 
 O núcleo mantém o ciano aprovado em todos os estados. Ouvindo e respondendo, brilho e expansão acompanham o envelope do áudio capturado e reproduzido; durante uma ferramenta, a pulsação segue a atividade do executor. Aguardar o modelo, aguardar confirmação e executar devem continuar distinguíveis pelo rótulo de estado. Com movimento reduzido, os estados continuam legíveis sem exigir animação.
 
 ## Voz do MVP
 
-A conversa usa microfone e WebRTC com OpenAI para entrada de voz e resposta em texto. O texto é enfileirado para a ElevenLabs, que produz a voz configurada. VAD solicita interrupção da resposta; o botão **Interromper** também encerra a intenção de conversa contínua e deve liberar microfone, áudio, conexão e temporizadores. A sequência atual não inclui câmera automática; o ensaio integrado da 0.6.2 ainda precisa ser realizado.
+A conversa usa microfone e WebRTC com OpenAI para entrada de voz e resposta em texto. O texto é enfileirado para a ElevenLabs com a voz configurada. Na 0.6.3, quando há ferramenta ou continuação pendente, o sinal inicial de fala silencia a narração sem cancelar efeitos sozinho. O cancelamento por fala aguarda transcrição não vazia correlacionada ao mesmo item e às execuções capturadas; não alcança trabalho novo posterior. O botão **Interromper**, encerrar voz, perfil e saída continuam imediatos. A recepção permanece sem câmera automática. [Contrato e fonte oficial VAD](openai.md#revisão-063--interrupção-durante-ferramentas).
 
 O clone **GleysonSilva-Jarvis** já foi criado e uma frase gerada pelo painel com Eleven Multilingual v2. Clonagem e distribuição dos áudios selecionados foram autorizadas; referência e ID permanecem privados. O caminho atual bloqueia áudio OpenAI e não troca para outra voz quando a ElevenLabs falha. Exige chave OpenAI, chave ElevenLabs e voz configurada; erro deve permanecer visível. A [documentação ElevenLabs](elevenlabs.md) distingue geração real dos testes com transporte substituído.
 
@@ -25,6 +25,12 @@ Em Ajustes, `receptionVoiceEnabled` permite iniciar a sessão depois do fim da s
 A renovação não repete saudação ou música e não aciona a câmera. O limite configurado continua valendo para cada sessão e a memória explícita do perfil continua disponível; o histórico completo da sessão anterior não vira uma conversa ilimitada. Uma falha de autenticação, transporte ou serviço encerra o fluxo sem novas tentativas indefinidas.
 
 Enquanto a conversa estiver conectada, o microfone envia áudio à OpenAI, inclusive no silêncio entre comandos. A detecção de palmas é pausada nesse período. **Interromper**, troca de perfil, reset e saída desligam captura e renovação, invalidando callbacks antigos. Uma nova escolha é necessária para voltar a conversar. Conexão prolongada pode aumentar consumo nos provedores; acompanhe o projeto usado pela sua chave.
+
+## Nova fala durante ferramenta — 0.6.3
+
+Com busca/ação pendente, testar ruído com VAD sem transcrição, texto vazio/falha de transcrição, texto de outro item e nova fala confirmada. O primeiro evento pode parar o áudio de TTS, mas só uma transcrição não vazia correlacionada pode cancelar os efeitos capturados. Resultados não devem gerar continuação prematura enquanto essa entrada estiver pendente. Uma transcrição atrasada não pode cancelar execução nova de outro turno.
+
+TV/música podem gerar texto não vazio e ainda serem confundidas com fala; não há autenticação do locutor. Testar separadamente Interromper/encerrar voz, perfil e X durante a ferramenta, sem esperar transcrição. Preservar o preset de voz, música e ausência de transcrição visível no dashboard.
 
 ## Verificação do microfone e saída
 
@@ -85,6 +91,8 @@ Os vetores continuam sendo informação biométrica sensível mesmo sem fotograf
 Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância. Similaridade de vetores não é probabilidade de identidade. O limiar e a margem entre candidatos exigem calibração; nenhum número de acerto é publicado sem uma amostra de testes documentada.
 
 ## Estado de validação
+
+**0.6.3:** verificação local em [Validação](validation.md); CI, pacote e ensaio físico ainda pendentes. As provas 0.6.2 a seguir pertencem à base anterior e não validam o novo filtro de interrupção.
 
 CI, pacote e verificação local da 0.6.2 estão registrados em [Validação](validation.md); o ensaio físico continua pendente. O usuário confirmou palmas na 0.6.0; isso não comprova novo login, todos os dispositivos ou a conversa prolongada. Conferir que uma configuração antiga de roupa não abre câmera, que a saudação passa à voz e que Presença mantém sua captura manual. [Registro](validation.md).
 

@@ -1,6 +1,16 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Revisão 0.6.2 — recepção sem câmera automática
+## Revisão 0.6.3 — busca recuperável e interrupção por voz correlacionada
+
+A 0.6.3 permite uma **nova busca explicitamente solicitada** depois de um bloqueio transitório na janela YouTube. A recuperação entra na fila e mantém navegação limitada a HTTPS no YouTube; não aceita login/consentimento ou contorna avisos do site. Uma busca nova substitui os resultados observados da anterior, e tocar continua exigindo ID observado no perfil.
+
+Com ferramenta pendente, um evento inicial de fala apenas silencia a narração. O Jarvis espera transcrição não vazia da mesma fala para cancelar as execuções capturadas; resultado antigo não deve gerar continuação enquanto a entrada estiver pendente. **Interromper**, encerrar voz, troca de perfil e X/Sair continuam cancelando imediatamente. Essa correção de código não prova que VAD causou o problema físico relatado. [Fluxo de voz](docs/openai.md) e [YouTube](docs/youtube.md).
+
+**CI, pacote Windows e ensaio real da 0.6.3 ainda pendentes.** Verificação local: **558 testes, 547 aprovados, 11 falhas EPERM anteriores do sandbox, zero skips**; TypeScript/build aprovados. [Detalhes](docs/validation.md). Não há novo hash ou resultado de CI atribuído a esta revisão. Os **534/534 testes** e os arquivos conferidos abaixo pertencem à **0.6.2**. O plugin privado permanece 0.6.0; não reinstale ou altere credenciais como parte desse teste sem necessidade. Preserve voz, cidade, trilha, login configurado e cadastro facial; a recepção continua sem comentário de roupa ou câmera automática.
+
+Para o ensaio da 0.6.3 quando o pacote estiver disponível e conferido: buscar um vídeo, tocar, pedir nova pesquisa a partir da página do vídeo e tocar um resultado da busca nova. Repetir com ruído sem fala transcrita e com uma nova fala durante ferramenta pendente; conferir que somente a execução antiga correlacionada é cancelada. Testar também Interromper/encerrar voz, perfil e X. Não reinicie a sessão do usuário nem publique argumentos de ferramentas, memórias ou credenciais para diagnosticar a falha. [Registro](docs/validation.md).
+
+## Base anterior 0.6.2 — recepção sem câmera automática
 
 A recepção atual é **Windows → espera local → duas palmas → música e saudação com clima → comandos por voz**, conforme as opções salvas. O comentário de roupa foi retirado da interface, do preset e dos endpoints ativos. O aplicativo não pede câmera nem envia imagem à OpenAI ao iniciar a recepção. A preferência antiga `receptionOutfitEnabled: true` é migrada para `false`; preserve voz, chaves, cidade, música, login e demais escolhas. A câmera manual e o reconhecimento local em Presença continuam disponíveis.
 
@@ -36,7 +46,7 @@ Feche a versão anterior por **X/Sair**, extraia o ZIP e abra **GleysonSilva-Jar
 
 Retenção até **20 de janeiro de 2027, às 16h29, America/New_York**. É um download temporário do GitHub Actions e pode exigir login; não é um link permanente de release. A versão do plugin Ultron permanece 0.6.0 quando usar a conexão privada opcional.
 
-Para reproduzir o ensaio histórico da 0.6.1, feche a versão anterior por **X/Sair**, extraia o ZIP e confira **MVP / 06.1**. O usuário já confirmou busca real e relatou falha ao tocar; pausa, retomada e som ouvido não estão aprovados. A validação da correção exige o pacote 0.6.2 quando ele estiver disponível e conferido. [Roteiro completo](docs/youtube.md).
+Para reproduzir o ensaio histórico da 0.6.1, feche a versão anterior por **X/Sair**, extraia o ZIP e confira **MVP / 06.1**. O usuário já confirmou busca real e relatou falha ao tocar; pausa, retomada e som ouvido não estão aprovados. A 0.6.2 foi conferida e está registrada acima; o novo ensaio exige a 0.6.3 quando estiver disponível e conferida. [Roteiro completo](docs/youtube.md).
 
 ## Base 0.6.0 — integração privada com Ultron
 

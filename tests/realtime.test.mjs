@@ -221,6 +221,146 @@ test('malformed JSON tool arguments cannot trigger a premature continuation befo
   assert.equal(x.spoken.length, 0);
 });
 
+function beginYouTubeSearch(x, responseId = 'response_search', callId = 'call_search') {
+  x.response(responseId);
+  x.emit({ type: 'response.function_call_arguments.done', response_id: responseId, call_id: callId, name: 'youtube_search', arguments: '{"query":"música solicitada"}' });
+  x.done('completed', responseId);
+}
+const continuationCount = x => x.peers[0].dc.sent.filter(event => event.type === 'response.create').length;
+function captureTranscriptionTimers(t) {
+  const originalSet = globalThis.setTimeout, originalClear = globalThis.clearTimeout, timers = [];
+  globalThis.setTimeout = (callback, delay, ...args) => {
+    if (delay !== 3000) return originalSet(callback, delay, ...args);
+    const timer = { callback, cleared: false }; timers.push(timer); return timer;
+  };
+  globalThis.clearTimeout = value => { if (timers.includes(value)) value.cleared = true; else originalClear(value); };
+  t.after(() => { globalThis.setTimeout = originalSet; globalThis.clearTimeout = originalClear; });
+  return () => { for (const timer of timers) if (!timer.cleared) { timer.cleared = true; timer.callback(); } };
+}
+
+test('unconfirmed VAD silences narration but empty or failed transcription never cancels a YouTube search', async t => {
+  for (const transcript of ['empty', 'failed']) await t.test(transcript, async t => {
+    let release;
+    const x = await setup(t, { callImpl: () => new Promise(resolve => { release = resolve; }) });
+    beginYouTubeSearch(x); await tick();
+    x.response('response_narration'); x.delta('Estou procurando a música. ', 'response_narration'); await tick();
+    assert.equal(x.audios.length, 1);
+    x.emit({ type: 'input_audio_buffer.speech_started', item_id: 'input_noise' }); await tick();
+    assert.equal(x.audios[0].src, ''); assert.equal(x.cancelledTools.length, 0);
+    x.emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'input_noise' });
+    release({ ok: true, status: 'verified', data: { results: [{ videoId: 'abcdefghijk' }] } }); await tick();
+    assert.equal(x.peers[0].dc.sent.filter(event => event.type === 'conversation.item.create').length, 1);
+    assert.equal(continuationCount(x), 0);
+    x.emit({ type: `conversation.item.input_audio_transcription.${transcript === 'empty' ? 'completed' : 'failed'}`, item_id: 'input_noise', ...(transcript === 'empty' ? { transcript: '   ' } : { error: { code: 'transcription_failed' } }) });
+    assert.equal(x.cancelledTools.length, 0); assert.equal(continuationCount(x), 0);
+    x.done('cancelled', 'response_narration'); await tick();
+    assert.equal(continuationCount(x), 1); assert.equal(x.callbacks.errors.length, 0);
+  });
+});
+
+test('missing or uncorrelated transcription releases the bounded gate without cancelling native work', async t => {
+  for (const itemId of ['input_missing_transcript', undefined]) await t.test(String(itemId), async t => {
+    const expire = captureTranscriptionTimers(t); let release;
+    const x = await setup(t, { callImpl: () => new Promise(resolve => { release = resolve; }) });
+    beginYouTubeSearch(x); await tick();
+    x.emit({ type: 'input_audio_buffer.speech_started', ...(itemId ? { item_id: itemId } : {}) });
+    x.emit({ type: 'input_audio_buffer.speech_stopped', ...(itemId ? { item_id: itemId } : {}) });
+    x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'unrelated_input', transcript: 'Pare.' });
+    release({ ok: true, status: 'verified' }); await tick();
+    assert.equal(x.cancelledTools.length, 0); assert.equal(continuationCount(x), 0);
+    expire(); await tick(); assert.equal(continuationCount(x), 1); assert.equal(x.cancelledTools.length, 0);
+    x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: itemId, transcript: 'Texto atrasado.' });
+    assert.equal(x.cancelledTools.length, 0); assert.equal(continuationCount(x), 1);
+  });
+});
+
+test('a correlated transcript cancels only captured tools even when a newer response and tool already exist', async t => {
+  const releases = new Map();
+  const x = await setup(t, { callImpl: input => new Promise(resolve => releases.set(input.id, resolve)) });
+  beginYouTubeSearch(x); await tick(); const originalRun = x.tools[0].runId;
+  x.emit({ type: 'input_audio_buffer.speech_started', item_id: 'input_change' });
+  x.emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'input_change' });
+  beginYouTubeSearch(x, 'response_new', 'call_new'); await tick(); const newRun = x.tools[1].runId;
+  x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'old_input', transcript: 'Transcrição antiga.' });
+  assert.deepEqual(x.cancelledTools, []);
+  x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'input_change', transcript: 'Cancele a busca anterior.' });
+  assert.deepEqual(x.cancelledTools, [originalRun]); assert(!x.cancelledTools.includes(newRun));
+  assert.equal(x.peers[0].dc.sent.some(event => event.type === 'response.cancel' && event.response_id === 'response_new'), false);
+  releases.get('call_search')({ ok: false, status: 'cancelled' }); await tick(); assert.equal(continuationCount(x), 0);
+  releases.get('call_new')({ ok: true, status: 'verified' }); await tick(); assert.equal(continuationCount(x), 1);
+  x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'input_change', transcript: 'Duplicada.' });
+  assert.deepEqual(x.cancelledTools, [originalRun]);
+});
+
+test('a tool completed between VAD and its confirmed transcript cannot continue or cancel a newer active response', async t => {
+  let release;
+  const x = await setup(t, { callImpl: () => new Promise(resolve => { release = resolve; }) });
+  beginYouTubeSearch(x); await tick();
+  x.emit({ type: 'input_audio_buffer.speech_started', item_id: 'input_next' });
+  release({ ok: true, status: 'verified' }); await tick(); assert.equal(continuationCount(x), 0);
+  x.emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'input_next' }); x.response('response_next');
+  x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'input_next', transcript: 'Agora outra pergunta.' });
+  assert.equal(continuationCount(x), 0); assert.equal(x.cancelledTools.length, 0);
+  x.delta('A nova resposta continua. ', 'response_next'); await tick(); assert.equal(x.audios.length, 1);
+  x.done('completed', 'response_next'); assert.equal(continuationCount(x), 0);
+});
+
+test('confirmed speech cancels the captured search without interrupting narration from a newer active response', async t => {
+  let release;
+  const x = await setup(t, { callImpl: () => new Promise(resolve => { release = resolve; }) });
+  beginYouTubeSearch(x); await tick(); const capturedRun = x.tools[0].runId;
+  x.emit({ type: 'input_audio_buffer.speech_started', item_id: 'input_confirmed' });
+  x.emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'input_confirmed' });
+  x.response('response_new_active'); x.delta('Resposta nova preservada. ', 'response_new_active'); await tick();
+  const audio = x.audios[0]; assert(audio.src);
+  x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'input_confirmed', transcript: 'Pode cancelar a pesquisa anterior.' });
+  assert.deepEqual(x.cancelledTools, [capturedRun]); assert(audio.src);
+  assert.equal(x.peers[0].dc.sent.some(event => event.type === 'response.cancel' && event.response_id === 'response_new_active'), false);
+  release({ ok: false, status: 'cancelled' }); await tick();
+  assert.equal(continuationCount(x), 0); x.done('completed', 'response_new_active'); assert.equal(continuationCount(x), 0);
+});
+
+test('a late transcript from a replaced VAD candidate cannot cancel the current search', async t => {
+  let release;
+  const x = await setup(t, { callImpl: () => new Promise(resolve => { release = resolve; }) });
+  beginYouTubeSearch(x); await tick();
+  x.emit({ type: 'input_audio_buffer.speech_started', item_id: 'input_old' });
+  x.emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'input_old' });
+  x.emit({ type: 'input_audio_buffer.speech_started', item_id: 'input_current' });
+  x.emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'input_current' });
+  x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'input_old', transcript: 'Texto atrasado.' });
+  assert.equal(x.cancelledTools.length, 0);
+  x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'input_current', transcript: '' });
+  release({ ok: true, status: 'verified' }); await tick();
+  assert.equal(x.cancelledTools.length, 0); assert.equal(continuationCount(x), 1);
+});
+
+test('VAD completion cannot start a continuation while audio input is still arriving', async t => {
+  let release;
+  const x = await setup(t, { callImpl: () => new Promise(resolve => { release = resolve; }) });
+  beginYouTubeSearch(x); await tick();
+  x.emit({ type: 'input_audio_buffer.speech_started', item_id: 'input_still_speaking' });
+  release({ ok: true, status: 'verified' }); await tick();
+  x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'input_still_speaking', transcript: '' });
+  assert.equal(continuationCount(x), 0);
+  x.emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'input_still_speaking' });
+  assert.equal(continuationCount(x), 1);
+});
+
+test('explicit interrupt and shutdown still cancel tools immediately without waiting for VAD transcription', async t => {
+  for (const action of ['interrupt', 'stop']) await t.test(action, async t => {
+    let release;
+    const x = await setup(t, { callImpl: () => new Promise(resolve => { release = resolve; }) });
+    beginYouTubeSearch(x); await tick(); const runId = x.tools[0].runId;
+    x.emit({ type: 'input_audio_buffer.speech_started', item_id: 'input_late' });
+    x.voice[action](); assert(x.cancelledTools.includes(runId));
+    const cancelled = x.cancelledTools.length;
+    x.emit({ type: 'conversation.item.input_audio_transcription.completed', item_id: 'input_late', transcript: 'Texto posterior.' });
+    release({ ok: false, status: 'cancelled' }); await tick();
+    assert.equal(x.cancelledTools.length, cancelled); assert.equal(continuationCount(x), 0);
+  });
+});
+
 test('sentence segmentation preserves decimals and bounds unpunctuated text without splitting surrogate pairs', () => {
   assert.deepEqual(takeSpeechSegments('Agora faz 25.5 graus. Próxima'), { segments: ['Agora faz 25.5 graus.'], rest: 'Próxima' });
   assert.deepEqual(takeSpeechSegments('Ainda sem término.'), { segments: [], rest: 'Ainda sem término.' });

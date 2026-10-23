@@ -13,6 +13,7 @@ type Callbacks = {
 type SpeechAudio = { audioBase64: string; mime: string; runId: string; utteranceId: string };
 type SpeechJob = { text: string; runId: string; responseId: string; utteranceId: string; generation: number; controller: AbortController; preparation?: Promise<SpeechAudio | null> };
 type ResponseState = { id: string; runId: string; pending: string; textLength: number; segments: number; completed: boolean; disabled: boolean; continued: boolean; tools: Map<string, any> };
+type ToolSpeechCandidate = { itemId?: string; runIds: Set<string>; responseIds: Set<string>; timer?: ReturnType<typeof setTimeout> };
 type Playback = { audio: HTMLAudioElement; source: MediaElementAudioSourceNode; effects?: SpeechEffectsController; url: string; job: SpeechJob; finish(error?: boolean): void };
 
 /** Only complete delta-derived sentences are streamed; .done events never supply speech. */
@@ -60,6 +61,12 @@ export class RealtimeVoice {
   private seen = new Set<string>();
   private calls = new Set<string>();
   private pendingTools = new Map<string, { runId: string; responseId: string }>();
+  private toolContinuations = new Set<string>();
+  private continuationRequested = false;
+  private inputSpeaking = false;
+  private inputItemId?: string;
+  private toolSpeechCandidate?: ToolSpeechCandidate;
+  private speechItems = new Set<string>();
   private transcripts = new Map<string, string>();
   private responses = new Map<string, ResponseState>();
   private speechQueue: SpeechJob[] = [];
@@ -128,17 +135,37 @@ export class RealtimeVoice {
     const type = event.type, eventResponseId = event.response_id || event.response?.id;
     if (eventResponseId && this.interrupted.has(eventResponseId)) return;
     if (type === 'input_audio_buffer.speech_started') {
-      if (this.responseActive || this.speechJobs.size || this.pendingTools.size) this.interrupt();
+      const itemId = typeof event.item_id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(event.item_id) ? event.item_id : undefined;
+      if (itemId && this.speechItems.has(itemId)) return;
+      if (itemId) { if (this.speechItems.size >= 512) this.speechItems.delete(this.speechItems.values().next().value!); this.speechItems.add(itemId); }
+      if (this.pendingTools.size || this.toolContinuations.size) this.deferToolInterruption(itemId);
+      else if (this.responseActive || this.speechJobs.size) this.interrupt();
+      this.inputSpeaking = true; this.inputItemId = itemId;
       this.cb.state('listen');
     }
-    if (type === 'input_audio_buffer.speech_stopped') this.cb.state('think');
-    if (type === 'conversation.item.input_audio_transcription.completed' && typeof event.transcript === 'string') this.cb.transcript('user', event.transcript.slice(0, 12000), `voice-user-${event.item_id}`, true);
+    if (type === 'input_audio_buffer.speech_stopped' && (!this.inputItemId || event.item_id === this.inputItemId)) {
+      this.inputSpeaking = false; this.cb.state('think');
+      const candidate = this.toolSpeechCandidate;
+      // Missing transcription must not hold an already-authorized operation indefinitely.
+      if (candidate && !candidate.timer) candidate.timer = setTimeout(() => { if (this.toolSpeechCandidate === candidate) { this.clearToolSpeechCandidate(); this.continueTools(); } }, 3000);
+      this.continueTools();
+    }
+    if (type === 'conversation.item.input_audio_transcription.completed' || type === 'conversation.item.input_audio_transcription.failed') {
+      if (type.endsWith('.completed') && typeof event.transcript === 'string') this.cb.transcript('user', event.transcript.slice(0, 12000), `voice-user-${event.item_id}`, true);
+      const candidate = this.toolSpeechCandidate;
+      if (candidate?.itemId && event.item_id === candidate.itemId) {
+        this.clearToolSpeechCandidate();
+        if (type.endsWith('.completed') && typeof event.transcript === 'string' && event.transcript.trim()) this.confirmToolInterruption(candidate);
+        this.continueTools();
+      }
+    }
     if (type === 'response.created') {
       const id = event.response?.id;
       if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(id)) return;
       if (this.responses.has(id)) return;
       if (this.responses.size >= 256) { this.fail('A sessão atingiu seu limite de respostas. Inicie outra conversa.'); return; }
       this.runId = `voice-${crypto.randomUUID()}`; this.responseId = id; this.responseActive = true;
+      this.continuationRequested = false;
       this.responses.set(id, { id, runId: this.runId, pending: '', textLength: 0, segments: 0, completed: false, disabled: false, continued: false, tools: new Map() });
       this.idleState();
     }
@@ -175,6 +202,7 @@ export class RealtimeVoice {
         this.discardSpeech(new Set([response.runId]));
       }
       this.idleState();
+      this.continueTools();
     }
     // All output_audio* events and remote transcripts are deliberately ignored.
     if (type === 'error' && !['response_cancel_not_active', 'output_audio_buffer_empty'].includes(event.error?.code)) this.fail('A sessão de voz encontrou um erro. Consulte as configurações ou inicie outra sessão.');
@@ -276,6 +304,44 @@ export class RealtimeVoice {
     if (typeof this.bridge.cancelSpeech === 'function') for (const runId of runs) void this.bridge.cancelSpeech({ runId }).catch(() => {});
   }
 
+  private clearToolSpeechCandidate() {
+    clearTimeout(this.toolSpeechCandidate?.timer); this.toolSpeechCandidate = undefined;
+  }
+  private deferToolInterruption(itemId?: string) {
+    this.clearToolSpeechCandidate();
+    const responseIds = new Set([...this.pendingTools.values()].map(tool => tool.responseId));
+    for (const id of this.toolContinuations) responseIds.add(id);
+    const runIds = new Set([...this.pendingTools.values()].map(tool => tool.runId));
+    for (const id of responseIds) { const response = this.responses.get(id); if (response) runIds.add(response.runId); }
+    this.toolSpeechCandidate = { itemId, runIds, responseIds };
+    // VAD is enough to silence narration, but not evidence to cancel native effects.
+    const speechRuns = new Set([...this.speechJobs].map(job => job.runId));
+    for (const response of this.responses.values()) if (speechRuns.has(response.runId)) { response.disabled = true; response.pending = ''; }
+    this.speechGeneration++; this.discardSpeech(speechRuns); this.outputActive = false;
+  }
+  private confirmToolInterruption(candidate: ToolSpeechCandidate) {
+    for (const id of candidate.responseIds) {
+      this.interrupted.add(id); this.toolContinuations.delete(id);
+      const response = this.responses.get(id); if (response) response.pending = '';
+    }
+    this.discardSpeech(candidate.runIds);
+    // A newer response may already exist: cancel only the work captured at VAD start.
+    const pendingRuns = new Set([...this.pendingTools.values()].filter(tool => candidate.runIds.has(tool.runId)).map(tool => tool.runId));
+    for (const runId of pendingRuns) void this.bridge.cancel(runId).catch(() => {});
+  }
+  private continueTools() {
+    if (this.stopped || this.responseActive || this.continuationRequested || this.inputSpeaking || this.toolSpeechCandidate || this.pendingTools.size) return;
+    let ready = false;
+    for (const id of this.toolContinuations) {
+      const response = this.responses.get(id);
+      if (!response || this.interrupted.has(id) || response.continued) { this.toolContinuations.delete(id); continue; }
+      const pending = [...this.pendingTools.values()].some(tool => tool.responseId === id);
+      if (pending || ![...response.tools.keys()].every(callId => this.calls.has(callId))) continue;
+      response.continued = true; this.toolContinuations.delete(id); ready = true;
+    }
+    if (ready) { this.continuationRequested = true; this.send({ type: 'response.create', response: { output_modalities: ['text'] } }); this.cb.state('think'); }
+  }
+
   private async tool(item: any, response: ResponseState) {
     const id = item.call_id, responseId = response.id, runId = response.runId;
     if (this.calls.has(id) || this.stopped || this.interrupted.has(responseId)) return;
@@ -294,13 +360,13 @@ export class RealtimeVoice {
     catch { output = JSON.stringify({ ok: false, status: 'failed', summary: 'O resultado excedeu o limite de leitura.' }); }
     this.send({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: id, output } });
     if (this.interrupted.has(responseId)) return;
-    const pending = [...this.pendingTools.values()].some(tool => tool.responseId === responseId);
-    const allStarted = [...response.tools.keys()].every(callId => this.calls.has(callId));
-    if (!pending && allStarted && !response.continued) { response.continued = true; this.send({ type: 'response.create', response: { output_modalities: ['text'] } }); this.cb.state('think'); }
+    this.toolContinuations.add(responseId); this.continueTools();
   }
 
   interrupt() {
     if (this.stopped) return;
+    this.clearToolSpeechCandidate(); this.inputSpeaking = false; this.inputItemId = undefined;
+    this.toolContinuations.clear(); this.continuationRequested = false;
     if (this.responseId) this.interrupted.add(this.responseId);
     for (const tool of this.pendingTools.values()) this.interrupted.add(tool.responseId);
     for (const job of this.speechJobs) this.interrupted.add(job.responseId);

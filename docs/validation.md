@@ -1,5 +1,17 @@
 # Validação do MVP
 
+## Revisão 0.6.3 — correção em preparação; CI/pacote e ensaio ao vivo pendentes
+
+No ensaio da **0.6.2**, o usuário relatou que abriu um vídeo ou anúncio parado e depois não conseguiu novo acesso. Esse relato não confirmou reprodução, anúncio específico, áudio ou a origem do cancelamento. A causa no equipamento permanece indeterminada.
+
+Um diagnóstico local restrito, sem argumentos, credenciais, memórias ou transcrições, mostrou **duas pesquisas interrompidas antes de qualquer chamada youtube_play nesses trechos**. Essa conclusão agregada não identifica a causa ou o autor do cancelamento, nem comprova malware, falha da conta ou anúncio. No momento do diagnóstico, a ponte nativa retornou **NOT_RUNNING** e não havia janelas Jarvis/YouTube visíveis. Isso não determina o estado do aplicativo durante a tentativa anterior. Um ensaio Electron local isolado encerrou antes de produzir relatório; não reiniciou o aplicativo do usuário nem forneceu prova do YouTube ao vivo.
+
+A correção 0.6.3 permite recuperar o estado de bloqueio transitório somente mediante nova busca explícita e após a fila da janela, preservando limites HTTPS/YouTube, intervenção manual e isolamento por perfil. O fluxo de voz distingue início de atividade de transcrição: com ferramenta pendente, `speech_started` silencia TTS, mas não cancela efeitos sozinho; cancelamento por voz depende de texto não vazio correlacionado ao item e às execuções capturadas naquele início. Interromper, encerrar voz, trocar perfil e sair continuam imediatos. Há também regressão para resultado/continuação enquanto a entrada está pendente. Esses defeitos podem ser reproduzidos em código; isso não prova que causaram o relato físico. A [documentação VAD](https://developers.openai.com/api/docs/guides/realtime-vad) descreve os eventos de início/fim de fala; a política de cancelamento é do Jarvis.
+
+O cenário nativo foi ampliado em código para nova busca a partir de `/watch` e reprodução de um segundo vídeo; sua execução aguardará o CI. A fixture usa HTTPS local e mídia substituída, sem comprovar YouTube ao vivo ou som ouvido. A retirada de câmera/roupa da recepção, voz e música aprovadas são preservadas.
+
+Verificação local 0.6.3: **558 testes, 547 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox, zero skips**; TypeScript/build aprovados. Realtime **30/30**, controlador/runtime/fábrica YouTube **51/51**. **CI, pacote Windows e novo ensaio ao vivo ainda pendentes.** Os resultados **534/534**, hashes e abertura nativa da seção seguinte pertencem somente à 0.6.2. Não houve novo aceite físico do player, da recepção ou do acesso ao vivo. [YouTube](youtube.md), [voz](openai.md) e [plano](test-plan.md).
+
 ## Revisão 0.6.2 — CI e pacote conferidos; ensaio ao vivo pendente
 
 O usuário pediu retirar o comentário de roupa. O fluxo atual passa de música/saudação com clima diretamente à conversa por voz quando habilitada. A câmera não é aberta nessa recepção, os endpoints e controles ativos de observação de roupa são retirados e a opção legada `receptionOutfitEnabled` é migrada para `false`. Câmera manual e reconhecimento local em Presença são preservados.

@@ -125,7 +125,7 @@ export class YouTubeController {
       this.#assert(scope);
       for (const item of result.results) this.#observed.set(item.videoId, { ...item });
       return structuredClone(result);
-    });
+    }, { recoverBlocked: true });
   }
   async play(videoId, options = {}) {
     if (typeof videoId !== 'string' || !VIDEO_ID.test(videoId)) throw new YouTubeError('INVALID');
@@ -229,7 +229,7 @@ export class YouTubeController {
       throw new YouTubeError('CANCELLED');
     }
     if (scope.window && (scope.window.isDestroyed() || scope.window.webContents.isDestroyed?.())) throw new YouTubeError('CANCELLED');
-    if (this.#blocked) throw new YouTubeError(this.#blocked);
+    if (this.#blocked && !scope.recoveringBlocked) throw new YouTubeError(this.#blocked);
     if (this.#now() >= scope.deadline) { scope.reason = 'TIMEOUT'; scope.controller.abort(); throw new YouTubeError('TIMEOUT'); }
   }
   #wait(promise, scope) {
@@ -242,10 +242,10 @@ export class YouTubeController {
       if (scope.signal.aborted) abort();
     });
   }
-  async #run({ signal, profileId } = {}, perform) {
+  async #run({ signal, profileId } = {}, perform, { recoverBlocked = false } = {}) {
     if (typeof profileId !== 'string' || !profileId || profileId.length > 100 || this.#getProfileId() !== profileId) throw new YouTubeError('CANCELLED');
     if (this.#window && this.#profileId !== profileId) this.close();
-    const controller = new AbortController(), scope = { controller, signal: controller.signal, profileId, generation: this.#generation, deadline: this.#now() + this.#timeoutMs };
+    const controller = new AbortController(), scope = { controller, signal: controller.signal, profileId, generation: this.#generation, deadline: this.#now() + this.#timeoutMs, recoveringBlocked: recoverBlocked };
     const cancel = () => { scope.reason = 'CANCELLED'; controller.abort(); };
     const aborted = () => {
       if (!scope.window || this.#window !== scope.window) return;
@@ -260,7 +260,13 @@ export class YouTubeController {
     this.#scopes.add(scope); if (signal?.aborted) cancel();
     const previous = this.#tail; let release;
     const slot = new Promise(resolve => { release = resolve; }); this.#tail = previous.catch(() => {}).then(() => slot);
-    try { await this.#wait(previous, scope); this.#assert(scope); const result = await perform(scope); this.#assert(scope); return result; }
+    try {
+      await this.#wait(previous, scope); this.#assert(scope);
+      // A new search may recover only after the previous request has reported
+      // its blocked navigation. Every DOM/navigation step still checks it anew.
+      if (scope.recoveringBlocked) { this.#blocked = undefined; scope.recoveringBlocked = false; }
+      this.#assert(scope); const result = await perform(scope); this.#assert(scope); return result;
+    }
     catch (error) { throw error instanceof YouTubeError ? error : new YouTubeError('UNAVAILABLE'); }
     finally { clearTimeout(timer); signal?.removeEventListener('abort', cancel); controller.signal.removeEventListener('abort', aborted); this.#scopes.delete(scope); release(); }
   }
