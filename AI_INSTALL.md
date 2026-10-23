@@ -1,12 +1,27 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Revisão 0.6.5 — resultados modernos do YouTube, em validação
+## Revisão 0.6.5 — CI e pacote conferidos; ensaio real pendente
 
 O reteste real da **0.6.4 foi reprovado**: os resultados apareceram, mas o vídeo não tocou e a janela ficou na lista. Uma consulta local limitada, autorizada pelo usuário e restrita ao estado/resumo das ferramentas YouTube, confirmou expiração da busca após 15 segundos, sem chamada a `youtube_play` naquela tentativa. Isso não comprova falha do player, anúncio ou VAD.
 
-O extrator anterior lia apenas cartões legados. A 0.6.5 prepara suporte estreito aos cartões modernos observados no site público: título e canal visíveis do mesmo cartão, link de canal validado e exclusão de publicidade, sem completar metadados por suposição. Preserva resultados legados, ordem, até oito IDs únicos de 11 caracteres e consulta correspondente. O botão moderno de busca, os limites de navegação, perfil e intervenção manual permanecem. [Contrato](docs/youtube.md).
+O extrator anterior lia apenas cartões legados. A 0.6.5 oferece suporte estreito aos cartões modernos observados no site público: título e canal visíveis do mesmo cartão, link de canal validado e exclusão de publicidade, sem completar metadados por suposição. Preserva resultados legados, ordem, até oito IDs únicos de 11 caracteres e consulta correspondente. O botão moderno de busca, os limites de navegação, perfil e intervenção manual permanecem. [Contrato](docs/youtube.md).
 
-Verificação local final 0.6.5: **576 testes, 565 aprovados, somente as 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **69/69**, VAD **30/30**. O adaptador com cartões modernos na nova fixture ainda será exercitado no CI; não houve esse ensaio no Chromium local. **CI, pacote e ensaio ao vivo 0.6.5 pendentes.** Não há link ou hash 0.6.5 conferido nesta etapa. O pacote e os 568/568 testes 0.6.4 abaixo são históricos e não validam o extrator novo. Quando o pacote novo for conferido, preservar os ajustes privados e testar lista, escolha, reprodução, nova busca a partir do vídeo, segundo vídeo, pausa e retomada. A recepção continua com música/saudação e voz, sem câmera automática; Presença permanece manual. [Roteiro](docs/test-plan.md) e [Validação](docs/validation.md).
+Verificação local final 0.6.5: **576 testes, 565 aprovados, somente as 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **69/69**, VAD **30/30**. [CI 2aa1ce4 da 0.6.5](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39880425806) aprovado: **576/576 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. A fixture de cartões modernos com título/canal observado, clique gerenciado por JavaScript e `/watch` → nova busca → segundo vídeo foi executada em HTTPS local com mídia PCM e áudio silenciado; não comprova o YouTube real ou som ouvido. **O ensaio físico 0.6.5 permanece pendente; os retestes reais 0.6.3 e 0.6.4 continuam reprovados.** O pacote 0.6.5 foi baixado e conferido conforme a seção seguinte. O pacote e os 568/568 testes 0.6.4 abaixo são históricos e não validam o extrator novo. Com o pacote novo conferido, preservar os ajustes privados e testar lista, escolha, reprodução, nova busca a partir do vídeo, segundo vídeo, pausa e retomada. A recepção continua com música/saudação e voz, sem câmera automática; Presença permanece manual. [Roteiro](docs/test-plan.md) e [Validação](docs/validation.md).
+
+## Pacote Windows 0.6.5 conferido
+
+Baixe o [Windows 0.6.5 da execução 39880425806](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39880425806/artifacts/12470521812). ZIP e executável foram baixados e conferidos por tamanho e SHA-256; a extração aceitou somente o EXE esperado e seu arquivo de checksum.
+
+| Arquivo conferido | Tamanho em bytes | SHA-256 |
+| --- | ---: | --- |
+| ZIP do artefato Windows | 104.050.365 | `3137888b12fe44da2ea7924930c7a857482cb3fa135842546ec65e7f18d33c19` |
+| GleysonSilva-Jarvis-0.6.5-Windows.exe | 104.039.725 | `f421cce16a05758e17dfc89f0f4e470292ae030609d1fec87bfdb621e06b8f94` |
+
+O [job 120176226484](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39880425806/job/120176226484), commit `2aa1ce46963ef0df05774c7e20aaec64bc134d18`, confirmou `ready/window/dom/preload/boot/fullscreen/youtube/packaged` verdadeiros em **22 de outubro de 2026, às 20h53, America/New_York**. A fixture executou cartões modernos com título e canal `/@…` observados, botão com navegação gerenciada por JavaScript e `/watch` → nova busca → segundo vídeo. Foi HTTPS local com mídia PCM e áudio silenciado; não comprova o site real ou som ouvido.
+
+Retenção até **20 de janeiro de 2027, às 19h49, America/New_York**. É artefato temporário do GitHub Actions, que pode exigir login; não é release assinada nem link permanente. O workflow também gerou artefato do plugin **0.6.0**, que não foi baixado ou reinstalado nesta atualização.
+
+Feche a versão anterior por **X/Sair**, extraia o ZIP e abra **GleysonSilva-Jarvis-0.6.5-Windows.exe**. Confira **MVP / 06.5**, preserve os ajustes privados e repita busca, lista real, escolha, reprodução, nova busca a partir do vídeo, segundo vídeo, pausa e retomada por voz/texto. **O ensaio físico 0.6.5 permanece pendente; os retestes reais 0.6.3/0.6.4 foram reprovados.** Não tratar o CI como esse aceite nem divulgar o histórico privado. [YouTube](docs/youtube.md), [voz](docs/openai.md) e [Validação](docs/validation.md).
 
 ## Base anterior 0.6.4 — botão de pesquisa do YouTube atual
 
