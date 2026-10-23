@@ -1,10 +1,18 @@
 # Validação do MVP
 
-## Revisão 0.7.1 — controle remoto em validação
+## Revisão 0.7.1 — CI e pacote conferidos; teste físico pendente
 
 O painel nativo TV encaminha botões e atalhos ao runtime local, preservando validação fechada, cancelamento e histórico. Não chama a IA para interpretar um clique. Uma sessão de voz conectada e ociosa pode permanecer conectada, enquanto ações simultâneas incompatíveis são recusadas. Cada pedido usa identificadores próprios e o resultado continua distinguindo envio de observação da televisão.
 
-Verificação local, CI, pacote e teste físico desta versão em andamento. As provas da 0.7.0 não validam os botões novos. Validar painel configurado/desabilitado, nomes acessíveis dos botões, um envio por clique, interrupção, fechamento, perfil e resultados tardios. Na TV real, observar Início, setas/OK e Netflix; não anunciar suporte físico a todos os controles sem ensaio. [Guia do painel](tv-remote.md).
+[CI 1770cff da 0.7.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/40011923997), commit `1770cff9a06becf091cba17bffc717f8eba39959`, aprovado: **662/662 testes, zero falhas/skips**, TypeScript, build e pacote Windows. O [job 120614198925](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/40011923997/job/120614198925) confirmou `ready/window/dom/preload/boot/fullscreen/youtube/packaged` verdadeiros em **23 de outubro de 2026, às 15h34, America/New_York**. A fixture YouTube usa HTTPS local e áudio silenciado; o smoke não acessa a Fire TV física.
+
+Na verificação local, **23/23 testes focados de interface e 31/31 de integração do processo principal passaram**, além de TypeScript e build. As tentativas da suíte local completa foram interrompidas sem total final: este executor recusou conexões ao próprio servidor loopback com `EACCES`, impedindo fixtures HTTP e deixando handles abertos antes da limpeza. As limitações anteriores de links/junções do sandbox também permanecem. Nenhum teste foi retirado ou enfraquecido; a execução integral aprovada é a do CI Windows acima.
+
+O [Windows 0.7.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/40011923997/artifacts/12526723405) foi baixado e conferido: ZIP **104.056.898 bytes**, SHA-256 `ee900456d36cf9d69c6f88e6e31fe6730514bba42a2cdc1e30a62e7cc406e917`; EXE **104.047.686 bytes**, SHA-256 `24442b9cbe7f5fbfed4c840728ca0221914d0c9412ca853513bef448f1d7e943`, correspondente ao checksum incluído. A extração aceitou exatamente duas entradas esperadas e verificou CRC/hash. [Instalação e retenção 0.7.1](../AI_INSTALL.md#pacote-windows-071-conferido). O plugin 0.6.0 foi gerado novamente, sem reinstalação.
+
+A revisão visual do painel foi feita em uma prévia local com interface/CSS reais e ponte inteiramente simulada. Setas/OK, volume, reprodução e atalhos estavam visíveis; um clique simulado em Início apresentou **Comando enviado · confira a televisão**. Isso valida a apresentação e o retorno simulado, sem executar qualquer pedido na televisão.
+
+**Teste físico dos botões 0.7.1 pendente.** As provas da 0.7.0 não validam os botões novos. Ainda testar Início, setas/OK e Netflix enquanto a pessoa observa a TV, interrupção, falhas, troca de perfil e persistência do pareamento após reinício. Demais aplicativos, todos os controles, outros dispositivos/firmwares e seleção automática de perfis não estão aprovados. Cada clique tem identificadores próprios; o cancelamento corresponde somente àquele envio e não encerra uma sessão de voz ociosa. Resultados continuam `unverified`, sem confirmar tela, volume ou reprodução. [Guia do painel](tv-remote.md).
 
 ## Revisão 0.7.0 — Fire TV em validação
 

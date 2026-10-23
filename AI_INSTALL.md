@@ -1,10 +1,25 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Revisão 0.7.1 — controle remoto em validação
+## Revisão 0.7.1 — preview disponível; teste físico pendente
 
 O controle remoto fica em **TV**, na barra lateral. Ele reaproveita a conexão Fire TV salva e pareada. Os botões executam um comando por clique, com registro local e sem chave OpenAI para o envio manual. Mantenha o arquivo/configurações privados da instalação; não os publique ou copie para outro computador. [Instruções e limites](docs/tv-remote.md).
 
-Os candidatos à nova marca são propostas separadas; não renomeiam automaticamente o aplicativo ou a instalação existente. CI/pacote e prova física do painel 0.7.1 permanecem pendentes. As evidências 0.7.0 abaixo pertencem à base anterior.
+Os candidatos à nova marca são propostas separadas; não renomeiam automaticamente o aplicativo ou a instalação existente. [CI 1770cff da 0.7.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/40011923997) aprovado: **662/662 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa. O pacote 0.7.1 abaixo foi baixado e conferido. **Prova física dos botões 0.7.1 continua pendente**, incluindo demais aplicativos/controles, troca de perfis na televisão, persistência do pareamento após reinício e outros modelos/firmwares. As evidências 0.7.0 abaixo pertencem à base anterior.
+
+## Pacote Windows 0.7.1 conferido
+
+Baixe o [Windows 0.7.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/40011923997/artifacts/12526723405). ZIP e EXE foram conferidos por tamanho e SHA-256; a extração aceitou exatamente o executável esperado e seu checksum, com CRC válido e hash correspondente. Artefato temporário do GitHub, sem assinatura de release.
+
+| Arquivo conferido | Tamanho em bytes | SHA-256 |
+| --- | ---: | --- |
+| ZIP do artefato 12526723405 | 104.056.898 | `ee900456d36cf9d69c6f88e6e31fe6730514bba42a2cdc1e30a62e7cc406e917` |
+| GleysonSilva-Jarvis-0.7.1-Windows.exe | 104.047.686 | `24442b9cbe7f5fbfed4c840728ca0221914d0c9412ca853513bef448f1d7e943` |
+
+Retenção até **21 de janeiro de 2027, às 14h30, America/New_York**. Após expiração, gere outro pacote pelo workflow do repositório.
+
+Feche a versão anterior pelo **X/Sair**, abra **GleysonSilva-Jarvis-0.7.1-Windows.exe** e confira **MVP / 07.1**. Preserve as configurações privadas já existentes; esta atualização não define uma nova marca, não inclui o IP do proprietário nem substitui voz, música ou chaves. Abra **TV** na barra lateral. Se o controle solicitar configuração, use **Abrir Ajustes** e siga o [pareamento Fire TV](docs/fire-tv.md). Teste um comando por vez enquanto observa a televisão. Não repita automaticamente um comando incerto. [Guia do controle](docs/tv-remote.md).
+
+O plugin privado Ultron continua na 0.6.0, com cinco ferramentas. O CI gerou seu artefato novamente, mas ele não foi reinstalado nesta atualização.
 
 ## Revisão 0.7.0 — Fire TV em validação
 

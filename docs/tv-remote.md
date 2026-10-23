@@ -28,6 +28,8 @@ O painel fica disponível quando a Fire TV está configurada e pareada no aplica
 
 ## Estado de validação
 
-Implementação e validação da versão 0.7.1 em andamento. Os testes e o aceite físico da 0.7.0 — pareamento e sequência Início → Netflix por voz — pertencem à base anterior. Não comprovam os botões novos, todos os aplicativos, persistência após reinício ou seleção automática de perfil. As provas desta versão serão registradas em [Validação](validation.md).
+**Preview 0.7.1 disponível:** [CI 1770cff da 0.7.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/40011923997) aprovou **662/662 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa. ZIP/EXE foram baixados e conferidos por tamanho e SHA-256; [instalação e hashes](../AI_INSTALL.md#pacote-windows-071-conferido). A revisão visual utilizou somente uma ponte simulada, sem acessar a TV.
+
+**Teste físico dos botões continua pendente.** O aceite físico da 0.7.0 — pareamento e sequência Início → Netflix por voz — pertence à base anterior. Não comprova os botões novos, todos os aplicativos e controles, outros dispositivos/firmwares, persistência do pareamento após reinício ou seleção automática de perfil. Não há nova marca aplicada nesta versão. [Evidências e limites](validation.md#revisão-071--ci-e-pacote-conferidos-teste-físico-pendente).
 
 Para configurar ou revogar a conexão, consulte [Fire TV](fire-tv.md).

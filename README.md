@@ -1,10 +1,10 @@
 # Projeto GleysonSilva-Jarvis
 
-## Controle remoto 0.7.1 — em validação
+## Controle remoto 0.7.1 — preview disponível
 
 O painel **TV** reúne setas/OK, Início/Voltar, volume, tocar/pausar e atalhos de aplicativos da Fire TV já pareada. Cada clique envia um pedido pelo executor local, sem depender de uma resposta da IA. A conversa por voz continua usando as mesmas ferramentas de TV. Não há leitura simulada da tela nem seleção automática de perfis. [Como usar o controle](docs/tv-remote.md).
 
-A nova identidade comercial está em fase de proposta e escolha. Esta versão preserva o nome técnico, os identificadores da instalação e as configurações privadas existentes. CI, pacote e teste físico dos botões desta versão ainda serão registrados.
+A nova identidade comercial está em fase de proposta e escolha. Esta versão preserva o nome técnico, os identificadores da instalação e as configurações privadas existentes. [CI 1770cff da 0.7.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/40011923997) aprovado: **662/662 testes, zero falhas/skips**, TypeScript, build, pacote e abertura nativa. O [Windows 0.7.1](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/40011923997/artifacts/12526723405) foi baixado e conferido por tamanho e SHA-256; [instalação e hashes](AI_INSTALL.md#pacote-windows-071-conferido). A prévia visual com conexão simulada foi revisada, sem acessar a televisão. **Teste físico dos botões 0.7.1 pendente**; não comprova todos os controles, modelos de TV, perfis da Netflix ou persistência do pareamento após reinício. [Evidências e limites](docs/validation.md#revisão-071--ci-e-pacote-conferidos-teste-físico-pendente).
 
 ![Prévia do núcleo orbital 0.3.1](assets/screenshots/core-031.png)
 
