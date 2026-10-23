@@ -1,14 +1,39 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Revisão 0.6.3 — busca recuperável e interrupção por voz correlacionada
+## Revisão 0.6.4 — botão de pesquisa do YouTube atual
+
+O controlador prioriza a lupa moderna observada na página controlada. Envia a consulta com **um clique**, sem exigir que esse botão seja um submit de formulário; quando ele não existir, o fallback é restrito ao botão legado ou formulário real observado. O sucesso continua exigindo URL, consulta e resultados reais correspondentes. Não construir URL sintética de resultados, não simular sucesso e não repetir cliques automaticamente.
+
+O reteste real do pacote **0.6.3 falhou**: o site abriu, a consulta permaneceu no campo/autocomplete da página inicial e não tocou. O envio anterior por formulário pode não efetivar a busca em uma aplicação dinâmica; a regressão controlada reproduziu esse caso. Isso é compatível com a imagem, sem comprovar anúncio, conta ou VAD como causa física. [Diagnóstico e limites](docs/validation.md).
+
+Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. **CI, pacote Windows e novo ensaio real ainda pendentes.** A nova fixture de formulário gerenciado será executada no CI. As contagens **558/558**, hashes e artefatos 0.6.3 abaixo são históricos e não comprovam a nova correção. O plugin permanece 0.6.0; preserve as configurações existentes, voz, trilha e câmera manual em Presença. A recepção continua sem câmera automática.
+
+Quando o pacote 0.6.4 estiver disponível e conferido, teste pesquisar por voz/texto, observar a lista real, tocar um resultado, pedir outra busca a partir do vídeo e tocar um resultado novo. Testar bloqueio, cancelamento e intervenção manual sem aceitar login/consentimento automaticamente. [Roteiro](docs/test-plan.md) e [YouTube](docs/youtube.md).
+
+## Base anterior 0.6.3 — busca recuperável e interrupção por voz correlacionada
 
 A 0.6.3 permite uma **nova busca explicitamente solicitada** depois de um bloqueio transitório na janela YouTube. A recuperação entra na fila e mantém navegação limitada a HTTPS no YouTube; não aceita login/consentimento ou contorna avisos do site. Uma busca nova substitui os resultados observados da anterior, e tocar continua exigindo ID observado no perfil.
 
 Com ferramenta pendente, um evento inicial de fala apenas silencia a narração. O Jarvis espera transcrição não vazia da mesma fala para cancelar as execuções capturadas; resultado antigo não deve gerar continuação enquanto a entrada estiver pendente. **Interromper**, encerrar voz, troca de perfil e X/Sair continuam cancelando imediatamente. Essa correção de código não prova que VAD causou o problema físico relatado. [Fluxo de voz](docs/openai.md) e [YouTube](docs/youtube.md).
 
-**CI, pacote Windows e ensaio real da 0.6.3 ainda pendentes.** Verificação local: **558 testes, 547 aprovados, 11 falhas EPERM anteriores do sandbox, zero skips**; TypeScript/build aprovados. [Detalhes](docs/validation.md). Não há novo hash ou resultado de CI atribuído a esta revisão. Os **534/534 testes** e os arquivos conferidos abaixo pertencem à **0.6.2**. O plugin privado permanece 0.6.0; não reinstale ou altere credenciais como parte desse teste sem necessidade. Preserve voz, cidade, trilha, login configurado e cadastro facial; a recepção continua sem comentário de roupa ou câmera automática.
+[CI 49f9872 da 0.6.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39876444758) aprovado: **558/558 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa com nova busca a partir de vídeo e segundo resultado em HTTPS local com mídia PCM e áudio silenciado. **O reteste real do YouTube na 0.6.3 falhou: o site abriu, mas não tocou.** O screenshot mostra consulta preenchida/autocomplete na página inicial, sem resultados de busca. A causa ainda não foi confirmada; recepção e som ouvido não receberam novo aceite. Verificação local: **558 testes, 547 aprovados, 11 falhas EPERM anteriores do sandbox, zero skips**; TypeScript/build aprovados. [Detalhes](docs/validation.md). Os hashes e a instalação da 0.6.3 estão na seção seguinte. Os **534/534 testes** e arquivos da seção **0.6.2** pertencem somente à base histórica. O plugin privado permanece 0.6.0; não reinstale ou altere credenciais como parte desse teste sem necessidade. Preserve voz, cidade, trilha, login configurado e cadastro facial; a recepção continua sem comentário de roupa ou câmera automática.
 
-Para o ensaio da 0.6.3 quando o pacote estiver disponível e conferido: buscar um vídeo, tocar, pedir nova pesquisa a partir da página do vídeo e tocar um resultado da busca nova. Repetir com ruído sem fala transcrita e com uma nova fala durante ferramenta pendente; conferir que somente a execução antiga correlacionada é cancelada. Testar também Interromper/encerrar voz, perfil e X. Não reinicie a sessão do usuário nem publique argumentos de ferramentas, memórias ou credenciais para diagnosticar a falha. [Registro](docs/validation.md).
+O pacote 0.6.3 conferido reproduziu falha no reteste do usuário; não tratá-lo como reprodução ao vivo aprovada. Roteiro para validar a próxima correção: buscar um vídeo, tocar, pedir nova pesquisa a partir da página do vídeo e tocar um resultado da busca nova. Repetir com ruído sem fala transcrita e com uma nova fala durante ferramenta pendente; conferir que somente a execução antiga correlacionada é cancelada. Testar também Interromper/encerrar voz, perfil e X. Não reinicie a sessão do usuário nem publique argumentos de ferramentas, memórias ou credenciais para diagnosticar a falha. [Registro](docs/validation.md).
+
+## Pacote Windows 0.6.3 conferido
+
+Baixe o [Windows 0.6.3 da execução 39876444758](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39876444758/artifacts/12469130389). ZIP e executável foram baixados e conferidos por tamanho e SHA-256; a extração aceitou somente o EXE esperado e seu arquivo de checksum.
+
+| Arquivo conferido | Tamanho em bytes | SHA-256 |
+| --- | ---: | --- |
+| ZIP do artefato Windows | 104.048.480 | `5f9c08bd38154be9305413b7ceb5caba9dcc9006fbd9a74ddd8da694f4a627c6` |
+| GleysonSilva-Jarvis-0.6.3-Windows.exe | 104.037.725 | `57e8adc475beb9fdf86af34b185673d568e256f79c78cc77e86cbbc0cb0819ca` |
+
+O [job 120163097455](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39876444758/job/120163097455), commit `49f9872c509965f8e304c58d8bd8b8a515597b39`, confirmou `ready/window/dom/preload/boot/fullscreen/youtube/packaged` verdadeiros em **22 de outubro de 2026, às 20h13, America/New_York**. O teste nativo executou `/watch` → nova busca → reprodução de um segundo ID. Foi uma fixture HTTPS local com mídia PCM e áudio silenciado, sem consulta ao YouTube ao vivo ou confirmação de som ouvido.
+
+Retenção até **20 de janeiro de 2027, às 19h10, America/New_York**. É artefato temporário do GitHub Actions, que pode exigir login; não é release assinada nem link permanente. O workflow também gerou um artefato do plugin; sua versão permanece **0.6.0**, e ele não foi baixado ou reinstalado nesta atualização.
+
+Feche a versão anterior por **X/Sair**, extraia o ZIP e abra **GleysonSilva-Jarvis-0.6.3-Windows.exe**. Confira **MVP / 06.3**, preserve os ajustes privados e teste buscar, tocar, pedir nova busca e tocar outro resultado. Depois teste ruído, nova fala e Interromper durante uma ferramenta. O relato 0.6.2 de vídeo/anúncio parado não foi aprovado nem teve causa física determinada; registre o resultado atual sem atribuí-lo automaticamente a VAD ou anúncio. A recepção permanece sem câmera automática. [YouTube](docs/youtube.md), [voz](docs/openai.md) e [validação](docs/validation.md).
 
 ## Base anterior 0.6.2 — recepção sem câmera automática
 

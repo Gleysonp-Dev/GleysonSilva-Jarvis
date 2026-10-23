@@ -1,6 +1,8 @@
-# Projeto GleysonSilva-Jarvis: voz e câmera — revisão 0.6.3
+# Projeto GleysonSilva-Jarvis: voz e câmera — revisão 0.6.4
 
 O núcleo mantém o ciano aprovado em todos os estados. Ouvindo e respondendo, brilho e expansão acompanham o envelope do áudio capturado e reproduzido; durante uma ferramenta, a pulsação segue a atividade do executor. Aguardar o modelo, aguardar confirmação e executar devem continuar distinguíveis pelo rótulo de estado. Com movimento reduzido, os estados continuam legíveis sem exigir animação.
+
+A 0.6.4 preserva a voz, música e interrupção da 0.6.3 e ajusta somente o envio da busca no YouTube. O reteste real 0.6.3 falhou, sem prova de VAD como causa. A verificação local da 0.6.4 está em Validação; CI, pacote e novo ensaio físico ainda pendentes. A recepção continua sem câmera automática e Presença mantém seu controle manual. [YouTube](youtube.md) e [Validação](validation.md).
 
 ## Voz do MVP
 
@@ -92,7 +94,9 @@ Registre também mudanças de luz, óculos, ângulos, cabelo, fundo e distância
 
 ## Estado de validação
 
-**0.6.3:** verificação local em [Validação](validation.md); CI, pacote e ensaio físico ainda pendentes. As provas 0.6.2 a seguir pertencem à base anterior e não validam o novo filtro de interrupção.
+**0.6.4 — verificação local:** **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. **CI, pacote e novo ensaio físico ainda pendentes.** O fluxo real 0.6.3 do YouTube foi reprovado; a nova fixture de busca dinâmica não equivale a reprodução ao vivo aprovada.
+
+**0.6.3:** CI e pacote aprovados; prova e verificação local em [Validação](validation.md). O reteste real do YouTube falhou, sem causa física atribuída ao filtro VAD. A nova validação física da voz/recepção continua pendente. As provas 0.6.2 a seguir pertencem à base anterior e não validam o novo filtro de interrupção.
 
 CI, pacote e verificação local da 0.6.2 estão registrados em [Validação](validation.md); o ensaio físico continua pendente. O usuário confirmou palmas na 0.6.0; isso não comprova novo login, todos os dispositivos ou a conversa prolongada. Conferir que uma configuração antiga de roupa não abre câmera, que a saudação passa à voz e que Presença mantém sua captura manual. [Registro](validation.md).
 

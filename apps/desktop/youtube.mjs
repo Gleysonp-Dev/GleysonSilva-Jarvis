@@ -41,8 +41,10 @@ function pageOperation(input) {
   if (input.kind === 'search-submit') {
     if (!field) return { state: 'not_ready' };
     const form = field.closest('form');
-    const submit = document.querySelector('ytd-searchbox button#search-icon-legacy, yt-searchbox button[type="submit"]');
-    if (!form && !visible(submit)) return { state: 'not_ready' };
+    const buttons = () => [...document.querySelectorAll('yt-searchbox button.ytSearchboxComponentSearchButton, ytd-searchbox button#search-icon-legacy, yt-searchbox button[type="submit"]')];
+    const enabled = values => values.filter(button => visible(button) && !button.disabled && button.getAttribute('aria-disabled') !== 'true' && typeof button.click === 'function');
+    const initialButtons = buttons();
+    if (initialButtons.length ? enabled(initialButtons).length !== 1 : !form || typeof form.requestSubmit !== 'function') return { state: 'not_ready' };
     if (form?.action) {
       const destination = new URL(form.action, url.href);
       if (destination.origin !== 'https://www.youtube.com' || destination.pathname !== '/results') return { state: 'blocked' };
@@ -51,8 +53,12 @@ function pageOperation(input) {
     if (!setter) return { state: 'not_ready' };
     field.focus(); setter.call(field, input.query);
     field.dispatchEvent(new Event('input', { bubbles: true })); field.dispatchEvent(new Event('change', { bubbles: true }));
-    if (form && typeof form.requestSubmit === 'function') form.requestSubmit();
-    else if (visible(submit)) submit.click();
+    const currentButtons = buttons(), submit = enabled(currentButtons);
+    if (Date.now() >= input.expiresAt) return { state: 'expired' };
+    // Modern YouTube handles the search button click rather than form submission.
+    // Activate once; an inconclusive click must never fall back to another action.
+    if (currentButtons.length && submit.length === 1) submit[0].click();
+    else if (!initialButtons.length && !currentButtons.length && form && typeof form.requestSubmit === 'function') form.requestSubmit();
     else return { state: 'not_ready' };
     return { state: 'submitted' };
   }

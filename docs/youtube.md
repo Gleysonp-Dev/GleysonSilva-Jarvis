@@ -1,6 +1,16 @@
-# YouTube na conversa nativa — 0.6.3
+# YouTube na conversa nativa — 0.6.4
 
-## Mudança 0.6.3 e estado da validação
+## Mudança 0.6.4 — envio por botão observado
+
+O reteste **0.6.3 foi reprovado**: abriu o YouTube, mas não tocou. A captura mostra a consulta no campo com autocomplete sobre a página inicial, sem resultados. Um cenário controlado reproduziu envio por formulário que não navega, enquanto a lupa moderna funciona e era ignorada. A fixture GET anterior não exercitava esse comportamento de aplicação dinâmica. Isso é compatível com a imagem; anúncio, conta e VAD não foram estabelecidos como causa física. [Registro](validation.md).
+
+A 0.6.4 prioriza um clique no botão de pesquisa moderno observado, sem exigir tipo submit; o fallback só utiliza botão legado ou formulário real observado. O controlador não monta URL sintética de resultados nem repete cliques. Continua aguardando a URL de resultados, a consulta efetivamente enviada e vídeos reais do mesmo pedido. Se isso não ocorrer, relata falha ou intervenção necessária, sem dizer que pesquisou ou tocou.
+
+O selector observado `button.ytSearchboxComponentSearchButton` é descrito somente para interoperabilidade com o site. A inspeção foi HTTP anônima de recursos públicos, sem login/cookies; nenhum código do YouTube é redistribuído no projeto.
+
+Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. **CI, pacote e novo ensaio ao vivo ainda pendentes.** A execução nativa do formulário gerenciado será feita no CI. A nova fixture deve impedir submissão padrão do formulário e navegar pelo botão moderno; um resultado local não comprovará o site real ou som ouvido. O comportamento de anúncio, recuperação de nova busca, isolamento por perfil e voz da base anterior são preservados.
+
+## Comportamento preservado da 0.6.3
 
 Uma nova busca pedida explicitamente pode recuperar a janela depois de um bloqueio transitório. A recuperação aguarda a fila e não amplia os destinos permitidos: continua somente HTTPS no YouTube. Login, consentimento e CAPTCHA permanecem para intervenção humana. Resultados antigos são substituídos pela nova descoberta no perfil; não reutilize IDs de uma busca anterior como se fossem os resultados novos.
 
@@ -8,7 +18,7 @@ Na conversa por voz, durante ferramenta pendente, o início de atividade de fala
 
 Na 0.6.2, o usuário relatou vídeo ou anúncio parado e dificuldade posterior de acesso. O recorte de journal consultado depois mostrou duas buscas canceladas, sem `youtube_play` nesses trechos; não revela a causa do cancelamento nem prova que havia anúncio ou que VAD o provocou. A ponte estava NOT_RUNNING no momento posterior do diagnóstico. [Evidência e limites](validation.md).
 
-Verificação local 0.6.3 registrada em [Validação](validation.md): **558 testes, 547 aprovados, 11 falhas EPERM conhecidas, zero skips**; TypeScript/build aprovados. **CI, pacote e ensaio ao vivo ainda pendentes.** O cenário nativo previsto acrescenta nova busca a partir de uma página de vídeo e reprodução de um segundo resultado em HTTPS local; não é um teste do site ao vivo. A recepção continua sem câmera automática. Os resultados 0.6.2 abaixo são históricos.
+Verificação local 0.6.3 registrada em [Validação](validation.md): **558 testes, 547 aprovados, 11 falhas EPERM conhecidas, zero skips**; TypeScript/build aprovados. [CI 49f9872 da 0.6.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39876444758) aprovado: **558/558 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. [Windows 0.6.3 conferido](../AI_INSTALL.md#pacote-windows-063-conferido). **O reteste real da 0.6.3 falhou: o site abriu, mas não tocou.** A imagem registra consulta no campo/autocomplete da página inicial sem resultados. A causa física continua indeterminada; o envio de busca na aplicação dinâmica não era exercitado pelo formulário GET normal da fixture. [Reteste e limites](validation.md). O cenário nativo executado no CI acrescentou nova busca a partir de uma página de vídeo e reprodução de um segundo resultado em HTTPS local com mídia PCM e áudio silenciado; não é um teste do site ao vivo. A recepção continua sem câmera automática. Os resultados 0.6.2 abaixo são históricos.
 
 ## Base anterior 0.6.2
 
@@ -58,6 +68,6 @@ As três ferramentas desta revisão pertencem à conversa nativa do Jarvis, tant
 
 O cenário nativo aprovado da **0.6.1** usou uma página HTTPS local, mídia PCM e áudio silenciado. As evidências `ready/window/dom/preload/boot/fullscreen/youtube/packaged` são daquela execução. O ensaio posterior do usuário confirmou a busca ao vivo e relatou falha ao tocar. Não foi registrada causa, reprodução correta, som ouvido ou pausa/retomada aprovados. O [registro](validation.md) separa os resultados históricos da correção 0.6.2 aprovada no CI, cujo novo ensaio ao vivo continua pendente.
 
-No pacote 0.6.3 quando estiver disponível e conferido, repetir busca, escolha, reprodução, pausa e retomada por voz e texto; pedir nova busca a partir de um vídeo e tocar um resultado novo. Conferir vídeo correto e som ouvido separadamente. Ensaiar anúncio curto que termina naturalmente, anúncio que ultrapassa o prazo, vídeo oculto residual, expiração com janela preservada, ID antigo/de outro perfil, cancelamento, fechamento e intervenção exigida pelo site. Não pular publicidade, aceitar login/consentimento ou declarar sucesso sem evidência. Registrar versão, horário e resultado sem divulgar histórico pessoal ou credenciais.
+No pacote 0.6.4 quando estiver disponível e conferido, repetir busca, escolha, reprodução, pausa e retomada por voz e texto; pedir nova busca a partir de um vídeo e tocar um resultado novo. Conferir vídeo correto e som ouvido separadamente. Ensaiar anúncio curto que termina naturalmente, anúncio que ultrapassa o prazo, vídeo oculto residual, expiração com janela preservada, ID antigo/de outro perfil, cancelamento, fechamento e intervenção exigida pelo site. Não pular publicidade, aceitar login/consentimento ou declarar sucesso sem evidência. Registrar versão, horário e resultado sem divulgar histórico pessoal ou credenciais.
 
 O usuário confirmou a ativação por duas palmas na 0.6.0. Esse relato pertence à espera/recepção daquela sessão e não valida o fluxo YouTube ou um novo login do Windows. A prova automática e o ensaio físico devem permanecer separados no [plano de testes](test-plan.md) e na [validação](validation.md).

@@ -47,6 +47,10 @@ function fixture(t, options = {}) {
         if (!options.ignoreSubmit) this.url = `https://www.youtube.com/results?search_query=${encodeURIComponent(this.field.value)}`;
       } };
       if (options.noForm) this.field.form = null;
+      this.searchButtons = (options.searchButtons ?? []).map((button, index) => new Element({ ...button, 'aria-disabled': button.ariaDisabled, click: () => {
+        calls.push(['click-search', index, this.field.value]);
+        if (!options.ignoreButton) this.url = `https://www.youtube.com/results?search_query=${encodeURIComponent(this.field.value)}`;
+      } }));
       this.anchors = entries.map(entry => {
         const channelElement = new Element({ textContent: entry.channel, hidden: entry.channelHidden });
         const renderer = new Element({ channelElement });
@@ -66,6 +70,7 @@ function fixture(t, options = {}) {
             title: 'Vídeo do teste',
             querySelectorAll: selector => {
               if (selector.includes('input[name="search_query"]')) return options.noField ? [] : [this.field];
+              if (selector.includes('ytSearchboxComponentSearchButton')) return this.searchButtons;
               if (selector.includes('ytd-video-renderer a#video-title')) return this.url.includes('/results?') ? this.anchors : [];
               if (selector === '#movie_player video' || selector === 'video') return this.url.includes('/watch?') && !options.noVideo ? [...(options.hiddenVideoFirst ? [this.hiddenVideo] : []), this.video] : [];
               if (options.consent && selector.includes('ytd-consent-bump')) return [new Element()];
@@ -117,6 +122,46 @@ test('search text stays a value in a constant isolated script, including executa
   const result = await f.search(query); assert.equal(result.query, query);
   assert.equal(f.contexts.some(context => context.__injected === true), false);
   assert.equal(f.windows[0].field.value, query);
+});
+
+test('a JS-managed search form uses one modern visible button click instead of its non-navigating submit handler', async t => {
+  const f = fixture(t, { ignoreSubmit: true, searchButtons: [{}] });
+  const found = await f.search('Thunderstruck AC/DC');
+  assert.equal(found.verified, true); assert.equal(found.query, 'Thunderstruck AC/DC');
+  assert.equal(new URL(found.url).pathname, '/results');
+  assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'click-search'), [['click-search', 0, 'Thunderstruck AC/DC']]);
+  assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'submit'), false);
+  assert.equal((await f.play(FIRST)).verified, true);
+  const second = await f.search('nova música'); assert.equal(second.verified, true);
+  assert.equal(f.calls.filter(call => Array.isArray(call) && call[0] === 'click-search').length, 2);
+  assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'submit'), false);
+});
+
+test('known search buttons require exactly one visible enabled target and never bypass a disabled or ambiguous control', async t => {
+  const scenarios = [
+    { name: 'hidden earlier button', buttons: [{ hidden: true }, {}], index: 1 },
+    { name: 'disabled earlier button', buttons: [{ disabled: true }, {}], index: 1 },
+    { name: 'ARIA-disabled earlier button', buttons: [{ ariaDisabled: 'true' }, {}], index: 1 },
+    { name: 'only hidden', buttons: [{ hidden: true }] },
+    { name: 'only disabled', buttons: [{ disabled: true }] },
+    { name: 'only ARIA-disabled', buttons: [{ ariaDisabled: 'true' }] },
+    { name: 'ambiguous visible buttons', buttons: [{}, {}] },
+  ];
+  for (const scenario of scenarios) await t.test(scenario.name, async t => {
+    const f = fixture(t, { searchButtons: scenario.buttons });
+    if (scenario.index === undefined) await assert.rejects(f.search('música'), error => error.code === 'UNAVAILABLE');
+    else assert.equal((await f.search('música')).verified, true);
+    assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'click-search').map(call => call[1]), scenario.index === undefined ? [] : [scenario.index]);
+    assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'submit'), false);
+  });
+});
+
+test('an inconclusive search click is not repeated or followed by form submission', async t => {
+  const f = fixture(t, { searchButtons: [{}], ignoreButton: true, timeoutMs: 80 });
+  await assert.rejects(f.search('música'), error => error.code === 'TIMEOUT');
+  assert.equal(f.calls.filter(call => Array.isArray(call) && call[0] === 'click-search').length, 1);
+  assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'submit'), false);
+  assert.equal(f.windows[0].url, 'https://www.youtube.com/'); assert.equal(f.windows[0].destroyed, false);
 });
 
 test('result collection excludes hidden, promoted, foreign, malformed, duplicate and unlabelled entries and caps eight', async t => {

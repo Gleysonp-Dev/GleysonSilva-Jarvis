@@ -1,8 +1,14 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
+## Revisão 0.6.4 — busca com interface dinâmica
+
+Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. **CI, pacote e novo ensaio real pendentes.** O ensaio nativo do formulário gerenciado será executado no CI. O reteste real 0.6.3 foi **reprovado**: consulta preenchida/autocomplete na página inicial, sem resultados e sem tocar. O cenário controlado de formulário sem navegação e botão moderno funcional é compatível com a imagem, sem estabelecer anúncio ou VAD como causa física. A prova 558/558 e a fixture GET da 0.6.3 abaixo são históricas. [YouTube](youtube.md) e [Validação](validation.md).
+
+Validar primeiro a fixture com submit padrão impedido e navegação pelo botão moderno. Conferir um clique efetivo, consulta correta, URL/lista realmente observadas, ausência de URLs fabricadas e de repetição automática. Preservar nova busca a partir de `/watch` e reprodução do segundo vídeo. Depois, repetir o roteiro no site real e ouvir o áudio; testes locais não substituem esse aceite.
+
 ## Revisão 0.6.3 — recuperação e fala durante ferramentas
 
-Verificação local: **558 testes, 547 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox, zero skips**; TypeScript/build aprovados. Realtime **30/30** e controlador/runtime/fábrica YouTube **51/51**. **CI, pacote e ensaio ao vivo 0.6.3 pendentes.** A fixture nativa de `/watch`→nova busca→segundo vídeo será executada no CI, não foi exercitada no computador do usuário. As contagens 0.6.2 abaixo são históricas.
+Verificação local: **558 testes, 547 aprovados, 11 falhas EPERM conhecidas de links/junções no sandbox, zero skips**; TypeScript/build aprovados. Realtime **30/30** e controlador/runtime/fábrica YouTube **51/51**. [CI 49f9872 da 0.6.3](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39876444758) aprovado: **558/558 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. [Windows conferido](../AI_INSTALL.md#pacote-windows-063-conferido). **O reteste real do YouTube 0.6.3 foi reprovado.** A imagem mostra consulta/autocomplete na página inicial, sem resultados e sem tocar. O cenário nativo GET não cobria o envio real da aplicação dinâmica; a causa física não foi atribuída a VAD. A fixture nativa de `/watch`→nova busca→segundo vídeo foi executada no CI em HTTPS local com mídia PCM e áudio silenciado; não foi um ensaio do site ao vivo ou de som ouvido no computador do usuário. As contagens 0.6.2 abaixo são históricas.
 
 No relato 0.6.2, vídeo/anúncio não tocou e depois não houve novo acesso. O journal limitado mostrou buscas canceladas, sem `youtube_play` nesses trechos; origem do cancelamento, estado de anúncio e relação com VAD não foram determinados. Os testes de código não devem ser apresentados como diagnóstico causal da máquina. [Registro](validation.md).
 
@@ -36,9 +42,9 @@ A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a c
 
 O [registro de validação](validation.md) apresenta os limites e o histórico, incluindo o roteiro curto aprovado pelo autor. **A sequência atual com login, palmas, música/saudação e conversa contínua, sem câmera automática, ainda exige ensaio físico.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
 
-## YouTube nativo — roteiro 0.6.3
+## YouTube nativo — roteiro 0.6.4
 
-1. No aplicativo nativo com **MVP / 06.3**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
+1. No aplicativo nativo com **MVP / 06.4**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
 2. Pedir um dos resultados e conferir que `youtube_play` usa exatamente o ID observado no perfil. Um ID inventado, de outro perfil ou formato incompatível deve ser recusado antes da reprodução.
 3. Confirmar o vídeo correto e o estado do player. Registrar separadamente vídeo carregado, estado de reprodução e som efetivamente ouvido; nenhum desses resultados pode ser deduzido só do despacho de navegação.
 4. Pedir pausa e retomada e conferir o estado real do player. Os comandos devem atuar somente na janela controlada, sem operar abas externas ou outro player.
@@ -48,6 +54,14 @@ O [registro de validação](validation.md) apresenta os limites e o histórico, 
 8. Conferir que o plugin Ultron instalado continua anunciando somente as cinco ferramentas anteriores, sem ferramentas YouTube. Registrar os ensaios do Dot em separado.
 
 Os testes automáticos devem cobrir contratos fechados, consulta limitada, IDs observados por perfil, estados do player, cancelamento e falhas com fronteiras substituídas. Essa cobertura não substitui o ensaio real do site. [Detalhes](youtube.md).
+
+## Busca dinâmica — roteiro 0.6.4
+
+1. Em fixture com submit padrão impedido e lupa moderna funcional, confirmar que a busca usa um único clique e chega à consulta/lista correta.
+2. Retirar o botão moderno e testar os fallbacks restritos ao botão legado e formulário real; sem controles observados, informar indisponibilidade.
+3. Confirmar que nenhum caso fabrica URL de resultados ou repete cliques após falha/cancelamento.
+4. Verificar login/consentimento/CAPTCHA, perfil e X, mantendo intervenção manual e descarte de resposta tardia.
+5. Buscar a partir de vídeo aberto, escolher resultado da busca nova e tocar o segundo vídeo, preservando as regressões anteriores.
 
 ## Recuperação e interrupção — roteiro 0.6.3
 

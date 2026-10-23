@@ -18,7 +18,9 @@ export async function runYouTubeFixtureSmoke({ BrowserWindow, session, product }
     const url = new URL(request.url);
     if (url.hostname !== 'www.youtube.com') return new Response('Blocked', { status: 403 });
     const query = url.searchParams.get('search_query') ?? '';
-    const search = `<form action="/results" method="get"><input name="search_query" aria-label="Search" value="${escape(query)}"><button type="submit">Search</button></form>`;
+    // Match the modern JS-managed search: submitting the form does nothing;
+    // only the observed search button click performs this local fixture navigation.
+    const search = `<yt-searchbox><form action="/results" method="get" onsubmit="event.preventDefault()"><input name="search_query" aria-label="Search" value="${escape(query)}"></form><button type="button" class="ytSearchboxComponentSearchButton" aria-label="Search" onclick="const field=this.parentElement.querySelector('input[name=search_query]');location.assign('/results?search_query='+encodeURIComponent(field.value))">Search</button></yt-searchbox>`;
     const selectedId = url.pathname === '/watch' ? url.searchParams.get('v') : query === secondQuery ? secondVideoId : videoId;
     const title = selectedId === secondVideoId ? 'Second local fixture video' : 'Local fixture video';
     const body = url.pathname === '/watch'

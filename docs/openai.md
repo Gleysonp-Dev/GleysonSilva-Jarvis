@@ -4,6 +4,12 @@ O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrad
 
 O modelo solicita ferramentas; o executor local valida argumentos, verifica a pasta autorizada, apresenta a confirmação necessária e registra o resultado. Uma resposta gerada não prova que uma ação aconteceu.
 
+## Revisão 0.6.4 — envio da consulta no YouTube
+
+O ajuste é do adaptador de interface do YouTube, não uma troca de modelo, prompt ou chave. O controlador prioriza um clique no botão moderno observado, com fallback restrito, e só devolve resultados após observar URL, consulta e lista reais. Não usa uma URL fabricada como substituto da interação nem repete cliques. As ferramentas e a política de interrupção da 0.6.3 são preservadas.
+
+O reteste real 0.6.3 falhou, com campo/autocomplete na página inicial e sem resultados/reprodução. O cenário de formulário dinâmico reproduzido é compatível com a imagem; não demonstra VAD ou anúncio como causa física. Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. **CI, pacote e novo ensaio ao vivo pendentes.** [YouTube](youtube.md) e [Validação](validation.md). A prova 0.6.3 abaixo é histórica.
+
 ## Revisão 0.6.3 — interrupção durante ferramentas
 
 A correção é do controlador local de voz: **não altera modelo, prompt ou configuração da API**. Com ferramenta ou continuação pendente, `input_audio_buffer.speech_started` silencia TTS sem cancelar efeitos nativos. O evento representa o início de um turno detectado, separado da transcrição. A API documenta os eventos de início/fim em [VAD](https://developers.openai.com/api/docs/guides/realtime-vad); o tratamento de ações abaixo é política do Jarvis.
@@ -12,7 +18,7 @@ O cancelamento por fala exige transcrição concluída não vazia e correlaciona
 
 **Interromper**, encerrar voz, perfil/reset e X/Sair continuam cancelando imediatamente, sem esperar transcrição. TV ou música que produzam transcrição não vazia ainda podem ser confundidas com fala da pessoa; o filtro não prova identidade ou intenção nem elimina todos os cancelamentos involuntários. Não atribua o relato físico do YouTube a VAD com base somente no defeito reproduzido em código.
 
-Verificação local 0.6.3: **558 testes, 547 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript/build aprovados. Realtime passou **30/30** e controlador/runtime/fábrica YouTube **51/51**. **CI, pacote e ensaio ao vivo ainda pendentes.** Provas 0.6.2 são históricas. [Validação](validation.md) e [YouTube](youtube.md).
+Verificação local 0.6.3: **558 testes, 547 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript/build aprovados. Realtime passou **30/30** e controlador/runtime/fábrica YouTube **51/51**. CI e pacote 0.6.3 aprovados: **558/558 testes, zero falhas/skips**, TypeScript/build e abertura nativa em fixture HTTPS local. [Prova e pacote](validation.md). O reteste real do YouTube 0.6.3 falhou: consulta preenchida/autocomplete na página inicial, sem resultados e sem tocar. A imagem e o diagnóstico não demonstram VAD como causa. Provas 0.6.2 são históricas. [Validação](validation.md) e [YouTube](youtube.md).
 
 ## Configuração
 
