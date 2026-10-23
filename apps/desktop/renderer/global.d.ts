@@ -57,10 +57,17 @@ declare global {
     sources: Array<{ id: 'weather' | 'local_activity'; label: string; status: string; observedAt: number | null; attribution?: JarvisWeatherAttribution }>;
   }
   interface JarvisEvent { type: string; id?: string; profileId?: string; runId?: string; tool?: string; sources?: JarvisToolSource[]; retrievedAt?: number | string; text?: string; delta?: string; state?: string; status?: string; name?: string; summary?: string; message?: string; approvalId?: string; args?: unknown; [key: string]: any; }
+  type JarvisFireTvAction = 'home' | 'back' | 'up' | 'down' | 'left' | 'right' | 'ok' | 'volume_up' | 'volume_down' | 'mute' | 'play' | 'pause';
+  type JarvisFireTvApp = 'netflix' | 'prime_video' | 'youtube' | 'disney_plus' | 'max' | 'spotify';
+  type JarvisFireTvRemoteInput = { id: string; runId: string; profileId: string } & ({ action: JarvisFireTvAction; app?: never } | { app: JarvisFireTvApp; action?: never });
+  interface JarvisFireTvRemoteCancelInput { id: string; runId: string; profileId: string; }
+  interface JarvisFireTvRemoteResult { ok: boolean; status: string; summary: string; data?: { action?: JarvisFireTvAction; app?: JarvisFireTvApp }; }
   interface JarvisBridge {
     pairFireTv?(): Promise<{ ok: boolean; status: string; summary: string }>;
     testFireTv?(): Promise<{ ok: boolean; status: string; summary: string; properties?: { model?: string; brand?: string; reportedVersionName?: string } }>;
     cancelFireTv?(): Promise<void>;
+    fireTvRemote?(input: JarvisFireTvRemoteInput): Promise<JarvisFireTvRemoteResult>;
+    cancelFireTvRemote?(input: JarvisFireTvRemoteCancelInput): Promise<{ cancelled: boolean }>;
     getFullscreen?(): Promise<boolean>;
     setFullscreen?(enabled: boolean): Promise<boolean>;
     onFullscreen?(callback: (enabled: boolean) => void): () => void;

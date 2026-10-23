@@ -1,5 +1,11 @@
 # Projeto GleysonSilva-Jarvis
 
+## Controle remoto 0.7.1 — em validação
+
+O painel **TV** reúne setas/OK, Início/Voltar, volume, tocar/pausar e atalhos de aplicativos da Fire TV já pareada. Cada clique envia um pedido pelo executor local, sem depender de uma resposta da IA. A conversa por voz continua usando as mesmas ferramentas de TV. Não há leitura simulada da tela nem seleção automática de perfis. [Como usar o controle](docs/tv-remote.md).
+
+A nova identidade comercial está em fase de proposta e escolha. Esta versão preserva o nome técnico, os identificadores da instalação e as configurações privadas existentes. CI, pacote e teste físico dos botões desta versão ainda serão registrados.
+
 ![Prévia do núcleo orbital 0.3.1](assets/screenshots/core-031.png)
 
 Prévia visual com dados de demonstração; não representa uma sessão conectada.

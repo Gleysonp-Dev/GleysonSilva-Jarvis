@@ -9,9 +9,10 @@ import { LocalClapStandby } from './standby';
 import { GreetingMusic } from './greeting-music';
 import { ContextPanel } from './context-panel';
 import { createFullscreenController } from './fullscreen';
+import { TvRemote } from './tv-remote';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; done?: boolean; origin?: 'voice' | 'greeting'; source?: JarvisWeatherAttribution | string };
-type Drawer = 'settings' | 'memory' | 'activity' | 'presence' | 'context' | null;
+type Drawer = 'settings' | 'memory' | 'activity' | 'presence' | 'context' | 'tv' | null;
 type UltronPlayback = { requestId: string; profileId: string; runId: string; cancelled: boolean; acknowledged: boolean };
 type UltronPlaybackFailure = 'busy' | 'cancelled' | 'speech_unavailable' | 'playback_failed';
 type ToolSources = { tool: string; sources: Array<{ url: string; title: string; hostname: string }>; retrievedAt: number; profileId: string; runId: string; runOrder?: number };
@@ -69,6 +70,7 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
     activity: <><path d="M3 12h4l3-8 4 16 3-8h4"/></>,
     context: <><circle cx="12" cy="12" r="8"/><path d="m12 7 2 5-2 5-2-5 2-5ZM4 12H2m20 0h-2M12 4V2m0 20v-2"/></>,
     camera: <><path d="M8 5 10 2h4l2 3h5v16H3V5h5Z"/><circle cx="12" cy="12" r="4"/></>,
+    tv: <><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></>,
     close: <path d="m6 6 12 12M6 18 18 6"/>,
     arrow: <path d="M5 12h14m-6-6 6 6-6 6"/>,
     check: <path d="m5 12 4 4L19 6"/>,
@@ -160,6 +162,10 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const [input, setInput] = useState('');
   const [runId, setRunId] = useState<string | null>(null);
   const runRef = useRef<string | null>(null);
+  const [tvRemoteBusy, setTvRemoteBusy] = useState(false);
+  const tvRemotePending = useRef(false);
+  const tvRemoteRequestId = useRef<string | null>(null);
+  const tvRemoteCancel = useRef<(() => void) | null>(null);
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceConnected, setVoiceConnected] = useState(false);
@@ -207,7 +213,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const micMeter = useRef<HTMLDivElement>(null);
   const levels = useRef({ mic: 0, speaker: 0, wave: [] as number[] });
-  const effectiveMode: HudFrame['mode'] = approvals.length ? 'approval' : demoPlaying ? 'speak' : greetingBusy || ultronBusy ? 'think' : micTesting ? 'listen' : voiceState === 'speak' || voiceState === 'listen' ? voiceState : ['execute', 'executing', 'running'].includes(backendState) ? 'execute' : runId ? 'think' : voiceState;
+  const effectiveMode: HudFrame['mode'] = approvals.length ? 'approval' : tvRemoteBusy ? 'execute' : demoPlaying ? 'speak' : greetingBusy || ultronBusy ? 'think' : micTesting ? 'listen' : voiceState === 'speak' || voiceState === 'listen' ? voiceState : ['execute', 'executing', 'running'].includes(backendState) ? 'execute' : runId ? 'think' : voiceState;
   const hud = useRef<HudFrame>({ mode: 'idle', levels: levels.current }); hud.current = { mode: effectiveMode, levels: levels.current };
   const seen = useRef(new Set<string>());
   const [memoryDraft, setMemoryDraft] = useState('');
@@ -278,7 +284,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
       }
       if (e.type === 'session.reset') {
         fireTvFlight.current = null; setFireTvBusy(null); setFireTvFeedback('');
-        setDrawer(current => current === 'context' ? null : current);
+        setDrawer(current => current === 'context' || current === 'tv' ? null : current);
         sourceRuns.current.clear(); setToolSources(null);
         continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false;
         pauseStandby(); music.current?.stop();
@@ -356,9 +362,16 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     clearTimeout(standbyResumeTimer.current);
     if (standbyWanted.current && !continuousWanted.current && !reception.current) standbyResumeTimer.current = setTimeout(() => { void startStandby(); }, 4000);
   }
+  function setTvRemotePending(pending: boolean, requestId: string) {
+    if (pending) tvRemoteRequestId.current = requestId;
+    else if (tvRemoteRequestId.current !== requestId) return;
+    else tvRemoteRequestId.current = null;
+    tvRemotePending.current = pending; setTvRemoteBusy(pending);
+    if (pending) pauseStandby(); else resumeStandbySoon();
+  }
   async function startStandby() {
     const current = settingsRef.current;
-    if (!standbyWanted.current || !current.standbyEnabled || standbyStarting.current || standby.current || voice.current || continuousWanted.current || reception.current || ultronPlayback.current || fireTvFlight.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) return;
+    if (!standbyWanted.current || !current.standbyEnabled || standbyStarting.current || standby.current || voice.current || continuousWanted.current || reception.current || ultronPlayback.current || fireTvFlight.current || tvRemotePending.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) return;
     const generation = ++standbyGeneration.current;
     standbyStarting.current = true;
     let available = false;
@@ -388,7 +401,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     }
   }
   wakeGreeting.current = source => {
-    if (!standbyWanted.current || wakeBusy.current || Date.now() - lastWake.current < 8000 || voice.current || continuousWanted.current || reception.current || ultronPlayback.current || fireTvFlight.current || demo.current || runRef.current || greetingInFlight.current) return;
+    if (!standbyWanted.current || wakeBusy.current || Date.now() - lastWake.current < 8000 || voice.current || continuousWanted.current || reception.current || ultronPlayback.current || fireTvFlight.current || tvRemotePending.current || demo.current || runRef.current || greetingInFlight.current) return;
     lastWake.current = Date.now(); wakeBusy.current = true; pauseStandby();
     void startGreeting(false, true).finally(() => { wakeBusy.current = false; });
   };
@@ -407,7 +420,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
 
   async function send(text = input) {
     const clean = text.trim();
-    if (!clean || runRef.current || voice.current || ultronPlayback.current || fireTvFlight.current || demo.current || demoStarting || greetingBusy || !bridge) return;
+    if (!clean || runRef.current || voice.current || ultronPlayback.current || fireTvFlight.current || tvRemotePending.current || demo.current || demoStarting || greetingBusy || !bridge) return;
     if (!settings.hasKey) { setDrawer('settings'); return; }
     pauseStandby();
     const id = crypto.randomUUID(); runRef.current = id; setRunId(id); setBackendState('think'); setError(''); setInput('');
@@ -423,6 +436,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     finally { if (runRef.current === id) { runRef.current = null; setRunId(null); setBackendState('idle'); } resumeStandbySoon(); inputRef.current?.focus(); }
   }
   async function cancel() {
+    if (tvRemotePending.current) { tvRemoteCancel.current?.(); return; }
     continuousWanted.current = false; clearTimeout(voiceResumeTimer.current); standbyWanted.current = false; pauseStandby();
     if (fireTvFlight.current) { fireTvFlight.current = null; setFireTvFeedback('Conexão com a TV interrompida.'); try { await bridge?.cancelFireTv?.(); } catch (e) { showError(e); } finally { if (!fireTvFlight.current) setFireTvBusy(null); } }
     void bridge?.cancelUltron?.().catch(() => {});
@@ -436,7 +450,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   async function startVoice(fromReception: boolean) {
     const current = settingsRef.current;
-    if (!bridge || voice.current || runRef.current || demo.current || reception.current || ultronPlayback.current || fireTvFlight.current || micFlight.current) return;
+    if (!bridge || voice.current || runRef.current || demo.current || reception.current || ultronPlayback.current || fireTvFlight.current || tvRemotePending.current || micFlight.current) return;
     if (!current.hasKey) { continuousWanted.current = false; setDrawer('settings'); return; }
     if (!capabilitiesRef.current.jarvisSpeech) { continuousWanted.current = false; setError('Esta sessão usa o servidor anterior. Abra a versão atualizada para conversar com a voz Jarvis.'); return; }
     if (!current.hasElevenKey || !current.elevenVoiceId) { continuousWanted.current = false; focusElevenKey.current = true; openSettings(); return; }
@@ -479,7 +493,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   async function toggleMicTest() {
     if (micStarting) { stopMicTest(); resumeStandbySoon(); return; }
     if (micTest.current) { stopMicTest(); resumeStandbySoon(); return; }
-    if (voice.current || runRef.current || micFlight.current || ultronPlayback.current || fireTvFlight.current || demo.current || demoStarting || greetingBusy) return;
+    if (voice.current || runRef.current || micFlight.current || ultronPlayback.current || fireTvFlight.current || tvRemotePending.current || demo.current || demoStarting || greetingBusy) return;
     pauseStandby();
     const generation = ++micGeneration.current; setMicStarting(true); setMicPending(true);
     const flight: { stream?: MediaStream; context?: AudioContext } = {};
@@ -539,7 +553,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     if (!reception.current) { greetingInFlight.current = false; resumeStandbySoon(); }
   }
   async function toggleDemo() {
-    if (ultronPlayback.current || fireTvFlight.current) return;
+    if (ultronPlayback.current || fireTvFlight.current || tvRemotePending.current) return;
     if (demo.current || demoStarting) { stopDemo(); return; }
     if (voice.current || micTest.current || micStarting || runRef.current || greetingBusy) return;
     pauseStandby();
@@ -615,7 +629,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     const current = settingsRef.current;
     const job: UltronPlayback = { requestId, profileId: typeof event.profileId === 'string' ? event.profileId : '', runId: `ultron-${requestId}`, cancelled: false, acknowledged: false };
     if (!capabilitiesRef.current.ultronBridge || !current.ultronEnabled || job.profileId !== current.profileId) { acknowledgeUltron(job, false, 'cancelled'); return; }
-    if (voice.current || continuousWanted.current || reception.current || ultronPlayback.current || fireTvFlight.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) { acknowledgeUltron(job, false, 'busy'); return; }
+    if (voice.current || continuousWanted.current || reception.current || ultronPlayback.current || fireTvFlight.current || tvRemotePending.current || micTest.current || micFlight.current || demo.current || runRef.current || greetingInFlight.current) { acknowledgeUltron(job, false, 'busy'); return; }
     if (!bridge?.ultronPlaybackResult || !bridge.speak || !current.hasElevenKey || !current.elevenVoiceId || typeof event.text !== 'string' || !event.text.trim() || event.text.length > 600) { acknowledgeUltron(job, false, 'speech_unavailable'); return; }
     ultronPlayback.current = job; setUltronBusy(true); setPlaybackKind('ultron'); setDemoStarting(true); setError(''); pauseStandby();
     const active = () => ultronPlayback.current === job && !job.cancelled && settingsRef.current.profileId === job.profileId && settingsRef.current.ultronEnabled && capabilitiesRef.current.ultronBridge;
@@ -647,7 +661,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     } catch (e) { stopDemo(); showError(e); return false; }
   }
   async function startGreeting(automatic = false, receptionRequested = false) {
-    if (!bridge?.startupGreeting || voice.current || continuousWanted.current || ultronPlayback.current || fireTvFlight.current || micTest.current || micFlight.current || runRef.current || demo.current || greetingInFlight.current) return;
+    if (!bridge?.startupGreeting || voice.current || continuousWanted.current || ultronPlayback.current || fireTvFlight.current || tvRemotePending.current || micTest.current || micFlight.current || runRef.current || demo.current || greetingInFlight.current) return;
     pauseStandby(); stopDemo(false); const generation = ++greetingGeneration.current;
     const flow = { controller: new AbortController(), profileId: settingsRef.current.profileId };
     reception.current = flow;
@@ -677,7 +691,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     }
   }
   function beginJarvis() {
-    if (ultronPlayback.current || fireTvFlight.current) return;
+    if (ultronPlayback.current || fireTvFlight.current || tvRemotePending.current) return;
     if (greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting))) { void cancel(); return; }
     const current = settingsRef.current;
     if (!current.hasElevenKey || !current.elevenVoiceId || !current.weatherLocation?.name) {
@@ -700,7 +714,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   function openSettings() { setForm(settings); syncLocationForm(settings); setApiKey(''); setElevenApiKey(''); setDrawer('settings'); }
   async function saveSettings(event: React.FormEvent) {
     event.preventDefault(); if (!bridge) return;
-    if (voiceActive || runId || fireTvFlight.current) { setError('Encerre a operação atual antes de alterar a configuração.'); return; }
+    if (voiceActive || runId || fireTvFlight.current || tvRemotePending.current) { setError('Encerre a operação atual antes de alterar a configuração.'); return; }
     setSaving(true); setError('');
     const previousSettings = settingsRef.current;
     try {
@@ -730,7 +744,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   async function configureFireTv(kind: 'pair' | 'test') {
     const current = settingsRef.current;
-    if (!bridge || !capabilitiesRef.current.fireTv || capabilitiesRef.current.localTest || !booted || saving || fireTvBusy || voice.current || runRef.current || fireTvFlight.current || demo.current || demoStarting || greetingBusy || ultronPlayback.current || micFlight.current || micTest.current || visionBusy || cameraOn || enrolling
+    if (!bridge || !capabilitiesRef.current.fireTv || capabilitiesRef.current.localTest || !booted || saving || fireTvBusy || voice.current || runRef.current || fireTvFlight.current || tvRemotePending.current || demo.current || demoStarting || greetingBusy || ultronPlayback.current || micFlight.current || micTest.current || visionBusy || cameraOn || enrolling
       || !current.fireTvEnabled || !(current.fireTvHost || '').trim() || Boolean(form.fireTvEnabled) !== Boolean(current.fireTvEnabled) || (form.fireTvHost || '') !== (current.fireTvHost || '') || form.profileId.trim() !== current.profileId
       || (kind === 'pair' ? !bridge.pairFireTv : !bridge.testFireTv)) return;
     const job = { profileId: current.profileId, host: current.fireTvHost!, kind };
@@ -765,7 +779,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     capture.getContext('2d')!.drawImage(video.current, 0, 0, capture.width, capture.height); return capture.toDataURL('image/jpeg', .8);
   }
   async function startCamera() {
-    if (fireTvFlight.current) return;
+    if (fireTvFlight.current || tvRemotePending.current) return;
     setVisionBusy(true); setFaceResult(null);
     const generation = ++cameraGeneration.current;
     try {
@@ -806,7 +820,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   }
   async function deleteFace(profileId: string) { try { await bridge?.vision?.({ type: 'delete', profileId }); setVisionStatus(await bridge?.vision?.({ type: 'status' })); setFaceResult(null); } catch (e) { showError(e); } }
   async function useFaceProfile(profileId: string) {
-    if (runId || voiceActive || fireTvFlight.current) { setError('Encerre a operação atual para trocar de perfil.'); return; }
+    if (runId || voiceActive || fireTvFlight.current || tvRemotePending.current) { setError('Encerre a operação atual para trocar de perfil.'); return; }
     try { await bridge?.saveSettings({ profileId }); const data = await bridge!.boot(); setSettings(data.settings); setForm(data.settings); setSnapshot(normalizeSnapshot(data.snapshot)); setMessages([]); setActions([]); stopCamera(); setDrawer(null); } catch (e) { showError(e); }
   }
 
@@ -814,11 +828,13 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
   const profileMemories = snapshot.memories.filter(m => !m.profileId || m.profileId === settings.profileId);
   const activity = [...actions, ...snapshot.tasks.filter(t => !actions.some(a => a.id === t.id))].slice(0, 30);
   const fireTvDirty = Boolean(form.fireTvEnabled) !== Boolean(settings.fireTvEnabled) || (form.fireTvHost || '') !== (settings.fireTvHost || '') || form.profileId.trim() !== settings.profileId;
+  const tvRemoteAvailable = Boolean(capabilities.fireTv && !capabilities.localTest && settings.fireTvEnabled && settings.fireTvHost && settings.fireTvPaired);
+  const tvRemoteBlocked = !booted || !!runId || approvals.length > 0 || ['connecting', 'think', 'execute', 'speak'].includes(voiceState) || saving || !!fireTvBusy || tvRemoteBusy || demoPlaying || demoStarting || greetingBusy || ultronBusy || micPending || micTesting || micStarting || visionBusy || cameraOn || enrolling;
   const fireTvBlocked = !bridge || !booted || !capabilities.fireTv || capabilities.localTest || voiceActive || !!runId || saving || !!fireTvBusy || demoPlaying || demoStarting || greetingBusy || ultronBusy || micPending || micTesting || micStarting || visionBusy || cameraOn || enrolling;
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 07.0</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="icon-button fullscreen-button" type="button" aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'} aria-pressed={fullscreen} title={fullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia (F11)'} onClick={() => { void fullscreenController.current?.toggle(); }}><Icon name={fullscreen ? 'fullscreen-exit' : 'fullscreen'} size={18}/></button><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
+    <header className="topbar"><div className="brand"><span className="brand-symbol" aria-hidden="true"><i/><i/><i/></span><div><strong>J.A.R.V.I.S.</strong><span>PERSONAL INTELLIGENCE</span></div><span className="version">MVP / 07.1</span></div><div className="top-right"><span className={`connection ${voiceConnected ? 'active' : ''}`}><i/>{voiceConnected ? 'VOZ CONECTADA' : runId ? 'SESSÃO DE TEXTO' : settings.hasKey ? 'PRONTO PARA CONECTAR' : 'CONFIGURAÇÃO INICIAL'}</span><button className="icon-button fullscreen-button" type="button" aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'} aria-pressed={fullscreen} title={fullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia (F11)'} onClick={() => { void fullscreenController.current?.toggle(); }}><Icon name={fullscreen ? 'fullscreen-exit' : 'fullscreen'} size={18}/></button><button className="profile-button" onClick={openSettings}><span className="avatar">{(settings.profileId || 'P').slice(0, 1).toUpperCase()}</span><span>{settings.profileId || 'Perfil'}</span><Icon name="settings" size={17}/></button></div></header>
     <main className="workspace">
-      <nav className="rail" aria-label="Painéis"><button className={drawer === 'context' ? 'selected' : ''} title="Contexto" aria-label="Contexto" aria-expanded={drawer === 'context'} onClick={() => setDrawer('context')}><Icon name="context"/><span>CONTEXTO</span></button><button className={drawer === 'memory' ? 'selected' : ''} title="Memória" aria-label="Memória" onClick={() => setDrawer('memory')}><Icon name="memory"/><span>MEMÓRIA</span></button><button className={drawer === 'activity' ? 'selected' : ''} title="Atividades" aria-label="Atividades" onClick={() => setDrawer('activity')}><Icon name="activity"/><span>REGISTRO</span></button><button className={drawer === 'presence' ? 'selected' : ''} title="Presença e perfis" aria-label="Presença e perfis" onClick={() => setDrawer('presence')}><Icon name="camera"/><span>PRESENÇA</span></button><div className="rail-spacer"/><button title="Configurações" aria-label="Configurações" onClick={openSettings}><Icon name="settings"/><span>AJUSTES</span></button></nav>
+      <nav className="rail" aria-label="Painéis"><button className={drawer === 'context' ? 'selected' : ''} title="Contexto" aria-label="Contexto" aria-expanded={drawer === 'context'} onClick={() => setDrawer('context')}><Icon name="context"/><span>CONTEXTO</span></button><button className={drawer === 'memory' ? 'selected' : ''} title="Memória" aria-label="Memória" onClick={() => setDrawer('memory')}><Icon name="memory"/><span>MEMÓRIA</span></button><button className={drawer === 'activity' ? 'selected' : ''} title="Atividades" aria-label="Atividades" onClick={() => setDrawer('activity')}><Icon name="activity"/><span>REGISTRO</span></button><button className={drawer === 'tv' ? 'selected' : ''} title="Controle da TV" aria-label="Controle da TV" aria-expanded={drawer === 'tv'} onClick={() => setDrawer('tv')}><Icon name="tv"/><span>TV</span></button><button className={drawer === 'presence' ? 'selected' : ''} title="Presença e perfis" aria-label="Presença e perfis" onClick={() => setDrawer('presence')}><Icon name="camera"/><span>PRESENÇA</span></button><div className="rail-spacer"/><button title="Configurações" aria-label="Configurações" onClick={openSettings}><Icon name="settings"/><span>AJUSTES</span></button></nav>
       <section className="core-column" aria-label="Núcleo Jarvis">
         <div className="reactor-stage">
           <canvas ref={canvas} role="img" aria-label={`Núcleo orbital azul Jarvis. ${status.label}.`}/>
@@ -828,7 +844,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
           <div className="stage-label bottom-right"><span>ESPAÇO DE TRABALHO</span><b>{settings.workspaceRoot ? 'PASTA DEFINIDA' : 'NENHUMA PASTA DEFINIDA'}</b><button className="text-link" onClick={openSettings}>{settings.workspaceRoot ? 'Ver permissões' : 'Configurar acesso'} <span>↗</span></button></div>
           <div className="reactor-status" aria-live="polite"><span className="status-line"/><strong>{status.label}</strong></div>
         </div>
-        <div className="core-controls"><button className="voice-button welcome-button" disabled={!bridge?.startupGreeting || !booted || !!fireTvBusy || ultronBusy || voiceActive || micTesting || micStarting || !!runId || (playbackKind === 'demo' && (demoPlaying || demoStarting))} onClick={beginJarvis}><Icon name={greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'stop' : 'speaker'} size={19}/><span>{greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'Parar recepção' : 'Iniciar Jarvis'}<small>Saudação, tempo atual e previsão</small></span></button><button className={`voice-button ${voiceActive ? 'enabled' : ''}`} disabled={!bridge || !booted || !!fireTvBusy || !!runId || demoPlaying || demoStarting || greetingBusy || micPending} onClick={toggleVoice}><Icon name={voiceActive ? 'stop' : 'mic'} size={19}/>{voiceActive ? 'Encerrar voz' : 'Iniciar conversa por voz'}<span className="keycap">{voiceActive ? 'ON' : 'MIC'}</span></button><button className="quiet-button interrupt" disabled={!runId && !voiceActive && !demoPlaying && !demoStarting && !greetingBusy && !fireTvBusy} onClick={cancel}><Icon name="stop" size={15}/>Interromper</button></div>
+        <div className="core-controls"><button className="voice-button welcome-button" disabled={!bridge?.startupGreeting || !booted || !!fireTvBusy || tvRemoteBusy || ultronBusy || voiceActive || micTesting || micStarting || !!runId || (playbackKind === 'demo' && (demoPlaying || demoStarting))} onClick={beginJarvis}><Icon name={greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'stop' : 'speaker'} size={19}/><span>{greetingBusy || (playbackKind === 'greeting' && (demoPlaying || demoStarting)) ? 'Parar recepção' : 'Iniciar Jarvis'}<small>Saudação, tempo atual e previsão</small></span></button><button className={`voice-button ${voiceActive ? 'enabled' : ''}`} disabled={!bridge || !booted || !!fireTvBusy || (tvRemoteBusy && !voiceActive) || !!runId || demoPlaying || demoStarting || greetingBusy || micPending} onClick={toggleVoice}><Icon name={voiceActive ? 'stop' : 'mic'} size={19}/>{voiceActive ? 'Encerrar voz' : 'Iniciar conversa por voz'}<span className="keycap">{voiceActive ? 'ON' : 'MIC'}</span></button><button className="quiet-button interrupt" disabled={!runId && !voiceActive && !demoPlaying && !demoStarting && !greetingBusy && !fireTvBusy && !tvRemoteBusy} onClick={cancel}><Icon name="stop" size={15}/>Interromper</button></div>
         <div className="hardware-tools">{settings.standbyEnabled && capabilities.jarvisSpeech && <><button onClick={toggleStandby} disabled={voiceActive || !!runId || demoPlaying || demoStarting || greetingBusy || micTesting || micPending}>{standbyArmed ? 'Pausar espera' : 'Ativar espera'}</button><span>·</span></>}<button disabled={!micStarting && (voiceActive || !!runId || micPending || demoPlaying || demoStarting || greetingBusy)} onClick={toggleMicTest}><Icon name="mic" size={13}/>{micStarting ? 'Cancelar teste' : micPending ? 'Permissão pendente' : micTesting ? 'Encerrar teste local' : 'Testar microfone'}</button><span>·</span><button onClick={() => setDrawer('presence')}><Icon name="camera" size={13}/>Testar câmera</button></div>
         {(voiceActive || micTesting || standbyArmed || cameraOn) && <div className="capture-indicators">{(voiceActive || micTesting || standbyArmed) && <span><Icon name="mic" size={11}/>{standbyArmed ? 'Escuta local de ativação' : 'Microfone ativo'}</span>}{cameraOn && <span><Icon name="camera" size={11}/>Câmera ativa</span>}</div>}
       </section>
@@ -853,6 +869,7 @@ function App({ skipAutomaticGreeting = false }: { skipAutomaticGreeting?: boolea
     {(error || notice) && <div className={`toast ${error ? 'error' : ''}`} role={error ? 'alert' : 'status'}><span>{error || notice}</span><button className="icon-button" aria-label="Dispensar mensagem" onClick={() => { setError(''); setNotice(''); }}><Icon name="close" size={16}/></button></div>}
 
     {drawer === 'context' && <Panel title="Contexto" eyebrow="FONTES SOB DEMANDA" onClose={() => setDrawer(null)}><ContextPanel key={`${settings.profileId}:${settings.weatherLocation?.name}:${settings.weatherLocation?.latitude}:${settings.weatherLocation?.longitude}`} bridge={bridge} onSettings={openSettings} onActivity={() => setDrawer('activity')} onOpen={capabilities.desktop && bridge?.openExternal ? url => { void bridge.openExternal!(url).catch(showError); } : undefined}/></Panel>}
+    {drawer === 'tv' && <Panel title="Controle da TV" eyebrow="FIRE TV" onClose={() => setDrawer(null)}><TvRemote key={settings.profileId} bridge={bridge} profileId={settings.profileId} available={tvRemoteAvailable} blocked={tvRemoteBlocked} onSettings={openSettings} onPendingChange={setTvRemotePending} onCancelReady={cancelRemote => { tvRemoteCancel.current = cancelRemote; }}/></Panel>}
     {drawer === 'settings' && <Panel title="À sua maneira." eyebrow="CONFIGURAÇÕES" onClose={() => { setDrawer(null); setApiKey(''); setElevenApiKey(''); }}><form onSubmit={saveSettings} className="settings-form"><p className="drawer-intro">Conecte a inteligência e defina o que Jarvis pode acessar neste computador.</p><fieldset disabled={!bridge || voiceActive || !!runId || saving || !!fireTvBusy}><legend>01 / INTELIGÊNCIA</legend><label>Chave de API OpenAI <span>{settings.hasKey ? capabilities.localTest ? 'Chave ativa nesta sessão · preencher substitui' : 'Chave já salva · preencher substitui' : 'Obrigatória para voz e respostas'}</span><input type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={settings.hasKey ? '••••••••••••••••' : 'sk-…'} spellCheck={false}/></label><p className="field-note">{capabilities.localTest ? 'Neste teste, a chave fica apenas na memória até encerrar o servidor local. Não é salva no navegador ou em arquivo.' : 'Guardada pelo aplicativo neste computador. A chave não aparece no histórico da conversa.'}</p><div className="field-grid"><label>Modelo de texto<input value={form.textModel} onChange={e => setForm({ ...form, textModel: e.target.value })} required spellCheck={false}/></label><label>Modelo de conversa<input value={form.realtimeModel} onChange={e => setForm({ ...form, realtimeModel: e.target.value })} required spellCheck={false}/></label></div><div className="field-grid"><label>Limite da sessão <span>minutos</span><input type="number" min="1" max="30" value={form.maxSessionMinutes} onChange={e => setForm({ ...form, maxSessionMinutes: Number(e.target.value) })} required/></label></div></fieldset><fieldset disabled={!bridge || voiceActive || !!runId || saving || !!fireTvBusy}>
 <legend>02 / SAUDAÇÃO E TEMPO</legend>
 <label className="greeting-toggle"><input type="checkbox" disabled={Boolean(form.standbyEnabled)} checked={Boolean(form.startupGreeting || form.standbyEnabled)} onChange={e => setForm({ ...form, startupGreeting: e.target.checked })}/><span>Saudação com previsão do tempo</span></label>

@@ -1,5 +1,11 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
+## Revisão 0.7.1 — controle remoto em validação
+
+O controle remoto fica em **TV**, na barra lateral. Ele reaproveita a conexão Fire TV salva e pareada. Os botões executam um comando por clique, com registro local e sem chave OpenAI para o envio manual. Mantenha o arquivo/configurações privados da instalação; não os publique ou copie para outro computador. [Instruções e limites](docs/tv-remote.md).
+
+Os candidatos à nova marca são propostas separadas; não renomeiam automaticamente o aplicativo ou a instalação existente. CI/pacote e prova física do painel 0.7.1 permanecem pendentes. As evidências 0.7.0 abaixo pertencem à base anterior.
+
 ## Revisão 0.7.0 — Fire TV em validação
 
 O código acrescenta abertura de aplicativos e comandos de controle remoto na Fire TV pela conversa nativa. [CI 4cacd6b](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39898026057) aprovado: **641/641 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. O pacote 0.7.0 abaixo foi baixado e conferido. **Em 23 de outubro de 2026, o usuário confirmou pareamento pela interface e a sequência Início da TV → abrir Netflix por voz no aplicativo 0.7.0.** O retorno programático permanece `unverified`; a confirmação veio da observação humana nessa TV. Persistência após reinício, outros aplicativos/controles e firmwares continuam pendentes. No ensaio isolado anterior, OK entrou em um perfil destacado manualmente; seleção automática pelo nome não foi implementada. [Estado e limites](docs/validation.md#revisão-070--fire-tv-em-validação).

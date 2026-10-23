@@ -1,5 +1,11 @@
 # Validação do MVP
 
+## Revisão 0.7.1 — controle remoto em validação
+
+O painel nativo TV encaminha botões e atalhos ao runtime local, preservando validação fechada, cancelamento e histórico. Não chama a IA para interpretar um clique. Uma sessão de voz conectada e ociosa pode permanecer conectada, enquanto ações simultâneas incompatíveis são recusadas. Cada pedido usa identificadores próprios e o resultado continua distinguindo envio de observação da televisão.
+
+Verificação local, CI, pacote e teste físico desta versão em andamento. As provas da 0.7.0 não validam os botões novos. Validar painel configurado/desabilitado, nomes acessíveis dos botões, um envio por clique, interrupção, fechamento, perfil e resultados tardios. Na TV real, observar Início, setas/OK e Netflix; não anunciar suporte físico a todos os controles sem ensaio. [Guia do painel](tv-remote.md).
+
 ## Revisão 0.7.0 — Fire TV em validação
 
 A conversa nativa ganha `tv_open_app` e `tv_control`. São seis IDs fechados de aplicativos e doze comandos remotos; o IP vem da configuração privada salva. O cliente Node implementa o transporte/autenticação ADB diretamente, sem servidor ADB, SDK Android, Python ou chaves globais. O registro protegido é vinculado ao IP/perfil, e a chave pública só pode ser oferecida pelo fluxo explícito **Parear TV**. A abertura exige observar um pacote conhecido na lista atual; o inventário não é retornado ao modelo. [Contrato e configuração](fire-tv.md).

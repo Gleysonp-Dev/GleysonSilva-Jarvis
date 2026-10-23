@@ -23,7 +23,7 @@ import { UltronCommands, UltronCommandError } from '../../packages/ultron/comman
 import { YouTubeController } from './youtube.mjs';
 import { createYouTubeWindowFactory } from './youtube-window.mjs';
 import { runYouTubeFixtureSmoke } from './youtube-smoke.mjs';
-import { FireTVController, FireTVError } from './fire-tv.mjs';
+import { FireTVController, FireTVError, FIRE_TV_ACTIONS, FIRE_TV_APPS } from './fire-tv.mjs';
 
 const PRODUCT = 'Projeto GleysonSilva-Jarvis';
 const APP_ORIGIN = 'jarvis://app';
@@ -74,7 +74,7 @@ if (process.argv.includes('--jarvis-smoke')) {
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let mainWindow, settings, runtime, provider, vision, startupService, contextService, contextFlight, speech, musicStore, wakeService, tray, youtube, fireTv, fireTvFlight;
+let mainWindow, settings, runtime, provider, vision, startupService, contextService, contextFlight, speech, musicStore, wakeService, tray, youtube, fireTv, fireTvFlight, fireTvRemoteFlight;
 let startupStatus = { available: false, enabled: false }, standbyActive = false;
 let generation = 0, shuttingDown = false, cleanupPromise, shutdownPromise, shutdownComplete = false, textRunId;
 let ultronBridge, ultronFlight, ultronCommands;
@@ -152,7 +152,7 @@ async function clearSessions(reason) {
   generation++;
   const ultronStopped = stopUltronBridge();
   youtube?.close();
-  fireTv?.reset(); fireTvFlight = undefined;
+  fireTv?.reset(); fireTvFlight = undefined; fireTvRemoteFlight = undefined;
   speech?.reset();
   const wakeStopped = wakeService?.stop(); standbyActive = false; updateTray();
   for (const [runId, run] of runs) { run.controller.abort(); runtime?.cancel(runId); }
@@ -237,7 +237,7 @@ function handle(name, fn) {
 function registerIPC() {
   const configureFireTv = async pairing => {
     if (smoke || process.platform !== 'win32') invalid('O controle Fire TV está disponível no aplicativo Windows.');
-    if (fireTvFlight || runs.size || startupFlights.size) invalid('Interrompa a sessão atual antes de configurar a Fire TV.');
+    if (fireTvFlight || fireTvRemoteFlight || runs.size || startupFlights.size) invalid('Interrompa a sessão atual antes de configurar a Fire TV.');
     const controller = new AbortController(), startGeneration = generation, profileId = settings.get().profileId;
     fireTvFlight = controller; connectionControllers.add(controller);
     try {
@@ -249,6 +249,39 @@ function registerIPC() {
   handle('pairFireTv', input => { if (input != null) only(record(input, 100), []); return configureFireTv(true); });
   handle('testFireTv', input => { if (input != null) only(record(input, 100), []); return configureFireTv(false); });
   handle('cancelFireTv', input => { if (input != null) only(record(input, 100), []); fireTvFlight?.abort(); fireTv?.reset(); return undefined; });
+  handle('fireTvRemote', async input => {
+    only(record(input, 1000), ['id', 'runId', 'profileId', 'action', 'app']);
+    const id = identifier(input.id), runId = identifier(input.runId);
+    identifier(input.profileId);
+    const profileId = activeProfile(input), hasAction = Object.hasOwn(input, 'action'), hasApp = Object.hasOwn(input, 'app');
+    if (hasAction === hasApp || hasAction && (typeof input.action !== 'string' || !FIRE_TV_ACTIONS.includes(input.action)) || hasApp && (typeof input.app !== 'string' || !Object.hasOwn(FIRE_TV_APPS, input.app))) invalid('Escolha um único botão ou aplicativo disponível no controle da TV.');
+    if (smoke || process.platform !== 'win32') invalid('O controle Fire TV está disponível no aplicativo Windows.');
+    const current = settings.get(), pairing = settings.getFireTvKeyRecord();
+    if (current.fireTvEnabled !== true || pairing?.paired !== true || pairing.host !== current.fireTvHost || pairing.profileId !== profileId) invalid('Ative e pareie a Fire TV nos Ajustes antes de usar o controle.');
+    if (fireTvFlight || fireTvRemoteFlight || runs.size || textRunId || startupFlights.size) invalid('Aguarde o envio atual ou interrompa a ação antes de usar o controle da TV.');
+    const run = newRun(runId, profileId, 'fire-tv-remote'), flight = { id, runId, run };
+    fireTvRemoteFlight = flight;
+    try {
+      // Explicit trusted-interface clicks use the same journal and durable call-ID
+      // deduplication as voice tools, without a model request or an OpenAI key.
+      const result = await runtime.call({ id, runId, profileId, name: hasAction ? 'tv_control' : 'tv_open_app', args: hasAction ? { action: input.action } : { app: input.app } }, { signal: run.controller.signal });
+      if (run.controller.signal.aborted || run.generation !== generation || settings.get().profileId !== profileId) invalid('O envio do controle da TV foi interrompido. Confira a televisão antes de tentar novamente.');
+      return result;
+    } finally {
+      if (fireTvRemoteFlight === flight) fireTvRemoteFlight = undefined;
+      if (runs.get(runId) === run) runs.delete(runId);
+    }
+  });
+  handle('cancelFireTvRemote', input => {
+    only(record(input, 1000), ['id', 'runId', 'profileId']);
+    const id = identifier(input.id), runId = identifier(input.runId), profileId = identifier(input.profileId);
+    const flight = fireTvRemoteFlight;
+    const matches = Boolean(flight && flight.id === id && flight.runId === runId && flight.run.profileId === profileId && profileId === settings.get().profileId && flight.run.generation === generation);
+    if (matches) { flight.run.controller.abort(); runtime.cancel(flight.runId); }
+    // Cancelling one remote dispatch must not reset voice, music or other sessions.
+    // In particular, a delayed cleanup from an old drawer must not cancel a new one.
+    return { cancelled: matches };
+  });
   handle('ultronPlaybackResult', input => ultronCommands?.finish(input) ?? false);
   handle('cancelUltron', input => { if (input != null) only(record(input, 100), []); ultronCommands?.reset(); return { cancelled: true }; });
   handle('getFullscreen', input => {
@@ -331,6 +364,7 @@ function registerIPC() {
   });
   handle('text', async input => {
     if (fireTvFlight) invalid('Aguarde ou interrompa a configuração da Fire TV.');
+    if (fireTvRemoteFlight) invalid('Aguarde ou interrompa o envio do controle da TV.');
     only(record(input), ['text', 'history', 'profileId', 'runId']);
     const profileId = activeProfile(input), runId = identifier(input.runId);
     if (textRunId) invalid('Uma resposta já está em andamento. Interrompa-a antes de enviar outra.');
@@ -348,6 +382,7 @@ function registerIPC() {
   });
   handle('callTool', async input => {
     if (fireTvFlight) invalid('Aguarde ou interrompa a configuração da Fire TV.');
+    if (fireTvRemoteFlight) invalid('Aguarde ou interrompa o envio do controle da TV.');
     only(record(input, 100_000), ['id', 'name', 'args', 'profileId', 'runId']);
     const profileId = activeProfile(input), runId = identifier(input.runId), id = identifier(input.id);
     const run = newRun(runId, profileId, 'tool');
@@ -483,7 +518,7 @@ async function startApplication() {
   startupService = new StartupGreetingService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() });
   ultronCommands = new UltronCommands({
     getSettings: () => ({ ...settings.get(), hasElevenKey: Boolean(settings.getElevenSecret()) }),
-    getVersion: () => app.getVersion?.() || '0.7.0', emit: publish,
+    getVersion: () => app.getVersion?.() || '0.7.1', emit: publish,
     isWindowAvailable: () => Boolean(mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()),
     readWeather: options => startupService.readWeather({}, options),
     openBrowser: ({ signal }) => runtime.call({ id: randomUUID(), runId: `ultron-${randomUUID()}`, profileId: settings.get().profileId, name: 'apps_open', args: { appId: 'browser' } }, { signal }),

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('jarvis', Object.freeze({
  speak:invoke('speak'),cancelSpeech:invoke('cancelSpeech'),wakeStart:invoke('wakeStart'),wakeStop:invoke('wakeStop'),chooseGreetingMusic:invoke('chooseGreetingMusic'),cancelGreeting:invoke('cancelGreeting'),
  getFullscreen:invoke('getFullscreen'),setFullscreen:invoke('setFullscreen'),
  pairFireTv:invoke('pairFireTv'),testFireTv:invoke('testFireTv'),cancelFireTv:invoke('cancelFireTv'),
+ fireTvRemote:invoke('fireTvRemote'),cancelFireTvRemote:invoke('cancelFireTvRemote'),
  ultronPlaybackResult:invoke('ultronPlaybackResult'),cancelUltron:invoke('cancelUltron'),
  onFullscreen(callback){if(typeof callback!=='function')throw new Error('Callback inválido.');const listener=(_event,enabled)=>{if(typeof enabled==='boolean')callback(enabled);};ipcRenderer.on('jarvis:fullscreen',listener);return()=>ipcRenderer.removeListener('jarvis:fullscreen',listener);},
  onEvent(callback){if(typeof callback!=='function')throw new Error('Callback inválido.');const listener=(_event,data)=>callback(data);ipcRenderer.on('jarvis:event',listener);return()=>ipcRenderer.removeListener('jarvis:event',listener);}

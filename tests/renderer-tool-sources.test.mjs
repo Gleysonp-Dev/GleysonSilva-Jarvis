@@ -102,6 +102,31 @@ test('header fullscreen button reflects native state and returns to the normal w
   f.changeFullscreen(true); assert.equal(button(f.render(), 'Sair da tela cheia').props['aria-pressed'], true);
 });
 
+test('TV drawer gates configured access, preserves idle voice, and blocks controls during voice actions or reset', async t => {
+  const app = environment(t, { capabilities: { fireTv: true }, settings: { fireTvEnabled: true, fireTvHost: '10.0.0.25', fireTvPaired: true } });
+  app.render(); await flush(); let tree = app.render();
+  assert.equal(elements(tree).some(element => element.type?.name === 'TvRemote'), false);
+  button(tree, 'Controle da TV').props.onClick(); tree = app.render();
+  const control = () => elements(app.render()).find(element => element.type?.name === 'TvRemote');
+  assert(control()); assert.equal(control().props.available, true); assert.equal(control().props.blocked, false);
+  assert.equal(Object.hasOwn(control().props, 'host'), false);
+  await button(tree, /^Iniciar conversa por voz/).props.onClick(); await flush();
+  assert.equal(control().props.blocked, false, 'idle connected voice remains usable alongside the remote');
+  control().props.onPendingChange(true, 'remote-test-id'); tree = app.render();
+  assert(button(tree, /^Encerrar voz/)); assert.equal(app.voiceSessions.length, 1);
+  let remoteInterrupts = 0;
+  control().props.onCancelReady(() => { remoteInterrupts++; });
+  await button(tree, 'Interromper').props.onClick(); await flush();
+  assert.equal(remoteInterrupts, 1); assert(button(app.render(), /^Encerrar voz/));
+  assert.equal(control().props.blocked, true);
+  control().props.onPendingChange(false, 'old-remote-id'); assert.equal(control().props.blocked, true);
+  control().props.onPendingChange(false, 'remote-test-id');
+  app.voiceSessions[0].callbacks.state('execute'); assert.equal(control().props.blocked, true);
+  app.voiceSessions[0].callbacks.state('listen'); assert.equal(control().props.blocked, false);
+  app.emit({ type: 'session.reset', profileId: 'principal', reason: 'configuration_changed' });
+  assert.equal(control(), undefined);
+});
+
 test('source normalization permits bounded public HTTP links and removes credentials, controls, unsafe schemes and duplicates', t => {
   const { normalizeToolSources } = environment(t);
   const valid = Array.from({ length: 8 }, (_, i) => ({ url: `https://example.org/${i}`, title: `${'Título '.repeat(60)}\u202esecreto` }));
@@ -138,7 +163,7 @@ test('voice consultations expose compact source links outside the message log wi
   link.props.onClick({ preventDefault() { prevented = true; } }); await flush();
   assert.equal(prevented, true); assert.deepEqual(app.opened, ['https://example.org/research']);
   assert.equal(elements(tree).some(element => element.type === 'canvas'), true);
-  assert.match(text(tree), /MVP \/ 07\.0/);
+  assert.match(text(tree), /MVP \/ 07\.1/);
 });
 
 test('last sources persist until the next consultation and slower earlier runs cannot replace a newer result', async t => {
