@@ -21,8 +21,9 @@ function fixture(t, options = {}) {
     getClientRects() { return this.hidden ? [] : [this.getBoundingClientRect()]; }
     getBoundingClientRect() { return { top: 20, bottom: 80, left: 20, right: 400, width: 380, height: 60 }; }
     getAttribute(name) { return this[name] ?? null; }
-    closest(selector) { if (selector === 'form') return this.form; if (selector === 'ytd-video-renderer') return this.renderer; if (selector.includes('ytd-ad-slot')) return this.ad ? {} : null; return null; }
-    querySelector() { return this.channelElement; }
+    closest(selector) { if (selector === 'form') return this.form; if (selector === 'ytd-video-renderer') return this.renderer?.modern ? null : this.renderer; if (selector === 'yt-lockup-view-model') return this.renderer?.modern ? this.renderer : null; if (selector.includes('ytd-ad-slot')) return this.ad ? {} : null; return null; }
+    querySelector(selector) { return selector === 'feed-ad-metadata-view-model' && this.feedAd ? {} : null; }
+    querySelectorAll(selector) { return selector.includes('yt-content-metadata-view-model') || selector.includes('ytd-channel-name') ? this.channelElements ?? [] : []; }
     focus() { calls.push('focus-search'); }
     dispatchEvent(event) { calls.push(['event', event.type]); return true; }
   }
@@ -52,8 +53,8 @@ function fixture(t, options = {}) {
         if (!options.ignoreButton) this.url = `https://www.youtube.com/results?search_query=${encodeURIComponent(this.field.value)}`;
       } }));
       this.anchors = entries.map(entry => {
-        const channelElement = new Element({ textContent: entry.channel, hidden: entry.channelHidden });
-        const renderer = new Element({ channelElement });
+        const renderer = new Element({ modern: entry.modern, feedAd: entry.feedAd });
+        renderer.channelElements = (entry.channelLinks ?? [{ text: entry.channel, href: entry.channelUrl ?? 'https://www.youtube.com/@fixture-channel', hidden: entry.channelHidden }]).map(link => new Element({ textContent: link.text, href: link.href, hidden: link.hidden, renderer: link.foreignCard ? { modern: entry.modern } : renderer }));
         return new Element({ ...entry, href: entry.url ?? `https://www.youtube.com/watch?v=${entry.videoId}`, textContent: entry.title, renderer, hidden: entry.hidden, ad: entry.ad });
       });
       this.webContents = new EventEmitter();
@@ -71,7 +72,7 @@ function fixture(t, options = {}) {
             querySelectorAll: selector => {
               if (selector.includes('input[name="search_query"]')) return options.noField ? [] : [this.field];
               if (selector.includes('ytSearchboxComponentSearchButton')) return this.searchButtons;
-              if (selector.includes('ytd-video-renderer a#video-title')) return this.url.includes('/results?') ? this.anchors : [];
+              if (selector.includes('ytd-video-renderer a#video-title') || selector.includes('yt-lockup-view-model a.ytLockupMetadataViewModelTitle')) return this.url.includes('/results?') ? this.anchors.filter(anchor => selector.includes(anchor.modern ? 'yt-lockup-view-model a.ytLockupMetadataViewModelTitle' : 'ytd-video-renderer a#video-title')) : [];
               if (selector === '#movie_player video' || selector === 'video') return this.url.includes('/watch?') && !options.noVideo ? [...(options.hiddenVideoFirst ? [this.hiddenVideo] : []), this.video] : [];
               if (options.consent && selector.includes('ytd-consent-bump')) return [new Element()];
               if (options.login && selector.includes('[role="dialog"]')) return [new Element({ textContent: 'Sign in before you continue' })];
@@ -165,7 +166,7 @@ test('an inconclusive search click is not repeated or followed by form submissio
 });
 
 test('result collection excludes hidden, promoted, foreign, malformed, duplicate and unlabelled entries and caps eight', async t => {
-  const good = Array.from({ length: 12 }, (_, index) => ({ videoId: `video${String(index).padStart(6, '0')}`, title: `Vídeo ${index}`, channel: 'Canal' }));
+  const good = Array.from({ length: 12 }, (_, index) => ({ videoId: `video${String(index).padStart(6, '0')}`, title: `Vídeo ${index}`, channel: 'Canal', modern: index % 2 === 0 }));
   const f = fixture(t, { results: [
     { videoId: FIRST, title: 'Oculto', channel: 'Canal', hidden: true },
     { videoId: FIRST, title: 'Anúncio', channel: 'Canal', ad: true },
@@ -175,6 +176,50 @@ test('result collection excludes hidden, promoted, foreign, malformed, duplicate
   ] });
   const result = await f.search('música'); assert.equal(result.results.length, 8);
   assert.deepEqual(result.results.map(item => item.title), good.slice(0, 8).map(item => item.title));
+});
+
+test('modern lockup results provide observed watch IDs and channel links for verified playback', async t => {
+  const f = fixture(t, { ignoreSubmit: true, searchButtons: [{}], results: [
+    { modern: true, videoId: FIRST, title: 'Thunderstruck', channel: 'AC/DC', channelUrl: '/@acdc' },
+  ] });
+  const found = await f.search('Thunderstruck AC/DC');
+  assert.deepEqual(found.results.map(item => [item.videoId, item.title, item.channel]), [[FIRST, 'Thunderstruck', 'AC/DC']]);
+  const playing = await f.play(found.results[0].videoId); assert.equal(playing.verified, true); assert.equal(playing.playing, true);
+  assert.equal(f.calls.filter(call => call === 'play-video').length, 1);
+});
+
+test('modern and legacy cards keep document order and deduplicate the same observed video', async t => {
+  const f = fixture(t, { results: [
+    { modern: true, videoId: SECOND, title: 'Primeiro na página', channel: 'Canal moderno' },
+    { videoId: FIRST, title: 'Segundo na página', channel: 'Canal legado' },
+    { videoId: SECOND, title: 'Repetido no legado', channel: 'Canal repetido' },
+  ] });
+  const found = await f.search('ordem');
+  assert.deepEqual(found.results.map(item => [item.videoId, item.title]), [[SECOND, 'Primeiro na página'], [FIRST, 'Segundo na página']]);
+});
+
+test('modern cards exclude advertisements and require visible channel metadata from that exact card', async t => {
+  const f = fixture(t, { results: [
+    { modern: true, videoId: 'video000001', title: 'Publicidade ancestral', channel: 'Anunciante', ad: true },
+    { modern: true, videoId: 'video000002', title: 'Publicidade do card', channel: 'Anunciante', feedAd: true },
+    { modern: true, videoId: 'video000003', title: 'Views sem canal', channelLinks: [{ text: '1 milhão de visualizações', href: '/watch?v=video000003' }] },
+    { modern: true, videoId: 'video000004', title: 'Canal de outro host', channel: 'Falso', channelUrl: 'https://example.org/@canal' },
+    { modern: true, videoId: 'video000005', title: 'Canal com credenciais', channel: 'Falso', channelUrl: 'https://private@www.youtube.com/@canal' },
+    { modern: true, videoId: 'video000006', title: 'Canal de outro card', channelLinks: [{ text: 'Outro card', href: '/@canal', foreignCard: true }] },
+    { modern: true, videoId: 'video000007', title: 'Canal oculto', channel: 'Oculto', channelHidden: true },
+    { modern: true, videoId: 'video000008', title: 'Sem autor', channelLinks: [] },
+    { modern: true, videoId: FIRST, title: 'Resultado observado', channelLinks: [{ text: '20 mil visualizações', href: '/watch?v=abcdefghijk' }, { text: 'Autor observado', href: '/@autor' }] },
+  ] });
+  const found = await f.search('música');
+  assert.deepEqual(found.results.map(item => [item.videoId, item.channel]), [[FIRST, 'Autor observado']]);
+});
+
+test('modern channel destinations accept observed handle, channel, custom and user links with bounded text', async t => {
+  for (const channelUrl of ['/@canal', '/channel/UCobserved', '/c/Canal', '/user/Canal']) await t.test(channelUrl, async t => {
+    const f = fixture(t, { results: [{ modern: true, videoId: FIRST, title: 'T'.repeat(240), channel: 'C'.repeat(140), channelUrl }] });
+    const found = await f.search('canal');
+    assert.equal(found.results[0].title, 'T'.repeat(200)); assert.equal(found.results[0].channel, 'C'.repeat(100));
+  });
 });
 
 test('play loads an observed watch URL once and confirms real media progression rather than URL dispatch', async t => {

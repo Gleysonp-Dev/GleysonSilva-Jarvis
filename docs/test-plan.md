@@ -1,8 +1,14 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
-## Revisão 0.6.4 — busca com interface dinâmica
+## Revisão 0.6.5 — cartões modernos e passagem da busca à reprodução
 
-Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. [CI 8c40a15 da 0.6.4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39878604368) aprovado: **568/568 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. [Windows conferido](../AI_INSTALL.md#pacote-windows-064-conferido). **O novo ensaio real continua pendente; reteste físico 0.6.3 reprovado.** O ensaio nativo do formulário/botão gerenciados por JavaScript foi executado no CI, incluindo nova busca de /watch e segundo vídeo, em HTTPS local com mídia PCM e áudio silenciado. O reteste real 0.6.3 foi **reprovado**: consulta preenchida/autocomplete na página inicial, sem resultados e sem tocar. O cenário controlado de formulário sem navegação e botão moderno funcional é compatível com a imagem, sem estabelecer anúncio ou VAD como causa física. A prova 558/558 e a fixture GET da 0.6.3 abaixo são históricas. [YouTube](youtube.md) e [Validação](validation.md).
+O reteste real **0.6.4 foi reprovado**: os resultados apareceram, mas não tocou e a janela permaneceu na lista. A leitura local limitada e autorizada confirmou expiração de `youtube_search` em 15 segundos, sem `youtube_play` naquela tentativa. Não confundir esse resultado com teste de player ou atribuí-lo a anúncio/VAD. Verificação local final 0.6.5: **576 testes, 565 aprovados, somente as 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **69/69**, VAD **30/30**. O adaptador com cartões modernos na nova fixture ainda será exercitado no CI; não houve esse ensaio no Chromium local. **CI, pacote e ensaio ao vivo 0.6.5 pendentes.** Os 568/568 e hashes 0.6.4 abaixo são históricos. [YouTube](youtube.md) e [Validação](validation.md).
+
+A fixture nova deve usar cartões modernos com título e canal visíveis do mesmo cartão, link de canal observado e marcador de publicidade descendente. Exercitar também cartões legados, ordem mista, consulta correspondente, até oito IDs únicos de 11 caracteres, canal ausente/inválido, título/canal ocultos ou de outro cartão e exclusão de anúncios por ancestral e descendente. Não inventar canal para completar resultados. Preservar o clique único na lupa moderna, `/watch` → nova busca → segundo vídeo, cancelamento, perfil e a mídia existente. Só depois conferir o pacote e repetir no YouTube real, separando lista, `youtube_play`, progresso observado e som ouvido.
+
+## Base anterior 0.6.4 — busca com interface dinâmica
+
+Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. [CI 8c40a15 da 0.6.4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39878604368) aprovado: **568/568 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. [Windows conferido](../AI_INSTALL.md#pacote-windows-064-conferido). **Reteste real 0.6.4 reprovado: lista visível, busca expirada antes de tocar; reteste físico 0.6.3 também reprovado.** O ensaio nativo do formulário/botão gerenciados por JavaScript foi executado no CI, incluindo nova busca de /watch e segundo vídeo, em HTTPS local com mídia PCM e áudio silenciado. O reteste real 0.6.3 foi **reprovado**: consulta preenchida/autocomplete na página inicial, sem resultados e sem tocar. O cenário controlado de formulário sem navegação e botão moderno funcional é compatível com a imagem, sem estabelecer anúncio ou VAD como causa física. A prova 558/558 e a fixture GET da 0.6.3 abaixo são históricas. [YouTube](youtube.md) e [Validação](validation.md).
 
 Validar primeiro a fixture com submit padrão impedido e navegação pelo botão moderno. Conferir um clique efetivo, consulta correta, URL/lista realmente observadas, ausência de URLs fabricadas e de repetição automática. Preservar nova busca a partir de `/watch` e reprodução do segundo vídeo. Depois, repetir o roteiro no site real e ouvir o áudio; testes locais não substituem esse aceite.
 
@@ -42,9 +48,9 @@ A 0.5.2 adiciona tela cheia por botão/F11 e saída por Esc, sem interromper a c
 
 O [registro de validação](validation.md) apresenta os limites e o histórico, incluindo o roteiro curto aprovado pelo autor. **A sequência atual com login, palmas, música/saudação e conversa contínua, sem câmera automática, ainda exige ensaio físico.** A prévia musical já foi aprovada; isso não comprova o fluxo integrado. Os cenários a seguir são testes a executar, não uma lista de sucessos já observados.
 
-## YouTube nativo — roteiro 0.6.4
+## YouTube nativo — roteiro 0.6.5
 
-1. No aplicativo nativo com **MVP / 06.4**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
+1. Quando o pacote 0.6.5 for conferido, no aplicativo nativo com **MVP / 06.5**, pedir por texto uma pesquisa e confirmar até oito resultados reais com ID, título, canal e URL. Repetir por voz. Pesquisa isolada não deve tocar um vídeo.
 2. Pedir um dos resultados e conferir que `youtube_play` usa exatamente o ID observado no perfil. Um ID inventado, de outro perfil ou formato incompatível deve ser recusado antes da reprodução.
 3. Confirmar o vídeo correto e o estado do player. Registrar separadamente vídeo carregado, estado de reprodução e som efetivamente ouvido; nenhum desses resultados pode ser deduzido só do despacho de navegação.
 4. Pedir pausa e retomada e conferir o estado real do player. Os comandos devem atuar somente na janela controlada, sem operar abas externas ou outro player.
@@ -54,6 +60,15 @@ O [registro de validação](validation.md) apresenta os limites e o histórico, 
 8. Conferir que o plugin Ultron instalado continua anunciando somente as cinco ferramentas anteriores, sem ferramentas YouTube. Registrar os ensaios do Dot em separado.
 
 Os testes automáticos devem cobrir contratos fechados, consulta limitada, IDs observados por perfil, estados do player, cancelamento e falhas com fronteiras substituídas. Essa cobertura não substitui o ensaio real do site. [Detalhes](youtube.md).
+
+## Cartões modernos — roteiro 0.6.5
+
+1. Exibir resultado moderno com título e canal visíveis no mesmo cartão e URL de canal permitida; conferir ID, título/canal observados e URL canônica, sem inferências.
+2. Misturar cartões modernos e legados, duplicar IDs e exceder oito vídeos; manter ordem observada, unicidade e limite de oito, somente para a consulta atual.
+3. Retirar ou ocultar título/canal, usar link inválido ou texto de outro cartão; não aceitar nem completar metadados por suposição.
+4. Exibir anúncio com marcador ancestral e anúncio com `feed-ad-metadata-view-model` descendente; nenhum entra na lista de vídeos autorizados.
+5. Confirmar que a fixture nativa de cartões modernos mantém a navegação gerenciada pelo botão e `/watch` → nova busca → segundo vídeo. Não alterar a mídia para mascarar uma falha de descoberta.
+6. No site real, pedir música por voz e conferir o retorno da busca, a escolha observada, chamada de reprodução, progresso e som. Registrar cada etapa separadamente, sem divulgar o histórico privado.
 
 ## Busca dinâmica — roteiro 0.6.4
 

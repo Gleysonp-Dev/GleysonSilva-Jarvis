@@ -25,7 +25,7 @@ export async function runYouTubeFixtureSmoke({ BrowserWindow, session, product }
     const title = selectedId === secondVideoId ? 'Second local fixture video' : 'Local fixture video';
     const body = url.pathname === '/watch'
       ? `<h1 class="title"><yt-formatted-string>${title}</yt-formatted-string></h1><div id="movie_player"><video class="html5-main-video" controls muted src="${media}"></video></div>`
-      : query ? `<ytd-video-renderer><a id="video-title" title="${title}" href="/watch?v=${selectedId}">${title}</a><ytd-channel-name><a>Local fixture channel</a></ytd-channel-name></ytd-video-renderer>` : '';
+      : query ? `<yt-lockup-view-model><yt-lockup-metadata-view-model><h3 class="ytLockupMetadataViewModelHeadingReset" title="${title}"><a class="ytLockupMetadataViewModelTitle" href="/watch?v=${selectedId}">${title}</a></h3><div class="ytLockupMetadataViewModelMetadata"><yt-content-metadata-view-model><div class="ytContentMetadataViewModelMetadataRow"><span class="ytContentMetadataViewModelMetadataText"><a class="ytAttributedStringLink" href="/@local-fixture-channel">Local fixture channel</a></span></div></yt-content-metadata-view-model></div></yt-lockup-metadata-view-model></yt-lockup-view-model>` : '';
     return new Response(`<!doctype html><html><head><title>Jarvis YouTube fixture</title></head><body><header>${search}</header>${body}</body></html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
   });
   isolated.protocol.handle('http', () => new Response('Blocked', { status: 403 }));

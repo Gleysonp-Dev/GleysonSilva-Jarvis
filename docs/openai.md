@@ -4,11 +4,17 @@ O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrad
 
 O modelo solicita ferramentas; o executor local valida argumentos, verifica a pasta autorizada, apresenta a confirmação necessária e registra o resultado. Uma resposta gerada não prova que uma ação aconteceu.
 
-## Revisão 0.6.4 — envio da consulta no YouTube
+## Revisão 0.6.5 — leitura dos resultados no adaptador YouTube
+
+A correção prepara suporte aos cartões modernos de resultados no adaptador local, sem trocar modelo, prompt, chave ou a política de voz. Título e canal devem vir do mesmo cartão visível, com URL de canal validada, sem inventar metadados; publicidade é excluída e o suporte legado permanece. IDs observados e prova do player continuam obrigatórios.
+
+No reteste real 0.6.4, a lista apareceu, mas não tocou. A consulta local limitada e autorizada confirmou busca expirada após 15 segundos, sem `youtube_play` naquela tentativa; não identifica anúncio ou VAD como causa. Verificação local final 0.6.5: **576 testes, 565 aprovados, somente as 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **69/69**, VAD **30/30**. O adaptador com cartões modernos na nova fixture ainda será exercitado no CI; não houve esse ensaio no Chromium local. **CI, pacote e ensaio ao vivo 0.6.5 pendentes.** Provas automáticas 0.6.4 abaixo são históricas, com reteste físico reprovado. Voz/música e recepção sem câmera automática são preservados. [YouTube](youtube.md) e [Validação](validation.md).
+
+## Base anterior 0.6.4 — envio da consulta no YouTube
 
 O ajuste é do adaptador de interface do YouTube, não uma troca de modelo, prompt ou chave. O controlador prioriza um clique no botão moderno observado, com fallback restrito, e só devolve resultados após observar URL, consulta e lista reais. Não usa uma URL fabricada como substituto da interação nem repete cliques. As ferramentas e a política de interrupção da 0.6.3 são preservadas.
 
-O reteste real 0.6.3 falhou, com campo/autocomplete na página inicial e sem resultados/reprodução. O cenário de formulário dinâmico reproduzido é compatível com a imagem; não demonstra VAD ou anúncio como causa física. Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. CI e pacote 0.6.4 aprovados: **568/568 testes, zero falhas/skips**, TypeScript/build e abertura nativa com fixture gerenciada por JavaScript em HTTPS local. O novo ensaio ao vivo continua pendente; o reteste real 0.6.3 permanece reprovado. [YouTube](youtube.md) e [Validação](validation.md). A prova 0.6.3 abaixo é histórica.
+O reteste real 0.6.3 falhou, com campo/autocomplete na página inicial e sem resultados/reprodução. O cenário de formulário dinâmico reproduzido é compatível com a imagem; não demonstra VAD ou anúncio como causa física. Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. CI e pacote 0.6.4 aprovados: **568/568 testes, zero falhas/skips**, TypeScript/build e abertura nativa com fixture gerenciada por JavaScript em HTTPS local. O reteste real 0.6.4 foi reprovado, com lista visível e busca expirada antes de tocar; o reteste real 0.6.3 permanece reprovado. [YouTube](youtube.md) e [Validação](validation.md). A prova 0.6.3 abaixo é histórica.
 
 ## Revisão 0.6.3 — interrupção durante ferramentas
 

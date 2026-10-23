@@ -65,12 +65,19 @@ function pageOperation(input) {
   if (input.kind === 'results') {
     if (url.pathname !== '/results' || url.searchParams.get('search_query') !== input.query || !field || text(field.value, 300) !== input.query) return { state: 'not_ready' };
     const results = [], seen = new Set();
-    for (const anchor of [...document.querySelectorAll('ytd-video-renderer a#video-title[href]')].slice(0, 80)) {
+    for (const anchor of [...document.querySelectorAll('ytd-video-renderer a#video-title[href], yt-lockup-view-model a.ytLockupMetadataViewModelTitle[href]')].slice(0, 80)) {
       if (!visible(anchor) || anchor.closest('ytd-ad-slot-renderer, ytd-promoted-video-renderer')) continue;
       const destination = new URL(anchor.href, url.href), videoId = destination.searchParams.get('v');
       if (destination.origin !== 'https://www.youtube.com' || destination.pathname !== '/watch' || destination.username || destination.password || !/^[A-Za-z0-9_-]{11}$/.test(videoId || '') || seen.has(videoId)) continue;
-      const renderer = anchor.closest('ytd-video-renderer');
-      const channelElement = renderer?.querySelector('ytd-channel-name a, #channel-name a');
+      const modern = anchor.closest('yt-lockup-view-model'), renderer = modern || anchor.closest('ytd-video-renderer');
+      if (!renderer || renderer.querySelector('feed-ad-metadata-view-model')) continue;
+      const channelElement = [...renderer.querySelectorAll(modern ? 'yt-content-metadata-view-model a[href]' : 'ytd-channel-name a[href], #channel-name a[href]')].slice(0, 20).find(element => {
+        if (!visible(element) || element.closest(modern ? 'yt-lockup-view-model' : 'ytd-video-renderer') !== renderer || !text(element.textContent, 100)) return false;
+        try {
+          const channelUrl = new URL(element.href, url.href);
+          return channelUrl.origin === 'https://www.youtube.com' && !channelUrl.username && !channelUrl.password && /^\/(?:@[^/]+|(?:channel|c|user)\/[^/]+)\/?$/.test(channelUrl.pathname);
+        } catch { return false; }
+      });
       const title = text(anchor.getAttribute('title') || anchor.textContent), channel = text(channelElement?.textContent, 100);
       if (!title || !channel || !visible(channelElement)) continue;
       seen.add(videoId); results.push({ videoId, title, channel, url: destination.href });

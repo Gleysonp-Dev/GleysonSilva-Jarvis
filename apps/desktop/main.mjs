@@ -455,7 +455,7 @@ async function startApplication() {
   startupService = new StartupGreetingService({ getSettings: () => settings.get(), getKey: () => settings.getElevenSecret() });
   ultronCommands = new UltronCommands({
     getSettings: () => ({ ...settings.get(), hasElevenKey: Boolean(settings.getElevenSecret()) }),
-    getVersion: () => app.getVersion?.() || '0.6.4', emit: publish,
+    getVersion: () => app.getVersion?.() || '0.6.5', emit: publish,
     isWindowAvailable: () => Boolean(mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()),
     readWeather: options => startupService.readWeather({}, options),
     openBrowser: ({ signal }) => runtime.call({ id: randomUUID(), runId: `ultron-${randomUUID()}`, profileId: settings.get().profileId, name: 'apps_open', args: { appId: 'browser' } }, { signal }),

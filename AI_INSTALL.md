@@ -1,14 +1,22 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
-## Revisão 0.6.4 — botão de pesquisa do YouTube atual
+## Revisão 0.6.5 — resultados modernos do YouTube, em validação
+
+O reteste real da **0.6.4 foi reprovado**: os resultados apareceram, mas o vídeo não tocou e a janela ficou na lista. Uma consulta local limitada, autorizada pelo usuário e restrita ao estado/resumo das ferramentas YouTube, confirmou expiração da busca após 15 segundos, sem chamada a `youtube_play` naquela tentativa. Isso não comprova falha do player, anúncio ou VAD.
+
+O extrator anterior lia apenas cartões legados. A 0.6.5 prepara suporte estreito aos cartões modernos observados no site público: título e canal visíveis do mesmo cartão, link de canal validado e exclusão de publicidade, sem completar metadados por suposição. Preserva resultados legados, ordem, até oito IDs únicos de 11 caracteres e consulta correspondente. O botão moderno de busca, os limites de navegação, perfil e intervenção manual permanecem. [Contrato](docs/youtube.md).
+
+Verificação local final 0.6.5: **576 testes, 565 aprovados, somente as 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **69/69**, VAD **30/30**. O adaptador com cartões modernos na nova fixture ainda será exercitado no CI; não houve esse ensaio no Chromium local. **CI, pacote e ensaio ao vivo 0.6.5 pendentes.** Não há link ou hash 0.6.5 conferido nesta etapa. O pacote e os 568/568 testes 0.6.4 abaixo são históricos e não validam o extrator novo. Quando o pacote novo for conferido, preservar os ajustes privados e testar lista, escolha, reprodução, nova busca a partir do vídeo, segundo vídeo, pausa e retomada. A recepção continua com música/saudação e voz, sem câmera automática; Presença permanece manual. [Roteiro](docs/test-plan.md) e [Validação](docs/validation.md).
+
+## Base anterior 0.6.4 — botão de pesquisa do YouTube atual
 
 O controlador prioriza a lupa moderna observada na página controlada. Envia a consulta com **um clique**, sem exigir que esse botão seja um submit de formulário; quando ele não existir, o fallback é restrito ao botão legado ou formulário real observado. O sucesso continua exigindo URL, consulta e resultados reais correspondentes. Não construir URL sintética de resultados, não simular sucesso e não repetir cliques automaticamente.
 
 O reteste real do pacote **0.6.3 falhou**: o site abriu, a consulta permaneceu no campo/autocomplete da página inicial e não tocou. O envio anterior por formulário pode não efetivar a busca em uma aplicação dinâmica; a regressão controlada reproduziu esse caso. Isso é compatível com a imagem, sem comprovar anúncio, conta ou VAD como causa física. [Diagnóstico e limites](docs/validation.md).
 
-Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. [CI 8c40a15 da 0.6.4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39878604368) aprovado: **568/568 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. **O novo ensaio real 0.6.4 ainda está pendente; o reteste 0.6.3 permanece reprovado.** A fixture de formulário/botão gerenciados por JavaScript foi executada no CI em HTTPS local com mídia PCM e áudio silenciado; não comprova o YouTube real. As contagens **558/558**, hashes e artefatos 0.6.3 abaixo são históricos e não comprovam a nova correção. O plugin permanece 0.6.0; preserve as configurações existentes, voz, trilha e câmera manual em Presença. A recepção continua sem câmera automática.
+Verificação local 0.6.4: **568 testes, 557 aprovados, 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **61/61**, VAD **30/30**. [CI 8c40a15 da 0.6.4](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39878604368) aprovado: **568/568 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. **O reteste real 0.6.4 foi reprovado: a lista apareceu, mas a busca expirou antes de tocar. O reteste 0.6.3 permanece reprovado.** A fixture de formulário/botão gerenciados por JavaScript foi executada no CI em HTTPS local com mídia PCM e áudio silenciado; não comprova o YouTube real. As contagens **558/558**, hashes e artefatos 0.6.3 abaixo são históricos e não comprovam a nova correção. O plugin permanece 0.6.0; preserve as configurações existentes, voz, trilha e câmera manual em Presença. A recepção continua sem câmera automática.
 
-Com o pacote 0.6.4 conferido, teste pesquisar por voz/texto, observar a lista real, tocar um resultado, pedir outra busca a partir do vídeo e tocar um resultado novo. Testar bloqueio, cancelamento e intervenção manual sem aceitar login/consentimento automaticamente. [Roteiro](docs/test-plan.md) e [YouTube](docs/youtube.md).
+O pacote 0.6.4 abaixo foi conferido, mas seu reteste real reprovou o fluxo de busca→reprodução. O roteiro completo deve ser repetido com a próxima correção conferida. Testar bloqueio, cancelamento e intervenção manual sem aceitar login/consentimento automaticamente. [Roteiro](docs/test-plan.md) e [YouTube](docs/youtube.md).
 
 ## Pacote Windows 0.6.4 conferido
 
@@ -23,7 +31,7 @@ O [job 120170243806](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions
 
 Retenção até **20 de janeiro de 2027, às 19h31, America/New_York**. É artefato temporário do GitHub Actions, que pode exigir login; não é release assinada nem link permanente. O workflow também gerou artefato do plugin **0.6.0**, que não foi baixado ou reinstalado nesta atualização.
 
-Feche a versão anterior por **X/Sair**, extraia o ZIP e abra **GleysonSilva-Jarvis-0.6.4-Windows.exe**. Confira **MVP / 06.4**, preserve ajustes privados e repita busca, lista real, reprodução, nova busca e segundo vídeo por voz/texto. O reteste real 0.6.3 falhou; o resultado físico da 0.6.4 continua pendente. Não tratar o CI como esse aceite nem atribuir a falha anterior a VAD/anúncio. [YouTube](docs/youtube.md), [voz](docs/openai.md) e [validação](docs/validation.md).
+O arquivo **GleysonSilva-Jarvis-0.6.4-Windows.exe**, com identificação **MVP / 06.4**, é a base histórica conferida. Seu reteste real falhou: resultados apareceram, mas a busca expirou antes de tocar; a 0.6.3 também falhou. Preserve os ajustes privados e repita o roteiro com a próxima correção conferida. Não tratar o CI como esse aceite nem atribuir a falha anterior a VAD/anúncio. [YouTube](docs/youtube.md), [voz](docs/openai.md) e [validação](docs/validation.md).
 
 ## Base anterior 0.6.3 — busca recuperável e interrupção por voz correlacionada
 
