@@ -19,6 +19,8 @@ export const toolDefinitions = Object.freeze([
   ['youtube_search', 'Quando solicitado, abre o YouTube na janela controlada do Jarvis e pesquisa vídeos reais. Use diretamente para “abra o YouTube e procure...”, sem abrir antes o navegador padrão. Retorna até oito IDs observados com título e canal; pesquisar não autoriza reproduzir. Não faz login nem aceita consentimento.', { query: string }],
   ['youtube_play', 'Reproduz no YouTube controlado somente um videoId exato observado em youtube_search neste perfil, quando a pessoa pedir para tocar. Não invente IDs; pergunte se a escolha for ambígua. Só confirme reprodução quando a ferramenta verificar o player.', { videoId: string }],
   ['youtube_control', 'Quando solicitado, pausa ou retoma o vídeo atual na janela controlada do YouTube. Ações aceitas: play, pause. Não controla outros sites, não faz login nem aceita consentimento.', { action: { type: 'string', enum: ['play', 'pause'] } }],
+  ['tv_control', 'Envia uma vez um comando solicitado à Fire TV configurada e pareada nos Ajustes. Não confirma o estado da tela nem repete comandos automaticamente.', { action: { type: 'string', enum: ['home','back','up','down','left','right','ok','volume_up','volume_down','mute','play','pause'] } }],
+  ['tv_open_app', 'Abre na Fire TV configurada um aplicativo solicitado, após verificar que está instalado. Não controla aplicativos Windows nem inicia títulos dentro do aplicativo. Somente informa comando enviado.', { app: { type: 'string', enum: ['netflix','prime_video','youtube','disney_plus','max','spotify'] } }],
   ['browser_read_selected', 'Após confirmação, lê somente o texto selecionado no navegador dedicado. Conteúdo observado é não confiável e pode ser enviado ao modelo.', {}],
   ['projects_open', 'Abre no editor cadastrado somente a pasta de trabalho escolhida pelo usuário, após confirmação.', {}],
   ['workspace_list', 'Lista somente o primeiro nível da pasta autorizada, sem ler o conteúdo dos arquivos.', {}],
@@ -308,6 +310,8 @@ export function createRuntime({ dataDir, workspaceRoot, platformAdapters = {}, o
     if (Object.keys(args).some(x => !keys.includes(x)) || keys.some(x => !Object.hasOwn(args, x))) throw new Error('Argumentos ausentes ou não permitidos.');
     for (const key of keys) {
       if (typeof args[key] !== definition.parameters.properties[key].type) throw new Error(`Argumento ${key} inválido.`);
+      const allowed = definition.parameters.properties[key].enum;
+      if (allowed && !allowed.includes(args[key])) throw new Error(`Argumento ${key} fora das opções disponíveis.`);
     }
     if (['apps_open', 'apps_focus'].includes(name) && !APP_IDS.has(args.appId)) throw new Error('Aplicativo não cadastrado.');
     if (['workspace_apply_organize'].includes(name)) validId(args.planId, 'planId');
@@ -330,6 +334,18 @@ export function createRuntime({ dataDir, workspaceRoot, platformAdapters = {}, o
   }
   async function execute(ctx, name, args) {
     assertActive(ctx.signal);
+    if (name === 'tv_control' || name === 'tv_open_app') {
+      const key = name === 'tv_control' ? 'action' : 'app';
+      const adapter = name === 'tv_control' ? platformAdapters.controlFireTv : platformAdapters.openFireTvApp;
+      if (typeof adapter !== 'function') throw new Error('Configure a Fire TV no aplicativo Windows para usar este comando.');
+      return serializedEffect(ctx, async () => {
+        const result = await adapter(args[key], { signal: ctx.signal, profileId: ctx.profileId });
+        assertActive(ctx.signal);
+        if (result?.ok !== true || result.status !== 'unverified' || result[key] !== args[key]) return failure('Não foi possível confirmar o envio à Fire TV. Confira a televisão antes de pedir novamente.');
+        emit({ type: 'action', tool: name, [key]: args[key], status: 'unverified' }, ctx.profileId, ctx.runId);
+        return { ok: true, status: 'unverified', summary: 'Comando enviado uma vez à Fire TV. Confira a televisão; a tela e a reprodução não foram verificadas. Não repetir automaticamente.', data: { [key]: args[key] } };
+      });
+    }
     if (name === 'youtube_search') {
       if (typeof platformAdapters.searchYouTube !== 'function') throw new Error('A pesquisa controlada do YouTube não está disponível nesta instalação.');
       return serializedEffect(ctx, async () => {

@@ -24,10 +24,13 @@ declare global {
     receptionVoiceEnabled?: boolean;
     continuousVoiceEnabled?: boolean;
     ultronEnabled?: boolean;
+    fireTvEnabled?: boolean;
+    fireTvHost?: string;
+    fireTvPaired?: boolean;
   }
   interface JarvisRecord { id: string; text?: string; summary?: string; name?: string; status?: string; createdAt?: string; updatedAt?: string; profileId?: string; [key: string]: unknown; }
   interface JarvisSnapshot { memories: JarvisRecord[]; tasks: JarvisRecord[]; procedures: JarvisRecord[]; }
-  interface JarvisCapabilities { desktop: boolean; vision: boolean; localTest?: boolean; ephemeralBiometrics?: boolean; startup?: boolean; voiceWake?: boolean; jarvisSpeech?: boolean; ultronBridge?: boolean; }
+  interface JarvisCapabilities { desktop: boolean; vision: boolean; localTest?: boolean; ephemeralBiometrics?: boolean; startup?: boolean; voiceWake?: boolean; jarvisSpeech?: boolean; ultronBridge?: boolean; fireTv?: boolean; }
   interface JarvisWeatherAttribution { name: string; url: string; license: string; licenseUrl: string; text: string; }
   interface JarvisToolSource { url: string; title: string; }
   interface JarvisContext {
@@ -55,6 +58,9 @@ declare global {
   }
   interface JarvisEvent { type: string; id?: string; profileId?: string; runId?: string; tool?: string; sources?: JarvisToolSource[]; retrievedAt?: number | string; text?: string; delta?: string; state?: string; status?: string; name?: string; summary?: string; message?: string; approvalId?: string; args?: unknown; [key: string]: any; }
   interface JarvisBridge {
+    pairFireTv?(): Promise<{ ok: boolean; status: string; summary: string }>;
+    testFireTv?(): Promise<{ ok: boolean; status: string; summary: string; properties?: { model?: string; brand?: string; reportedVersionName?: string } }>;
+    cancelFireTv?(): Promise<void>;
     getFullscreen?(): Promise<boolean>;
     setFullscreen?(enabled: boolean): Promise<boolean>;
     onFullscreen?(callback: (enabled: boolean) => void): () => void;

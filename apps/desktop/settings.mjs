@@ -1,9 +1,13 @@
 import { readFileSync, writeFileSync, mkdirSync, renameSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-export const defaults = { profileId:'default', textModel:'gpt-5.4-mini', realtimeModel:'gpt-realtime', voice:'marin', maxSessionMinutes:10, apps:[], startupGreeting:true, weatherLocation:null, elevenVoiceId:'', startAtLogin:false, standbyEnabled:false, wakeClapEnabled:true, wakeVoiceEnabled:true, greetingMusicEnabled:true, receptionOutfitEnabled:false, receptionVoiceEnabled:false, continuousVoiceEnabled:false, ultronEnabled:false };
+import { createPrivateKey } from 'node:crypto';
+import { validateFireTvHost } from './fire-tv.mjs';
+export const defaults = { profileId:'default', textModel:'gpt-5.4-mini', realtimeModel:'gpt-realtime', voice:'marin', maxSessionMinutes:10, apps:[], startupGreeting:true, weatherLocation:null, elevenVoiceId:'', startAtLogin:false, standbyEnabled:false, wakeClapEnabled:true, wakeVoiceEnabled:true, greetingMusicEnabled:true, receptionOutfitEnabled:false, receptionVoiceEnabled:false, continuousVoiceEnabled:false, ultronEnabled:false, fireTvEnabled:false, fireTvHost:'' };
 export function validateSettings(value) {
   if(!value || typeof value!=='object' || Array.isArray(value)) throw new Error('Configuração inválida.');
   const result = {};
+  if(value.fireTvEnabled!==undefined){if(typeof value.fireTvEnabled!=='boolean')throw new Error('A conexão Fire TV deve ser verdadeira ou falsa.');result.fireTvEnabled=value.fireTvEnabled;}
+  if(value.fireTvHost!==undefined){if(value.fireTvHost!==''&&!validateFireTvHost(value.fireTvHost))throw new Error('Informe o IP privado da Fire TV.');result.fireTvHost=value.fireTvHost;}
   for (const key of ['textModel','realtimeModel']) if (value[key] !== undefined) {
     if (typeof value[key] !== 'string' || !/^[a-zA-Z0-9._:-]{1,120}$/.test(value[key])) throw new Error('Identificador de modelo inválido.');
     result[key]=value[key];
@@ -28,15 +32,22 @@ export function validateSettings(value) {
   return result;
 }
 function checkedSecret(value){if(typeof value!=='string'||value.length>512||/[\r\n\0]/.test(value))throw new Error('Chave inválida.');return value.trim();}
+function checkedFireTvRecord(value){
+  if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).some(key=>!['host','profileId','privateKey','paired'].includes(key))||!validateFireTvHost(value.host)||typeof value.profileId!=='string'||!/^[a-z0-9_-]{1,64}$/.test(value.profileId)||typeof value.paired!=='boolean'||typeof value.privateKey!=='string'||value.privateKey.length>4096)throw new Error('Registro protegido da Fire TV inválido.');
+  try{const key=createPrivateKey(value.privateKey);if(key.asymmetricKeyType!=='rsa'||key.asymmetricKeyDetails?.modulusLength!==2048||key.asymmetricKeyDetails?.publicExponent!==65537n)throw new Error();}catch{throw new Error('Chave protegida da Fire TV inválida.');}
+  return {host:value.host,profileId:value.profileId,privateKey:value.privateKey,paired:value.paired};
+}
 export class SettingsStore {
   constructor(dir, crypto) {this.dir=dir;this.crypto=crypto;mkdirSync(dir,{recursive:true});this.path=join(dir,'settings.json');this.secretPath=join(dir,'credentials.bin');try{const stored=JSON.parse(readFileSync(this.path,'utf8'));this.value={...defaults,...validateSettings(stored),workspaceRoot:typeof stored.workspaceRoot==='string'?stored.workspaceRoot:undefined,apps:Array.isArray(stored.apps)?stored.apps.filter(a=>a&&typeof a.id==='string'&&typeof a.path==='string'&&typeof a.label==='string'):[]};}catch{this.value={...defaults,apps:[]};}}
   get(){return structuredClone(this.value);}
   write(extra){this.value={...this.value,...extra};const temp=this.path+'.tmp';writeFileSync(temp,JSON.stringify(this.value,null,2),{mode:0o600});renameSync(temp,this.path);return this.get();}
-  save(value){const valid=validateSettings(value);if((valid.standbyEnabled??this.value.standbyEnabled)===true)valid.startupGreeting=true;const openai=value.apiKey!==undefined?checkedSecret(value.apiKey):'',eleven=value.elevenApiKey!==undefined?checkedSecret(value.elevenApiKey):'';if(openai)this.setSecret(openai);if(eleven)this.#saveSecret(join(this.dir,'credentials-eleven.bin'),eleven);return this.write(valid);}
+  save(value){const valid=validateSettings(value);if((valid.fireTvEnabled??this.value.fireTvEnabled)&&!validateFireTvHost(valid.fireTvHost??this.value.fireTvHost))throw new Error('Informe o IP privado antes de ativar a Fire TV.');if((valid.standbyEnabled??this.value.standbyEnabled)===true)valid.startupGreeting=true;const openai=value.apiKey!==undefined?checkedSecret(value.apiKey):'',eleven=value.elevenApiKey!==undefined?checkedSecret(value.elevenApiKey):'';if(openai)this.setSecret(openai);if(eleven)this.#saveSecret(join(this.dir,'credentials-eleven.bin'),eleven);return this.write(valid);}
   #saveSecret(file,key){if(!this.crypto.isEncryptionAvailable())throw new Error('O armazenamento protegido do sistema não está disponível.');const data=this.crypto.encryptString(key);writeFileSync(file+'.tmp',data,{mode:0o600});renameSync(file+'.tmp',file);}
   #readSecret(file,fallback){try{if(existsSync(file)&&this.crypto.isEncryptionAvailable())return this.crypto.decryptString(readFileSync(file));}catch{}return fallback||'';}
   setSecret(key){this.#saveSecret(this.secretPath,checkedSecret(key));}
   getSecret(){return this.#readSecret(this.secretPath,process.env.OPENAI_API_KEY);}
   getElevenSecret(){return this.#readSecret(join(this.dir,'credentials-eleven.bin'),process.env.ELEVENLABS_API_KEY);}
-  public(){const s=this.get();return {...s,apps:s.apps.map(({id,label})=>({id,label})),hasKey:Boolean(this.getSecret()),hasElevenKey:Boolean(this.getElevenSecret())};}
+  getFireTvKeyRecord(){try{return checkedFireTvRecord(JSON.parse(this.#readSecret(join(this.dir,'credentials-fire-tv.bin'),'')));}catch{return null;}}
+  setFireTvKeyRecord(value){this.#saveSecret(join(this.dir,'credentials-fire-tv.bin'),JSON.stringify(checkedFireTvRecord(value)));}
+  public(){const s=this.get(),tv=this.getFireTvKeyRecord();return {...s,fireTvPaired:Boolean(s.fireTvEnabled&&tv?.paired&&tv.host===s.fireTvHost&&tv.profileId===s.profileId),apps:s.apps.map(({id,label})=>({id,label})),hasKey:Boolean(this.getSecret()),hasElevenKey:Boolean(this.getElevenSecret())};}
 }

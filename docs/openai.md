@@ -4,6 +4,10 @@ O aplicativo usa Responses para texto digitado e Realtime com WebRTC para entrad
 
 O modelo solicita ferramentas; o executor local valida argumentos, verifica a pasta autorizada, apresenta a confirmação necessária e registra o resultado. Uma resposta gerada não prova que uma ação aconteceu.
 
+## Revisão 0.7.0 — ferramentas nativas da Fire TV
+
+Texto e voz podem solicitar `tv_open_app` com um dos seis IDs de aplicativo e `tv_control` com uma das doze ações fechadas. O IP, a chave e o pareamento permanecem no backend local; o modelo não recebe esses valores nem comandos ADB livres. “Jarvis, abra a Netflix” é encaminhado à TV configurada; um destino explícito Windows/navegador é respeitado. YouTube sem menção à TV preserva as ferramentas do computador. Resultado `unverified` deve ser narrado como comando enviado, sem confirmar tela/reprodução nem repetir automaticamente após falha ou timeout. Esta etapa acrescenta rotas e instruções de ferramentas, sem trocar modelo ou provedor de voz. [Configuração](fire-tv.md) e [validação 0.7.0 pendente](validation.md#revisão-070--fire-tv-em-validação).
+
 ## Revisão 0.6.5 — leitura dos resultados no adaptador YouTube
 
 A correção acrescenta suporte aos cartões modernos de resultados no adaptador local, sem trocar modelo, prompt, chave ou a política de voz. Título e canal devem vir do mesmo cartão visível, com URL de canal validada, sem inventar metadados; publicidade é excluída e o suporte legado permanece. IDs observados e prova do player continuam obrigatórios.

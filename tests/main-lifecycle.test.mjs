@@ -14,9 +14,9 @@ const { code } = await transform(source, { format: 'cjs', target: 'node24', defi
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
 
-async function fixture(t, { blockWake = false, resetFailure = false, lateContext = false, lateOutfit = false, ultronEnabled = false } = {}) {
+async function fixture(t, { blockWake = false, resetFailure = false, lateContext = false, lateOutfit = false, ultronEnabled = false, lateFireTv = false } = {}) {
   const calls = { mute: 0, destroy: 0, hide: 0, speechReset: 0, wakeStop: 0, visionClose: 0, runtimeClose: 0, trayDestroy: 0, quit: 0, cancelledRuns: [], signals: [], errors: [], fullscreen: [], sent: [] };
-  const wake = deferred(), context = deferred(), outfit = deferred(), ipc = new Map(), windows = [], trays = [];
+  const wake = deferred(), context = deferred(), outfit = deferred(), tv = deferred(), ipc = new Map(), windows = [], trays = [];
   const current = { profileId: 'default', standbyEnabled: true, startAtLogin: false, wakeVoiceEnabled: true, startupGreeting: true, apps: [], elevenVoiceId: 'testVoice', ultronEnabled };
   const app = new EventEmitter();
   Object.assign(app, { isPackaged: true, setName() {}, enableSandbox() {}, requestSingleInstanceLock: () => true, whenReady: async () => {}, getPath: () => 'C:\\fake-private-data', isReady: () => true,
@@ -49,7 +49,15 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
     electron: { app, BrowserWindow: Window, Tray, Menu: { buildFromTemplate: value => value }, nativeImage: { createFromBuffer: () => ({}) }, dialog: {}, ipcMain: { handle: (name, handler) => ipc.set(name, handler) }, protocol: { registerSchemesAsPrivileged() {}, handle() {} }, safeStorage: {}, session: { defaultSession: session }, shell: { async openExternal(url) { (calls.external ??= []).push(url); } } },
     'node:fs/promises': { async mkdir() {}, readFile() { throw new Error('Unexpected file access.'); } },
     '../../packages/runtime/index.mjs': { createRuntime: options => { adapters = options.platformAdapters; return runtime; } },
-    '../../packages/openai/index.mjs': { OpenAIService: class { respond = blocking; searchWeb = async (input, options) => { calls.search = { input, options }; return { text: 'Search test', sources: [] }; }; describeOutfit = async (input, options) => { calls.outfit = { input, options }; return lateOutfit ? outfit.promise : { text: 'Roupa de teste.', observedAt: Date.now() }; }; }, OpenAIServiceError: class extends Error {} },
+    '../../packages/openai/index.mjs': { OpenAIService: class { respond = blocking; executeRealtimeTool = async () => ({ok:true,status:'unverified'}); searchWeb = async (input, options) => { calls.search = { input, options }; return { text: 'Search test', sources: [] }; }; describeOutfit = async (input, options) => { calls.outfit = { input, options }; return lateOutfit ? outfit.promise : { text: 'Roupa de teste.', observedAt: Date.now() }; }; }, OpenAIServiceError: class extends Error {} },
+    './fire-tv.mjs': { FireTVError: class extends Error {}, FireTVController: class {
+      constructor(options) { calls.tvOptions = options; }
+      reset() { calls.tvReset = (calls.tvReset ?? 0) + 1; }
+      async pair(options) { calls.tvPair = options; return lateFireTv ? tv.promise : {ok:true,paired:true,summary:'Paired'}; }
+      async status(options) { calls.tvStatus = options; return {ok:true,connected:true,properties:{model:'Test'},summary:'Connected'}; }
+      async control(action,options) { calls.tvControl={action,options}; return {ok:true,status:'unverified',action}; }
+      async openApp(application,options) { calls.tvOpen={application,options}; return {ok:true,status:'unverified',app:application}; }
+    } },
     '../../packages/ultron/commands.mjs': { UltronCommands, UltronCommandError },
     '../../packages/ultron/index.mjs': { async createUltronBridge({ handle }) { calls.ultronCreates = (calls.ultronCreates ?? 0) + 1; ultronHandle = handle; return { async close() { calls.ultronCloses = (calls.ultronCloses ?? 0) + 1; } }; } },
     '../../packages/web/index.mjs': { WebService: class { read = async (input, options) => { calls.website = { input, options }; return { text: 'Website test', sources: [] }; }; } },
@@ -74,8 +82,26 @@ async function fixture(t, { blockWake = false, resetFailure = false, lateContext
   const window = windows[0];
   const invoke = (name, input) => ipc.get('jarvis:' + name)({ sender: window.webContents, senderFrame: window.webContents.mainFrame }, input);
   t.after(async () => { wake.resolve(); await module.exports.requestShutdown('test_cleanup'); });
-  return { calls, app, window, trays, invoke, hasHandler: name => ipc.has('jarvis:' + name), invokeFrom: (event, name, input) => ipc.get('jarvis:' + name)(event, input), invokeUltron: (method, args = {}, scope = {}) => ultronHandle(method, args, { id: crypto.randomUUID(), ...scope }), adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, shutdown: module.exports.requestShutdown };
+  return { calls, app, window, trays, invoke, hasHandler: name => ipc.has('jarvis:' + name), invokeFrom: (event, name, input) => ipc.get('jarvis:' + name)(event, input), invokeUltron: (method, args = {}, scope = {}) => ultronHandle(method, args, { id: crypto.randomUUID(), ...scope }), adapters, preferences: current, releaseWake: wake.resolve, resolveContext: context.resolve, resolveOutfit: outfit.resolve, resolveFireTv: tv.resolve, shutdown: module.exports.requestShutdown };
 }
+test('Fire TV native configuration is explicit, private and remains usable after a completed voice tool', async t => {
+  const f = await fixture(t);assert.equal((await f.invoke('boot')).capabilities.fireTv,true);assert.equal(f.calls.tvPair,undefined);
+  await f.invoke('callTool',{id:'tv-call',runId:'voice-tool',name:'tv_control',args:{action:'home'}});
+  assert.equal((await f.invoke('pairFireTv')).status,'paired');assert(f.calls.tvPair.signal instanceof AbortSignal);
+  assert.equal((await f.invoke('testFireTv')).status,'connected');
+  await f.adapters.openFireTvApp('netflix',{profileId:'default'});assert.equal(f.calls.tvOpen.application,'netflix');
+  assert.throws(()=>f.adapters.controlFireTv('home',{profileId:'other'}),/perfil mudou/);
+  await assert.rejects(f.invoke('pairFireTv',{host:'10.0.0.3'}),/Argumento/);
+  f.calls.tvOptions.onEvent({type:'approval_required'});assert(f.calls.sent.some(([,event])=>event.type==='fire_tv_pairing'&&event.state==='approval_required'));
+});
+test('Fire TV configuration rejects concurrent work and cancellation suppresses late pairing answers',async t=>{
+  const f=await fixture(t,{lateFireTv:true});const pending=f.invoke('pairFireTv');await flush();
+  await assert.rejects(f.invoke('text',{text:'test',runId:'blocked'}),/Fire TV/);
+  await assert.rejects(f.invoke('callTool',{id:'blocked',runId:'blocked',name:'tv_control',args:{action:'home'}}),/Fire TV/);
+  await assert.rejects(f.invoke('pairFireTv'),/sessão/);
+  const rejected=assert.rejects(pending,/interrompida/);await f.invoke('cancelFireTv');assert.equal(f.calls.tvPair.signal.aborted,true);
+  f.resolveFireTv({ok:true,paired:true});await rejected;assert(f.calls.tvReset>=1);
+});
 
 test('Ultron stays disabled until explicitly saved and exposes only the five bounded capabilities', async t => {
   const f = await fixture(t);

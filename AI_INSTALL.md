@@ -1,5 +1,20 @@
 # Instalação assistida — Projeto GleysonSilva-Jarvis
 
+## Revisão 0.7.0 — Fire TV em validação
+
+O código acrescenta abertura de aplicativos e comandos de controle remoto na Fire TV pela conversa nativa. **O pacote Windows 0.7.0, o pareamento pela interface e o teste por voz ainda estão pendentes.** O cliente Node isolado, após a correção de fechamento tardio de stream, consultou a TV e enviou uma única solicitação para abrir a Netflix instalada; o usuário confirmou a abertura na tela. Isso não valida o novo aplicativo. Não apresente o pacote, os hashes ou os 576 testes da 0.6.5 como prova desta integração. A suíte local desta etapa teve **641 testes, 630 aprovados, as mesmas 11 falhas EPERM do sandbox e zero skips**; TypeScript/build passaram. Seleção automática de perfil Netflix ainda não foi implementada ou aprovada. [Estado e limites](docs/validation.md#revisão-070--fire-tv-em-validação).
+
+Quando o novo pacote estiver conferido, feche a versão anterior por **X/Sair** e confira **MVP / 07.0**. Preserve as configurações privadas de voz, música, cidade e chaves. A TV começa desabilitada no pacote público; não há IP, rede ou chave de pareamento do proprietário no repositório.
+
+1. Habilite **Depuração ADB** na própria Fire TV e mantenha TV/computador na mesma rede local. Este fluxo não instala aplicativos e não exige habilitar fontes desconhecidas.
+2. Encerre a sessão de voz do Jarvis; em **Ajustes → TV · Fire TV**, marque **Controlar Fire TV pela rede**, preencha o **IP da TV** e salve.
+3. Reabra Ajustes, use **Parear TV** e aprove o computador na tela da TV; depois use **Testar conexão**. Use **Interromper conexão** para cancelar uma tentativa pendente.
+4. Inicie a conversa e peça **“Jarvis, abra a Netflix”**. Confira a tela da TV: o resultado indica somente comando enviado uma vez. Não repetir automaticamente se a confirmação faltar.
+
+Catálogo inicial: Netflix, Prime Video, YouTube, Disney+, Max e Spotify, somente com pacote conhecido instalado. Há doze comandos fixos: Início, Voltar, quatro setas, OK, aumentar/diminuir volume, mudo, tocar e pausar. Telas de login/perfil e reprodução de títulos não são automatizadas. O [guia Fire TV](docs/fire-tv.md) explica limites, rede e revogação. Identificação de pessoas pela voz permanece adiada. O plugin privado Ultron continua 0.6.0 com cinco ferramentas; esta integração não acrescenta TV ao MCP.
+
+Para escolher um perfil Netflix, observe a TV e solicite setas/OK individualmente, ou use o controle remoto. A tela testada não expôs nomes acessíveis nem uma captura válida; não há seleção automática pelo nome ou por posição presumida.
+
 ## Revisão 0.6.5 — CI, pacote e busca→vídeo→som conferidos
 
 O reteste real da **0.6.4 foi reprovado**: os resultados apareceram, mas o vídeo não tocou e a janela ficou na lista. Uma consulta local limitada, autorizada pelo usuário e restrita ao estado/resumo das ferramentas YouTube, confirmou expiração da busca após 15 segundos, sem chamada a `youtube_play` naquela tentativa. Isso não comprova falha do player, anúncio ou VAD.

@@ -1,5 +1,21 @@
 # Validação do MVP
 
+## Revisão 0.7.0 — Fire TV em validação
+
+A conversa nativa ganha `tv_open_app` e `tv_control`. São seis IDs fechados de aplicativos e doze comandos remotos; o IP vem da configuração privada salva. O cliente Node implementa o transporte/autenticação ADB diretamente, sem servidor ADB, SDK Android, Python ou chaves globais. O registro protegido é vinculado ao IP/perfil, e a chave pública só pode ser oferecida pelo fluxo explícito **Parear TV**. A abertura exige observar um pacote conhecido na lista atual; o inventário não é retornado ao modelo. [Contrato e configuração](fire-tv.md).
+
+A suíte local desta etapa, com a correção de protocolo, registrou **641 testes, 630 aprovados, 11 falhas EPERM já conhecidas de links/junções no sandbox e zero skips**. TypeScript e build passaram. Esse resultado não substitui CI ou pacote Windows. Não foram retiradas ou enfraquecidas as verificações bloqueadas pelo ambiente.
+
+O primeiro ensaio físico com o **cliente Node** autenticou na Fire TV, mas falhou na segunda consulta fixa de identificação. O diagnóstico encontrou um pacote `CLSE` tardio duplicado de uma stream já encerrada, recebido após abrir a seguinte. O ajuste aceita somente fechamentos vazios de pares de IDs exatos já encerrados, com histórico de até 16 pares e até 64 duplicatas; não relaxa validação de checksum, escrita ou IDs. Os 48 testes do transporte corrigido passaram, incluindo duplicatas e suas contraprovas.
+
+**Reteste físico do cliente Node isolado aprovado para essa sequência:** as três consultas fixas de identificação foram concluídas; depois, o cliente observou os pacotes instalados e enviou uma única solicitação do lançador para Netflix. A resposta programática permaneceu `unverified`, e o usuário confirmou separadamente **“Sim, a Netflix abriu”**. Isso aprova a abertura nessa TV pelo cliente isolado. Não valida pareamento/armazenamento seguro na interface do produto, pacote Windows novo ou pedido por voz; tampouco prova outros aplicativos, doze controles, login ou reprodução de títulos.
+
+Separadamente, o teste de diagnóstico anterior enviou **Início uma vez**, e o usuário confirmou que a Hisense Fire TV saiu da Netflix para a tela principal. Esse teste usou outra ferramenta; não valida o transporte Node ou o produto por voz. IP, rede, chaves e saídas privadas não são publicados.
+
+Na tentativa posterior de identificar um perfil Netflix, o proprietário deixou a tela de escolha aberta. A hierarquia retornou somente nós da superfície do aplicativo, sem nomes dos perfis, e a captura não produziu imagem válida. Não há seleção pelo nome confirmada. Não se atribui uma causa específica à captura inválida nem se tenta contornar a superfície; a escolha permanece manual ou guiada por setas/OK solicitados individualmente enquanto o usuário observa a televisão.
+
+**Pendências desta revisão:** CI; pacote/extração/checksum; abertura nativa; pareamento e Testar conexão na interface; comando “Jarvis, abra a Netflix” por voz; cancelamento, perfil e cenários de falha no produto. A seleção automática de perfil Netflix ainda não está implementada/aprovada; não há prova observável para escolher um perfil específico nesta etapa, e não são usadas coordenadas ou sequências de setas adivinhadas. Um resultado `unverified` confirma somente envio, nunca tela, filme ou som ouvido, e não autoriza repetição automática. A confirmação visual pelo usuário no cliente isolado é evidência separada. Os 576 testes, hashes e aceite do YouTube 0.6.5 abaixo permanecem históricos. [Roteiro](test-plan.md#revisão-070--fire-tv).
+
 ## Revisão 0.6.5 — CI, pacote e busca→vídeo→som confirmados
 
 No reteste real da **0.6.4**, o usuário relatou resultados visíveis, sem começar a tocar; a janela permaneceu na lista. O fluxo foi **reprovado**. Uma leitura local limitada e autorizada, restrita ao estado/resumo das ferramentas YouTube, confirmou que a busca expirou no prazo de 15 segundos e não houve `youtube_play` naquela tentativa. Publica-se apenas essa conclusão agregada, sem conteúdo ou identificadores do histórico privado. O estado observado não comprova falha de reprodução, anúncio, conta ou VAD como causa.

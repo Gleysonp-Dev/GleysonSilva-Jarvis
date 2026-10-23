@@ -26,7 +26,7 @@ function button(tree, label) {
 }
 const sources = (runId, overrides = {}) => ({ type: 'sources', tool: 'web_search', profileId: 'principal', runId,
   retrievedAt: Date.now() - 1000, sources: [{ url: 'https://example.org/research', title: 'Pesquisa verificável' }], ...overrides });
-function environment(t) {
+function environment(t, options = {}) {
   const slots = [], pending = [], subscribers = new Set(), domListeners = new Map(), opened = [], decisions = [], voiceSessions = [], fullscreenRequests = [], fullscreenSubscribers = new Set();
   let fullscreen = false;
   let cursor = 0;
@@ -36,10 +36,15 @@ function environment(t) {
     useEffect(effect, deps) { const index = cursor++, previous = slots[index]; if (!previous || !deps || deps.some((value, i) => value !== previous.deps?.[i])) { slots[index] = { deps, cleanup: previous?.cleanup }; pending.push(() => { slots[index].cleanup?.(); slots[index].cleanup = effect(); }); } },
   };
   const current = { profileId: 'principal', textModel: 'test-text', realtimeModel: 'test-voice', voice: 'legacy', maxSessionMinutes: 10,
-    workspaceRoot: '', apps: [], hasKey: true, hasElevenKey: true, elevenVoiceId: 'test-voice-id', startupGreeting: false, standbyEnabled: false };
+    workspaceRoot: '', apps: [], hasKey: true, hasElevenKey: true, elevenVoiceId: 'test-voice-id', startupGreeting: false, standbyEnabled: false, ...options.settings };
+  const capabilities = { desktop: true, vision: false, jarvisSpeech: true, ...options.capabilities };
+  const tvCalls = [];
   const emit = event => { for (const callback of subscribers) callback(event); };
   const bridge = {
-    async boot() { return { settings: { ...current }, snapshot: { memories: [], tasks: [], procedures: [] }, capabilities: { desktop: true, vision: false, jarvisSpeech: true } }; },
+    async boot() { return { settings: { ...current }, snapshot: { memories: [], tasks: [], procedures: [] }, capabilities: { ...capabilities } }; },
+    async pairFireTv() { tvCalls.push('pair'); const result = await (options.pair?.() ?? { ok: true, status: 'paired', summary: 'Computador autorizado pela TV.' }); if (result.ok) current.fireTvPaired = true; return result; },
+    async testFireTv() { tvCalls.push('test'); return options.testTv?.() ?? { ok: true, status: 'connected', summary: 'Conexão com a TV confirmada.' }; },
+    async cancelFireTv() { tvCalls.push('cancel'); },
     onEvent(callback) { subscribers.add(callback); return () => subscribers.delete(callback); },
     async wakeStop() {}, async cancelGreeting() {}, async cancelSpeech() {},
     async openExternal(url) { opened.push(url); },
@@ -76,7 +81,7 @@ function environment(t) {
     for (const slot of slots) slot?.cleanup?.();
     for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
   });
-  return { ...compiled.exports, opened, decisions, voiceSessions, fullscreenRequests, emit, current,
+  return { ...compiled.exports, opened, decisions, voiceSessions, fullscreenRequests, emit, current, tvCalls,
     changeFullscreen(enabled) { fullscreen = enabled; for (const callback of fullscreenSubscribers) callback(enabled); },
     render() { cursor = 0; const tree = compiled.exports.App({ skipAutomaticGreeting: true }); while (pending.length) pending.shift()(); return tree; },
     running(runId, profileId = current.profileId) { emit({ type: 'state', state: 'running', tool: 'web_search', runId, profileId }); },
@@ -133,7 +138,7 @@ test('voice consultations expose compact source links outside the message log wi
   link.props.onClick({ preventDefault() { prevented = true; } }); await flush();
   assert.equal(prevented, true); assert.deepEqual(app.opened, ['https://example.org/research']);
   assert.equal(elements(tree).some(element => element.type === 'canvas'), true);
-  assert.match(text(tree), /MVP \/ 06\.5/);
+  assert.match(text(tree), /MVP \/ 07\.0/);
 });
 
 test('last sources persist until the next consultation and slower earlier runs cannot replace a newer result', async t => {
@@ -206,4 +211,96 @@ test('a Windows launch without window evidence is presented as dispatched, never
   const timeline = elements(app.render()).find(element => element.type === 'ol' && element.props?.className === 'timeline');
   assert(timeline); assert.match(text(timeline), /Enviada ao Windows/); assert.match(text(timeline), /sem verificação da janela/);
   assert.equal(text(timeline).includes('Concluída'), false);
+});
+
+test('Fire TV commands report dispatch to the television without claiming verified execution or a Windows action', async t => {
+  const app = environment(t); app.render(); await flush(); app.render();
+  for (const tool of ['tv_control', 'tv_open_app']) app.emit({ type: 'action', id: `dispatch-${tool}`, tool, status: 'unverified', profileId: 'principal', runId: `run-${tool}`, at: new Date().toISOString() });
+  button(app.render(), 'Atividades').props.onClick();
+  const timeline = elements(app.render()).find(element => element.type === 'ol' && element.props?.className === 'timeline');
+  assert.match(text(timeline), /Comando enviado à Fire TV · confira a televisão/);
+  assert.match(text(timeline), /Controlar Fire TV/); assert.match(text(timeline), /Abrir aplicativo na Fire TV/);
+  assert.equal(text(timeline).includes('Windows'), false); assert.equal(text(timeline).includes('Concluída'), false);
+});
+
+function openSettings(app) {
+  elements(app.render()).find(element => element.props?.className === 'profile-button').props.onClick();
+  return app.render();
+}
+function field(tree, startsWith) {
+  const label = elements(tree).find(element => element.type === 'label' && text(element).startsWith(startsWith));
+  assert(label, `Expected field ${startsWith}`);
+  return elements(label).find(element => element.type === 'input');
+}
+
+test('Fire TV saves explicit configuration before pairing, requests on-TV approval, and preserves unrelated form edits', async t => {
+  let finishPair;
+  const pair = new Promise(resolve => { finishPair = resolve; });
+  const app = environment(t, { capabilities: { fireTv: true }, pair: () => pair });
+  app.render(); await flush(); let tree = openSettings(app);
+  assert.deepEqual(app.tvCalls, []);
+  field(tree, 'Controlar Fire TV').props.onChange({ target: { checked: true } }); tree = app.render();
+  field(tree, 'IP da TV').props.onChange({ target: { value: '10.0.0.25' } }); tree = app.render();
+  assert.equal(button(tree, 'Parear TV').props.disabled, true);
+  await elements(tree).find(element => element.type === 'form' && element.props.className === 'settings-form').props.onSubmit({ preventDefault() {} });
+  await flush(); tree = openSettings(app);
+  assert.equal(app.current.fireTvHost, '10.0.0.25'); assert.equal(app.current.fireTvEnabled, true);
+  assert.deepEqual(app.tvCalls, []); assert.equal(button(tree, 'Parear TV').props.disabled, false);
+  field(tree, 'Modelo de texto').props.onChange({ target: { value: 'unsaved-model' } }); tree = app.render();
+  button(tree, 'Parear TV').props.onClick(); await flush(); tree = app.render();
+  assert.deepEqual(app.tvCalls, ['pair']);
+  assert.equal(button(tree, 'Salvar configuração').props.disabled, true); assert.equal(button(tree, 'Testar conexão').props.disabled, true);
+  app.emit({ type: 'fire_tv_pairing', state: 'approval_required', profileId: 'principal' });
+  assert.match(text(app.render()), /Aguardando aprovação: permita este computador na tela da TV/);
+  finishPair({ ok: true, status: 'paired', summary: 'Computador autorizado pela TV.' }); await flush(); tree = app.render();
+  assert.match(text(tree), /Computador autorizado pela TV/); assert.equal(button(tree, 'Parear TV').props.disabled, false);
+  assert.equal(field(tree, 'Modelo de texto').props.value, 'unsaved-model'); assert.equal(app.current.textModel, 'test-text');
+  button(tree, 'Testar conexão').props.onClick(); await flush(); tree = app.render();
+  assert.deepEqual(app.tvCalls, ['pair', 'test']); assert.match(text(tree), /Conexão com a TV confirmada/);
+});
+
+test('unsaved Fire TV address, enablement or profile changes cannot dispatch pairing or connection tests', async t => {
+  const app = environment(t, { capabilities: { fireTv: true }, settings: { fireTvEnabled: true, fireTvHost: '10.0.0.25' } });
+  app.render(); await flush(); let tree = openSettings(app);
+  field(tree, 'IP da TV').props.onChange({ target: { value: '10.0.0.26' } }); tree = app.render();
+  assert.equal(button(tree, 'Parear TV').props.disabled, true); assert.equal(button(tree, 'Testar conexão').props.disabled, true);
+  button(tree, 'Parear TV').props.onClick(); button(tree, 'Testar conexão').props.onClick(); await flush();
+  assert.deepEqual(app.tvCalls, []);
+  field(tree, 'IP da TV').props.onChange({ target: { value: '10.0.0.25' } }); tree = app.render();
+  field(tree, 'Identificador do perfil').props.onChange({ target: { value: 'different-profile' } }); tree = app.render();
+  assert.equal(button(tree, 'Parear TV').props.disabled, true); button(tree, 'Parear TV').props.onClick(); await flush();
+  assert.deepEqual(app.tvCalls, []);
+});
+
+test('Fire TV pairing results and approval events are ignored after reset or explicit interruption', async t => {
+  let finishPair;
+  const app = environment(t, { capabilities: { fireTv: true }, settings: { fireTvEnabled: true, fireTvHost: '10.0.0.25' }, pair: () => new Promise(resolve => { finishPair = resolve; }) });
+  app.render(); await flush(); let tree = openSettings(app);
+  button(tree, 'Parear TV').props.onClick(); await flush();
+  app.emit({ type: 'session.reset', profileId: 'principal', reason: 'configuration_changed' });
+  app.emit({ type: 'fire_tv_pairing', state: 'approval_required', profileId: 'principal' });
+  finishPair({ ok: true, status: 'paired', summary: 'Late result from the old connection.' }); await flush(); tree = app.render();
+  assert.equal(text(tree).includes('Late result'), false); assert.equal(text(tree).includes('Aguardando aprovação'), false);
+  assert.equal(button(tree, 'Parear TV').props.disabled, false);
+  button(tree, 'Parear TV').props.onClick(); await flush(); tree = app.render();
+  button(tree, 'Interromper conexão').props.onClick(); await flush();
+  assert.deepEqual(app.tvCalls, ['pair', 'pair', 'cancel']);
+  finishPair({ ok: true, status: 'paired', summary: 'Late result from an interrupted connection.' }); await flush();
+  assert.equal(text(app.render()).includes('Late result'), false); assert.match(text(app.render()), /Conexão com a TV interrompida/);
+});
+
+test('Fire TV actions stay unavailable in the local browser test', async t => {
+  const app = environment(t, { capabilities: { fireTv: true, localTest: true }, settings: { fireTvEnabled: true, fireTvHost: '10.0.0.25' } });
+  app.render(); await flush(); let tree = openSettings(app);
+  assert.equal(button(tree, 'Parear TV').props.disabled, true); assert.match(text(tree), /Disponível no aplicativo Windows/);
+  button(tree, 'Parear TV').props.onClick(); await flush(); assert.deepEqual(app.tvCalls, []);
+});
+
+test('an active voice session blocks Fire TV pairing and configuration testing', async t => {
+  const app = environment(t, { capabilities: { fireTv: true }, settings: { fireTvEnabled: true, fireTvHost: '10.0.0.25' } });
+  app.render(); await flush(); let tree = openSettings(app);
+  await button(tree, /^Iniciar conversa por voz/).props.onClick(); await flush(); tree = app.render();
+  assert.equal(button(tree, 'Parear TV').props.disabled, true); assert.equal(button(tree, 'Testar conexão').props.disabled, true);
+  button(tree, 'Parear TV').props.onClick(); button(tree, 'Testar conexão').props.onClick(); await flush();
+  assert.deepEqual(app.tvCalls, []);
 });

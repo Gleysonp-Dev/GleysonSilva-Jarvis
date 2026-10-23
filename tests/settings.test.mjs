@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { randomBytes, createCipheriv, createDecipheriv, generateKeyPairSync } from 'node:crypto';
 import { SettingsStore, validateSettings, defaults } from '../apps/desktop/settings.mjs';
 
 function fixture(t) {
@@ -14,6 +14,31 @@ function fixture(t) {
     decryptString(value){const d=createDecipheriv('aes-256-gcm',key,value.subarray(0,12));d.setAuthTag(value.subarray(12,28));return Buffer.concat([d.update(value.subarray(28)),d.final()]).toString('utf8');}};
   return {dir,crypto,store:new SettingsStore(dir,crypto)};
 }
+test('Fire TV configuration is opt-in and validates effective host before changing secrets', t => {
+ const {store}=fixture(t);assert.equal(defaults.fireTvEnabled,false);assert.equal(defaults.fireTvHost,'');
+ store.save({apiKey:'existing-private'});
+ for(const host of ['8.8.8.8','127.0.0.1','localhost','10.01.0.1','172.32.0.1','192.168.1.300','192.168.1.1:5555','10.0.0.1;echo x','http://10.0.0.1',null]) assert.throws(()=>store.save({fireTvHost:host,apiKey:'replacement'}));
+ assert.throws(()=>store.save({fireTvEnabled:true,apiKey:'replacement'}));assert.equal(store.getSecret(),'existing-private');assert.equal(store.get().fireTvEnabled,false);
+ store.save({fireTvHost:'192.168.42.7'});store.save({fireTvEnabled:true});assert.equal(store.public().fireTvPaired,false);
+ assert.throws(()=>store.save({fireTvHost:''}));assert.equal(store.get().fireTvHost,'192.168.42.7');
+ store.save({fireTvEnabled:false,fireTvHost:''});assert.equal(store.get().fireTvEnabled,false);
+});
+test('Fire TV identity is separately encrypted and pairing is bound to host and profile', t => {
+ const {store,dir,crypto}=fixture(t);
+ const {privateKey}=generateKeyPairSync('rsa',{modulusLength:2048,privateKeyEncoding:{type:'pkcs8',format:'pem'},publicKeyEncoding:{type:'spki',format:'pem'}});
+ const record={host:'192.168.42.7',profileId:'default',privateKey,paired:true};
+ store.save({fireTvEnabled:true,fireTvHost:record.host});store.setFireTvKeyRecord(record);
+ const restored=new SettingsStore(dir,crypto);assert.deepEqual(restored.getFireTvKeyRecord(),record);assert.equal(restored.public().fireTvPaired,true);
+ assert.equal(JSON.stringify(restored.public()).includes(privateKey),false);assert.equal(JSON.stringify(restored.get()).includes(privateKey),false);
+ for(const file of readdirSync(dir))assert.equal(readFileSync(join(dir,file)).includes(Buffer.from('PRIVATE KEY')),false);
+ restored.save({profileId:'other'});assert.equal(restored.public().fireTvPaired,false);
+ restored.save({profileId:'default',fireTvHost:'192.168.42.8'});assert.equal(restored.public().fireTvPaired,false);
+ restored.save({fireTvHost:record.host,fireTvEnabled:false});assert.equal(restored.public().fireTvPaired,false);
+ assert.throws(()=>restored.setFireTvKeyRecord({...record,host:'example.com'}));assert.throws(()=>restored.setFireTvKeyRecord({...record,privateKey:'invalid'}));assert.throws(()=>restored.setFireTvKeyRecord({...record,extra:true}));
+ assert.deepEqual(restored.getFireTvKeyRecord(),record);
+ const unavailable=new SettingsStore(dir,{isEncryptionAvailable:()=>false});assert.equal(unavailable.getFireTvKeyRecord(),null);assert.throws(()=>unavailable.setFireTvKeyRecord(record),/protegido/);
+ writeFileSync(join(dir,'credentials-fire-tv.bin'),'broken');assert.equal(restored.getFireTvKeyRecord(),null);
+});
 test('credentials persist encrypted and never appear in public settings or JSON',t=>{
  const {dir,store,crypto}=fixture(t),secret='sk-test-private-marker';
  store.save({apiKey:secret,profileId:'primary'});

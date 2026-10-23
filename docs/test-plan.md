@@ -1,5 +1,20 @@
 # Projeto GleysonSilva-Jarvis: validação e critérios de lançamento
 
+## Revisão 0.7.0 — Fire TV
+
+O código acrescenta duas ferramentas, seis aplicativos conhecidos e doze ações fixas. **CI, pacote, interface e voz no produto continuam pendentes**. A suíte local desta etapa teve **641 testes, 630 aprovados, 11 falhas EPERM anteriores e zero skips**; TypeScript/build passaram. O primeiro ensaio Node autenticou, mas a segunda identificação falhou por `CLSE` tardio duplicado; o ajuste tem limites de pares encerrados, sem aceitar escrita/ACK/IDs incorretos. O reteste do cliente Node isolado concluiu as três identificações, observou o pacote e enviou uma única solicitação para abrir Netflix; o usuário confirmou a abertura na TV. Isso não valida o caminho do aplicativo/voz nem os demais dispositivos. Seleção automática de perfil Netflix continua não implementada/aprovada. O teste anterior de Início usou outra ferramenta. [Evidência](validation.md#revisão-070--fire-tv-em-validação) e [guia](fire-tv.md).
+
+| Cenário | Critério de aceite |
+| --- | --- |
+| Configuração nova | Desabilitada por padrão; só IPv4 privado, porta fixa; IP salvo localmente, sem descoberta ou acesso a chaves globais. |
+| Pareamento explícito | Botão Parear TV, aprovação humana na televisão; nenhuma operação normal oferece chave pública. Recusa/timeout/cancelamento não ficam pareados. |
+| Testar conexão | Consultas fixas de identificação, três streams concluídas; duplicatas antigas exatas limitadas não quebram a próxima stream; pacotes inválidos continuam recusados. |
+| Abrir Netflix por voz | Sair manualmente da Netflix, pedir “Jarvis, abra a Netflix”, observar ferramenta e uma solicitação de abertura de pacote realmente instalado; confirmar a tela com o usuário. |
+| Aplicativo ausente | Falha sem abrir outro aplicativo, instalar, ir à loja ou anunciar sucesso. Outros cinco IDs só são aprovados após ensaio próprio. |
+| Resultado incerto | Narração diz comando enviado; timeout/EOF não provocam repetição automática e não confirmam tela ou som. |
+| Cancelamento e perfil | Interromper, fechar/trocar configuração cancelam operações pendentes; nenhuma ação da fila começa com perfil/IP diferente. Efeito já entregue não é desfeito. |
+| Integração preservada | Voz configurada, música, espera, YouTube do computador e tela limpa preservados; identificação da pessoa pela voz continua adiada. |
+
 ## Revisão 0.6.5 — cartões modernos e passagem da busca à reprodução
 
 O reteste real **0.6.4 foi reprovado**: os resultados apareceram, mas não tocou e a janela permaneceu na lista. A leitura local limitada e autorizada confirmou expiração de `youtube_search` em 15 segundos, sem `youtube_play` naquela tentativa. Não confundir esse resultado com teste de player ou atribuí-lo a anúncio/VAD. Verificação local final 0.6.5: **576 testes, 565 aprovados, somente as 11 falhas EPERM anteriores de links/junções no sandbox, zero skips**; TypeScript e build aprovados. YouTube **69/69**, VAD **30/30**. [CI 2aa1ce4 da 0.6.5](https://github.com/Gleysonp-Dev/GleysonSilva-Jarvis/actions/runs/39880425806) aprovado: **576/576 testes, zero falhas/skips**, TypeScript/build/pacote e abertura nativa. A fixture de cartões modernos com título/canal observado, clique gerenciado por JavaScript e `/watch` → nova busca → segundo vídeo foi executada em HTTPS local com mídia PCM e áudio silenciado; não comprova o YouTube real ou som ouvido. **Teste real 0.6.5 confirmado pelo usuário: o pedido de Thunderstruck/AC/DC buscou, abriu o vídeo e tocou com som.** Esse aceite vale para essa sequência; anúncios, pausa/retomada, outros dispositivos e início no login do Windows continuam sem validação completa. Os retestes reais 0.6.3 e 0.6.4 permanecem reprovados no histórico. Os 568/568 e hashes 0.6.4 abaixo são históricos. [YouTube](youtube.md) e [Validação](validation.md).
